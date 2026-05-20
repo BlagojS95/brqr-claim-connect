@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -110,9 +110,6 @@ function LoginPage() {
             >
               {mode === "signin" ? "Sign up" : "Sign in"}
             </button>
-          </p>
-          <p className="text-center text-xs text-muted-foreground">
-            <Link to="/" className="hover:text-foreground">← Back to home</Link>
           </p>
         </form>
       </div>
