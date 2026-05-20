@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Calendar, Building2, UserRound } from "lucide-react";
+import { Shield, Calendar, Building2, UserRound, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_app/policies")({
   component: PoliciesPage,
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/_app/policies")({
 
 function PoliciesPage() {
   const [view, setView] = useState<"active" | "expired">("active");
+  const [search, setSearch] = useState("");
   const { data: policies = [], isLoading } = useQuery({
     queryKey: ["policies"],
     queryFn: async () => {
@@ -34,7 +36,14 @@ function PoliciesPage() {
 
   const filtered = policies.filter((p) => {
     const s = status(p.expiration_date);
-    return view === "active" ? !s.expired : s.expired;
+    const matchesView = view === "active" ? !s.expired : s.expired;
+    const term = search.trim().toLowerCase();
+    const matchesSearch = !term ||
+      (p.policy_type?.toLowerCase() ?? "").includes(term) ||
+      (p.policy_number?.toLowerCase() ?? "").includes(term) ||
+      (p.carrier?.toLowerCase() ?? "").includes(term) ||
+      (p.broker_name?.toLowerCase() ?? "").includes(term);
+    return matchesView && matchesSearch;
   });
 
   const activeCount = policies.filter((p) => !status(p.expiration_date).expired).length;
@@ -47,23 +56,34 @@ function PoliciesPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-navy">Policies</h1>
           <p className="text-sm text-muted-foreground mt-1">All active and expired insurance policies on file.</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant={view === "active" ? "default" : "outline"}
-            className={view === "active" ? "bg-navy hover:bg-navy/90 text-navy-foreground" : ""}
-            onClick={() => setView("active")}
-          >
-            Active ({activeCount})
-          </Button>
-          <Button
-            size="sm"
-            variant={view === "expired" ? "default" : "outline"}
-            className={view === "expired" ? "bg-navy hover:bg-navy/90 text-navy-foreground" : ""}
-            onClick={() => setView("expired")}
-          >
-            History ({expiredCount})
-          </Button>
+        <div className="flex items-end gap-2 flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search policies…"
+              className="pl-9 w-56"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant={view === "active" ? "default" : "outline"}
+              className={view === "active" ? "bg-navy hover:bg-navy/90 text-navy-foreground" : ""}
+              onClick={() => setView("active")}
+            >
+              Active ({activeCount})
+            </Button>
+            <Button
+              size="sm"
+              variant={view === "expired" ? "default" : "outline"}
+              className={view === "expired" ? "bg-navy hover:bg-navy/90 text-navy-foreground" : ""}
+              onClick={() => setView("expired")}
+            >
+              History ({expiredCount})
+            </Button>
+          </div>
         </div>
       </div>
 
