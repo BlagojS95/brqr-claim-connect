@@ -125,8 +125,9 @@ function Dashboard() {
       </section>
 
       <section className="rounded-lg border border-border bg-card">
-        <div className="p-5 border-b border-border">
+        <div className="p-5 border-b border-border flex items-center justify-between">
           <h2 className="font-semibold text-navy">Loss Runs</h2>
+          <Link to="/loss-runs" className="text-sm text-navy hover:text-gold">Manage & request →</Link>
         </div>
         <div className="p-5 grid gap-3 md:grid-cols-3">
           {lossRuns.length === 0 && (
