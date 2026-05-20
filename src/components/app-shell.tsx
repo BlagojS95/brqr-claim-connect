@@ -15,11 +15,11 @@ interface NavItem {
 
 const items: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: Home },
+  { to: "/claims/new", label: "Report New Claim", icon: PlusCircle, mobileHide: true },
+  { to: "/claims/notice", label: "Incident Notice Only", icon: Bell, mobileHide: true },
   { to: "/claims", label: "Claims", icon: FileText },
   { to: "/policies", label: "Policies", icon: Shield },
   { to: "/loss-runs", label: "Loss Runs", icon: FolderArchive },
-  { to: "/claims/new", label: "Report Claim", icon: PlusCircle, mobileHide: true },
-  { to: "/claims/notice", label: "Notice of Claim", icon: Bell, mobileHide: true },
   { to: "/admin", label: "Admin", icon: Users, adminOnly: true },
 ];
 
