@@ -81,6 +81,8 @@ function Dashboard() {
         ))}
       </div>
 
+      <ClaimsSummary claims={claims} />
+
       <section className="rounded-lg border border-border bg-card">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <h2 className="font-semibold text-navy">Recent Claims</h2>
