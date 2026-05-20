@@ -1,5 +1,6 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, FileText, PlusCircle, Bell, Users, LogOut, Shield } from "lucide-react";
+import { Home, FileText, PlusCircle, Bell, Users, LogOut } from "lucide-react";
+import brqrLogo from "@/assets/brqr-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import type { AppRole } from "@/hooks/use-auth";
@@ -34,9 +35,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-64 flex-col bg-sidebar text-sidebar-foreground">
         <div className="p-6 border-b border-sidebar-border flex items-center gap-3">
-          <div className="h-10 w-10 rounded-md bg-gold flex items-center justify-center text-gold-foreground">
-            <Shield className="h-5 w-5" />
-          </div>
+          <img src={brqrLogo} alt="BRQR" className="h-10 w-10 rounded-md" />
           <div>
             <div className="font-bold text-base leading-tight">BRQR</div>
             <div className="text-xs text-sidebar-foreground/70">Claims Portal</div>
@@ -74,7 +73,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden flex items-center justify-between p-4 bg-navy text-navy-foreground">
           <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-gold" />
+            <img src={brqrLogo} alt="BRQR" className="h-7 w-7 rounded" />
             <span className="font-bold">BRQR Claims</span>
           </div>
           <button onClick={logout} className="text-sm opacity-90">

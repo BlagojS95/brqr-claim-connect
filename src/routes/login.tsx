@@ -1,11 +1,11 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield } from "lucide-react";
 import { toast } from "sonner";
+import brqrLogo from "@/assets/brqr-logo.png";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -55,15 +55,7 @@ function LoginPage() {
   return (
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="hidden md:flex flex-col justify-between bg-navy text-navy-foreground p-12">
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-md bg-gold flex items-center justify-center text-gold-foreground">
-            <Shield className="h-6 w-6" />
-          </div>
-          <div>
-            <div className="font-bold text-xl">BRQR</div>
-            <div className="text-sm opacity-80">Insurance Agency</div>
-          </div>
-        </div>
+        <img src={brqrLogo} alt="BRQR Broker" className="h-20 w-20 rounded-md" />
         <div>
           <h1 className="text-4xl font-bold leading-tight">Client Claims Portal</h1>
           <p className="mt-4 text-navy-foreground/75 max-w-md">
@@ -76,9 +68,7 @@ function LoginPage() {
       <div className="flex items-center justify-center p-6 md:p-12 bg-background">
         <form onSubmit={submit} className="w-full max-w-md space-y-6">
           <div className="md:hidden flex items-center gap-3">
-            <div className="h-10 w-10 rounded-md bg-navy flex items-center justify-center text-navy-foreground">
-              <Shield className="h-5 w-5 text-gold" />
-            </div>
+            <img src={brqrLogo} alt="BRQR" className="h-10 w-10 rounded-md" />
             <div className="font-bold text-lg">BRQR Claims Portal</div>
           </div>
           <div>
@@ -120,9 +110,6 @@ function LoginPage() {
             >
               {mode === "signin" ? "Sign up" : "Sign in"}
             </button>
-          </p>
-          <p className="text-center text-xs text-muted-foreground">
-            <Link to="/" className="hover:text-foreground">← Back to home</Link>
           </p>
         </form>
       </div>
