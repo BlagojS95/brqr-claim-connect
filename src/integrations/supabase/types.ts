@@ -274,6 +274,7 @@ export type Database = {
       }
       policies: {
         Row: {
+          broker_name: string | null
           carrier: string | null
           client_id: string
           created_at: string
@@ -284,6 +285,7 @@ export type Database = {
           policy_type: string | null
         }
         Insert: {
+          broker_name?: string | null
           carrier?: string | null
           client_id: string
           created_at?: string
@@ -294,6 +296,7 @@ export type Database = {
           policy_type?: string | null
         }
         Update: {
+          broker_name?: string | null
           carrier?: string | null
           client_id?: string
           created_at?: string
