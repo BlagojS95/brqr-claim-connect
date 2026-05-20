@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, FileText, PlusCircle, Bell, Users, LogOut, Shield, FolderArchive } from "lucide-react";
+import { Home, FileText, PlusCircle, Bell, Users, LogOut, Shield, FolderArchive, BarChart3 } from "lucide-react";
 import brqrLogo from "@/assets/brqr-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
