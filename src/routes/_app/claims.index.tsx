@@ -25,7 +25,21 @@ function ClaimsList() {
     },
   });
 
-  const filtered = filter === "All" ? claims : claims.filter((c) => c.status === filter);
+  const q = search.trim().toLowerCase();
+  const filtered = claims.filter((c) => {
+    if (filter !== "All" && c.status !== filter) return false;
+    if (!q) return true;
+    return [
+      c.claim_number,
+      c.claim_type,
+      c.carrier,
+      c.adjuster_name,
+      c.description,
+      c.status,
+    ]
+      .filter(Boolean)
+      .some((v) => String(v).toLowerCase().includes(q));
+  });
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -34,7 +48,7 @@ function ClaimsList() {
           <h1 className="text-2xl md:text-3xl font-bold text-navy">Claims</h1>
           <p className="text-sm text-muted-foreground mt-1">All reported claims.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {["All", "Open", "Pending", "Closed"].map((s) => (
             <Button
               key={s}
@@ -47,6 +61,16 @@ function ClaimsList() {
             </Button>
           ))}
         </div>
+      </div>
+
+      <div className="relative max-w-md">
+        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by claim #, type, carrier, adjuster…"
+          className="pl-9"
+        />
       </div>
 
       <div className="rounded-lg border border-border bg-card overflow-x-auto">
