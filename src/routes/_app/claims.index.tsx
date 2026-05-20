@@ -13,6 +13,7 @@ export const Route = createFileRoute("/_app/claims/")({
 
 function ClaimsList() {
   const [filter, setFilter] = useState<string>("All");
+  const [search, setSearch] = useState("");
   const { data: claims = [], isLoading } = useQuery({
     queryKey: ["claims-list"],
     queryFn: async () => {
