@@ -18,6 +18,7 @@ const items: NavItem[] = [
   { to: "/claims/new", label: "Report New Claim", icon: PlusCircle, mobileHide: true },
   { to: "/claims/notice", label: "Incident Notice Only", icon: Bell, mobileHide: true },
   { to: "/claims", label: "Claims", icon: FileText },
+  { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/policies", label: "Policies", icon: Shield },
   { to: "/loss-runs", label: "Loss Runs", icon: FolderArchive },
   { to: "/admin", label: "Admin", icon: Users, adminOnly: true },
