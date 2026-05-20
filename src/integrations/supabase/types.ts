@@ -182,6 +182,45 @@ export type Database = {
           },
         ]
       }
+      loss_run_requests: {
+        Row: {
+          admin_notes: string | null
+          client_id: string
+          created_at: string
+          fulfilled_at: string | null
+          id: string
+          lines_of_business: string[]
+          notes: string | null
+          requested_by: string | null
+          status: string
+          years: number[]
+        }
+        Insert: {
+          admin_notes?: string | null
+          client_id: string
+          created_at?: string
+          fulfilled_at?: string | null
+          id?: string
+          lines_of_business?: string[]
+          notes?: string | null
+          requested_by?: string | null
+          status?: string
+          years?: number[]
+        }
+        Update: {
+          admin_notes?: string | null
+          client_id?: string
+          created_at?: string
+          fulfilled_at?: string | null
+          id?: string
+          lines_of_business?: string[]
+          notes?: string | null
+          requested_by?: string | null
+          status?: string
+          years?: number[]
+        }
+        Relationships: []
+      }
       loss_runs: {
         Row: {
           client_id: string

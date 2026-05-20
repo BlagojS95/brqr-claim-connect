@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, FileText, PlusCircle, Bell, Users, LogOut } from "lucide-react";
+import { Home, FileText, PlusCircle, Bell, Users, LogOut, Shield, FolderArchive } from "lucide-react";
 import brqrLogo from "@/assets/brqr-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -10,13 +10,16 @@ interface NavItem {
   label: string;
   icon: typeof Home;
   adminOnly?: boolean;
+  mobileHide?: boolean;
 }
 
 const items: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: Home },
   { to: "/claims", label: "Claims", icon: FileText },
-  { to: "/claims/new", label: "Report Claim", icon: PlusCircle },
-  { to: "/claims/notice", label: "Notice of Claim", icon: Bell },
+  { to: "/policies", label: "Policies", icon: Shield },
+  { to: "/loss-runs", label: "Loss Runs", icon: FolderArchive },
+  { to: "/claims/new", label: "Report Claim", icon: PlusCircle, mobileHide: true },
+  { to: "/claims/notice", label: "Notice of Claim", icon: Bell, mobileHide: true },
   { to: "/admin", label: "Admin", icon: Users, adminOnly: true },
 ];
 
@@ -84,7 +87,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
 
         {/* Mobile bottom nav */}
         <nav className="md:hidden fixed bottom-0 inset-x-0 bg-sidebar text-sidebar-foreground border-t border-sidebar-border flex">
-          {visible.slice(0, 5).map((item) => {
+          {visible.filter((i) => !i.mobileHide).slice(0, 5).map((item) => {
             const active = pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
             const Icon = item.icon;
             return (
