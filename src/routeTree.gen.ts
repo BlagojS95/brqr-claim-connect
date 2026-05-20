@@ -9,38 +9,149 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppAdminRouteImport } from './routes/_app/admin'
+import { Route as AppClaimsIndexRouteImport } from './routes/_app/claims.index'
+import { Route as AppClaimsNoticeRouteImport } from './routes/_app/claims.notice'
+import { Route as AppClaimsNewRouteImport } from './routes/_app/claims.new'
+import { Route as AppClaimsClaimIdRouteImport } from './routes/_app/claims.$claimId'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClaimsIndexRoute = AppClaimsIndexRouteImport.update({
+  id: '/claims/',
+  path: '/claims/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClaimsNoticeRoute = AppClaimsNoticeRouteImport.update({
+  id: '/claims/notice',
+  path: '/claims/notice',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClaimsNewRoute = AppClaimsNewRouteImport.update({
+  id: '/claims/new',
+  path: '/claims/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClaimsClaimIdRoute = AppClaimsClaimIdRouteImport.update({
+  id: '/claims/$claimId',
+  path: '/claims/$claimId',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/admin': typeof AppAdminRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/claims/$claimId': typeof AppClaimsClaimIdRoute
+  '/claims/new': typeof AppClaimsNewRoute
+  '/claims/notice': typeof AppClaimsNoticeRoute
+  '/claims/': typeof AppClaimsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/admin': typeof AppAdminRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/claims/$claimId': typeof AppClaimsClaimIdRoute
+  '/claims/new': typeof AppClaimsNewRoute
+  '/claims/notice': typeof AppClaimsNoticeRoute
+  '/claims': typeof AppClaimsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_app/admin': typeof AppAdminRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/claims/$claimId': typeof AppClaimsClaimIdRoute
+  '/_app/claims/new': typeof AppClaimsNewRoute
+  '/_app/claims/notice': typeof AppClaimsNoticeRoute
+  '/_app/claims/': typeof AppClaimsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/admin'
+    | '/dashboard'
+    | '/claims/$claimId'
+    | '/claims/new'
+    | '/claims/notice'
+    | '/claims/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/admin'
+    | '/dashboard'
+    | '/claims/$claimId'
+    | '/claims/new'
+    | '/claims/notice'
+    | '/claims'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/admin'
+    | '/_app/dashboard'
+    | '/_app/claims/$claimId'
+    | '/_app/claims/new'
+    | '/_app/claims/notice'
+    | '/_app/claims/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +159,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/claims/': {
+      id: '/_app/claims/'
+      path: '/claims'
+      fullPath: '/claims/'
+      preLoaderRoute: typeof AppClaimsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/claims/notice': {
+      id: '/_app/claims/notice'
+      path: '/claims/notice'
+      fullPath: '/claims/notice'
+      preLoaderRoute: typeof AppClaimsNoticeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/claims/new': {
+      id: '/_app/claims/new'
+      path: '/claims/new'
+      fullPath: '/claims/new'
+      preLoaderRoute: typeof AppClaimsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/claims/$claimId': {
+      id: '/_app/claims/$claimId'
+      path: '/claims/$claimId'
+      fullPath: '/claims/$claimId'
+      preLoaderRoute: typeof AppClaimsClaimIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppAdminRoute: typeof AppAdminRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppClaimsClaimIdRoute: typeof AppClaimsClaimIdRoute
+  AppClaimsNewRoute: typeof AppClaimsNewRoute
+  AppClaimsNoticeRoute: typeof AppClaimsNoticeRoute
+  AppClaimsIndexRoute: typeof AppClaimsIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAdminRoute: AppAdminRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppClaimsClaimIdRoute: AppClaimsClaimIdRoute,
+  AppClaimsNewRoute: AppClaimsNewRoute,
+  AppClaimsNoticeRoute: AppClaimsNoticeRoute,
+  AppClaimsIndexRoute: AppClaimsIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
