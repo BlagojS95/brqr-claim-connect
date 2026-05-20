@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppPoliciesRouteImport } from './routes/_app/policies'
 import { Route as AppLossRunsRouteImport } from './routes/_app/loss-runs'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppAnalyticsRouteImport } from './routes/_app/analytics'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppClaimsIndexRouteImport } from './routes/_app/claims.index'
 import { Route as AppClaimsNoticeRouteImport } from './routes/_app/claims.notice'
@@ -50,6 +51,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminRoute = AppAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/admin': typeof AppAdminRoute
+  '/analytics': typeof AppAnalyticsRoute
   '/dashboard': typeof AppDashboardRoute
   '/loss-runs': typeof AppLossRunsRoute
   '/policies': typeof AppPoliciesRoute
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/admin': typeof AppAdminRoute
+  '/analytics': typeof AppAnalyticsRoute
   '/dashboard': typeof AppDashboardRoute
   '/loss-runs': typeof AppLossRunsRoute
   '/policies': typeof AppPoliciesRoute
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/admin': typeof AppAdminRoute
+  '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/loss-runs': typeof AppLossRunsRoute
   '/_app/policies': typeof AppPoliciesRoute
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/admin'
+    | '/analytics'
     | '/dashboard'
     | '/loss-runs'
     | '/policies'
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/admin'
+    | '/analytics'
     | '/dashboard'
     | '/loss-runs'
     | '/policies'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/_app/admin'
+    | '/_app/analytics'
     | '/_app/dashboard'
     | '/_app/loss-runs'
     | '/_app/policies'
@@ -204,6 +216,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/analytics': {
+      id: '/_app/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AppAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin': {
       id: '/_app/admin'
       path: '/admin'
@@ -244,6 +263,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRoute
+  AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppLossRunsRoute: typeof AppLossRunsRoute
   AppPoliciesRoute: typeof AppPoliciesRoute
@@ -255,6 +275,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRoute,
+  AppAnalyticsRoute: AppAnalyticsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppLossRunsRoute: AppLossRunsRoute,
   AppPoliciesRoute: AppPoliciesRoute,
@@ -274,3 +295,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
