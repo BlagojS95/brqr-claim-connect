@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppPoliciesRouteImport } from './routes/_app/policies'
+import { Route as AppLossRunsRouteImport } from './routes/_app/loss-runs'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppClaimsIndexRouteImport } from './routes/_app/claims.index'
@@ -32,6 +34,16 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppPoliciesRoute = AppPoliciesRouteImport.update({
+  id: '/policies',
+  path: '/policies',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLossRunsRoute = AppLossRunsRouteImport.update({
+  id: '/loss-runs',
+  path: '/loss-runs',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
@@ -69,6 +81,8 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/admin': typeof AppAdminRoute
   '/dashboard': typeof AppDashboardRoute
+  '/loss-runs': typeof AppLossRunsRoute
+  '/policies': typeof AppPoliciesRoute
   '/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/claims/new': typeof AppClaimsNewRoute
   '/claims/notice': typeof AppClaimsNoticeRoute
@@ -79,6 +93,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/admin': typeof AppAdminRoute
   '/dashboard': typeof AppDashboardRoute
+  '/loss-runs': typeof AppLossRunsRoute
+  '/policies': typeof AppPoliciesRoute
   '/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/claims/new': typeof AppClaimsNewRoute
   '/claims/notice': typeof AppClaimsNoticeRoute
@@ -91,6 +107,8 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/admin': typeof AppAdminRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/loss-runs': typeof AppLossRunsRoute
+  '/_app/policies': typeof AppPoliciesRoute
   '/_app/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/_app/claims/new': typeof AppClaimsNewRoute
   '/_app/claims/notice': typeof AppClaimsNoticeRoute
@@ -103,6 +121,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin'
     | '/dashboard'
+    | '/loss-runs'
+    | '/policies'
     | '/claims/$claimId'
     | '/claims/new'
     | '/claims/notice'
@@ -113,6 +133,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin'
     | '/dashboard'
+    | '/loss-runs'
+    | '/policies'
     | '/claims/$claimId'
     | '/claims/new'
     | '/claims/notice'
@@ -124,6 +146,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/admin'
     | '/_app/dashboard'
+    | '/_app/loss-runs'
+    | '/_app/policies'
     | '/_app/claims/$claimId'
     | '/_app/claims/new'
     | '/_app/claims/notice'
@@ -158,6 +182,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/policies': {
+      id: '/_app/policies'
+      path: '/policies'
+      fullPath: '/policies'
+      preLoaderRoute: typeof AppPoliciesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/loss-runs': {
+      id: '/_app/loss-runs'
+      path: '/loss-runs'
+      fullPath: '/loss-runs'
+      preLoaderRoute: typeof AppLossRunsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/dashboard': {
       id: '/_app/dashboard'
@@ -207,6 +245,8 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppLossRunsRoute: typeof AppLossRunsRoute
+  AppPoliciesRoute: typeof AppPoliciesRoute
   AppClaimsClaimIdRoute: typeof AppClaimsClaimIdRoute
   AppClaimsNewRoute: typeof AppClaimsNewRoute
   AppClaimsNoticeRoute: typeof AppClaimsNoticeRoute
@@ -216,6 +256,8 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppLossRunsRoute: AppLossRunsRoute,
+  AppPoliciesRoute: AppPoliciesRoute,
   AppClaimsClaimIdRoute: AppClaimsClaimIdRoute,
   AppClaimsNewRoute: AppClaimsNewRoute,
   AppClaimsNoticeRoute: AppClaimsNoticeRoute,
@@ -232,3 +274,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
