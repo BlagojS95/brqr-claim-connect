@@ -14,16 +14,302 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      claims: {
+        Row: {
+          adjuster_email: string | null
+          adjuster_name: string | null
+          adjuster_phone: string | null
+          ams360_doc_id: string | null
+          carrier: string | null
+          carrier_email: string | null
+          claim_number: string | null
+          claim_type: string
+          client_id: string
+          created_at: string
+          created_by: string | null
+          date_of_loss: string | null
+          date_reported: string | null
+          description: string | null
+          fnol_sent_date: string | null
+          id: string
+          is_notice_only: boolean
+          last_follow_up: string | null
+          notes: string | null
+          paid_amount: number | null
+          policy_id: string | null
+          reserve_amount: number | null
+          status: string
+        }
+        Insert: {
+          adjuster_email?: string | null
+          adjuster_name?: string | null
+          adjuster_phone?: string | null
+          ams360_doc_id?: string | null
+          carrier?: string | null
+          carrier_email?: string | null
+          claim_number?: string | null
+          claim_type: string
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          date_of_loss?: string | null
+          date_reported?: string | null
+          description?: string | null
+          fnol_sent_date?: string | null
+          id?: string
+          is_notice_only?: boolean
+          last_follow_up?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          policy_id?: string | null
+          reserve_amount?: number | null
+          status?: string
+        }
+        Update: {
+          adjuster_email?: string | null
+          adjuster_name?: string | null
+          adjuster_phone?: string | null
+          ams360_doc_id?: string | null
+          carrier?: string | null
+          carrier_email?: string | null
+          claim_number?: string | null
+          claim_type?: string
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          date_of_loss?: string | null
+          date_reported?: string | null
+          description?: string | null
+          fnol_sent_date?: string | null
+          id?: string
+          is_notice_only?: boolean
+          last_follow_up?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          policy_id?: string | null
+          reserve_amount?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claims_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claims_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          ams360_id: string | null
+          company_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          user_id: string | null
+        }
+        Insert: {
+          ams360_id?: string | null
+          company_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          ams360_id?: string | null
+          company_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          claim_id: string | null
+          client_id: string
+          file_name: string
+          file_url: string
+          id: string
+          uploaded_at: string
+        }
+        Insert: {
+          claim_id?: string | null
+          client_id: string
+          file_name: string
+          file_url: string
+          id?: string
+          uploaded_at?: string
+        }
+        Update: {
+          claim_id?: string | null
+          client_id?: string
+          file_name?: string
+          file_url?: string
+          id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loss_runs: {
+        Row: {
+          client_id: string
+          created_at: string
+          document_url: string | null
+          id: string
+          policy_id: string | null
+          total_claims: number | null
+          total_incurred: number | null
+          total_paid: number | null
+          year: number
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          document_url?: string | null
+          id?: string
+          policy_id?: string | null
+          total_claims?: number | null
+          total_incurred?: number | null
+          total_paid?: number | null
+          year: number
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          document_url?: string | null
+          id?: string
+          policy_id?: string | null
+          total_claims?: number | null
+          total_incurred?: number | null
+          total_paid?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loss_runs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loss_runs_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policies: {
+        Row: {
+          carrier: string | null
+          client_id: string
+          created_at: string
+          effective_date: string | null
+          expiration_date: string | null
+          id: string
+          policy_number: string
+          policy_type: string | null
+        }
+        Insert: {
+          carrier?: string | null
+          client_id: string
+          created_at?: string
+          effective_date?: string | null
+          expiration_date?: string | null
+          id?: string
+          policy_number: string
+          policy_type?: string | null
+        }
+        Update: {
+          carrier?: string | null
+          client_id?: string
+          created_at?: string
+          effective_date?: string | null
+          expiration_date?: string | null
+          id?: string
+          policy_number?: string
+          policy_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policies_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "agency_admin" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +436,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["agency_admin", "client"],
+    },
   },
 } as const
