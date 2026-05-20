@@ -152,3 +152,108 @@ function Dashboard() {
     </div>
   );
 }
+
+interface ClaimRow {
+  status: string;
+  claim_type: string;
+  reserve_amount: number | string | null;
+  paid_amount: number | string | null;
+}
+
+function ClaimsSummary({ claims }: { claims: ClaimRow[] }) {
+  const total = claims.length;
+  const byStatus = claims.reduce<Record<string, number>>((acc, c) => {
+    acc[c.status] = (acc[c.status] ?? 0) + 1;
+    return acc;
+  }, {});
+  const byType = claims.reduce<Record<string, number>>((acc, c) => {
+    acc[c.claim_type] = (acc[c.claim_type] ?? 0) + 1;
+    return acc;
+  }, {});
+  const reserves = claims.reduce((s, c) => s + Number(c.reserve_amount ?? 0), 0);
+  const paid = claims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
+  const outstanding = Math.max(reserves - paid, 0);
+
+  const statusTones: Record<string, string> = {
+    Open: "bg-emerald-500",
+    "Under Review": "bg-amber-500",
+    Pending: "bg-amber-500",
+    Closed: "bg-slate-400",
+    "Notice Only": "bg-blue-500",
+  };
+
+  const topTypes = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const maxType = Math.max(1, ...topTypes.map(([, n]) => n));
+
+  return (
+    <section className="rounded-lg border border-border bg-card">
+      <div className="p-5 border-b border-border">
+        <h2 className="font-semibold text-navy">Claims Summary</h2>
+        <p className="text-xs text-muted-foreground mt-0.5">Breakdown of all claims on file.</p>
+      </div>
+      <div className="p-5 grid gap-6 md:grid-cols-3">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-muted-foreground mb-3">By Status</div>
+          <div className="space-y-2">
+            {Object.entries(byStatus).length === 0 && (
+              <p className="text-sm text-muted-foreground">No claims yet.</p>
+            )}
+            {Object.entries(byStatus).map(([s, n]) => {
+              const pct = total ? (n / total) * 100 : 0;
+              return (
+                <div key={s}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-navy">{s}</span>
+                    <span className="text-muted-foreground">{n}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={`h-full ${statusTones[s] ?? "bg-navy"}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <div className="text-xs uppercase tracking-wide text-muted-foreground mb-3">By Type</div>
+          <div className="space-y-2">
+            {topTypes.length === 0 && <p className="text-sm text-muted-foreground">—</p>}
+            {topTypes.map(([t, n]) => (
+              <div key={t}>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-navy">{t}</span>
+                  <span className="text-muted-foreground">{n}</span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-gold" style={{ width: `${(n / maxType) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="text-xs uppercase tracking-wide text-muted-foreground mb-3">Financials</div>
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Reserves</span>
+              <span className="font-semibold text-navy">{fmtCurrency(reserves)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Paid</span>
+              <span className="font-semibold text-navy">{fmtCurrency(paid)}</span>
+            </div>
+            <div className="flex justify-between pt-2 border-t border-border">
+              <span className="text-muted-foreground">Outstanding</span>
+              <span className="font-semibold text-gold">{fmtCurrency(outstanding)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
