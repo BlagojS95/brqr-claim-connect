@@ -87,7 +87,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
 
         {/* Mobile bottom nav */}
         <nav className="md:hidden fixed bottom-0 inset-x-0 bg-sidebar text-sidebar-foreground border-t border-sidebar-border flex">
-          {visible.slice(0, 5).map((item) => {
+          {visible.filter((i) => !i.mobileHide).slice(0, 5).map((item) => {
             const active = pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
             const Icon = item.icon;
             return (
