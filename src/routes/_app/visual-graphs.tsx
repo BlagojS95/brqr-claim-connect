@@ -123,6 +123,22 @@ function VisualGraphsPage() {
     return { pct: ((current - previous) / previous) * 100, currentYear, lastYear };
   }, [claims]);
 
+  const totalClaimsYoY = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getUTCFullYear();
+    const lastYear = currentYear - 1;
+    const countFor = (year: number) => {
+      return claims.filter(
+        (c) => c.date_of_loss && new Date(c.date_of_loss).getUTCFullYear() === year,
+      ).length;
+    };
+    const current = countFor(currentYear);
+    const previous = countFor(lastYear);
+    if (previous === 1 && current === 0) return null;
+    if (previous === 0) return null;
+    return { pct: ((current - previous) / previous) * 100, currentYear, lastYear };
+  }, [claims]);
+
   return (
     <div className="space-y-6 max-w-7xl">
       <div>
