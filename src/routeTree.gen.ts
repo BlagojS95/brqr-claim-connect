@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppVisualGraphsRouteImport } from './routes/_app/visual-graphs'
 import { Route as AppPoliciesRouteImport } from './routes/_app/policies'
 import { Route as AppLossRunsRouteImport } from './routes/_app/loss-runs'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
@@ -35,6 +36,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppVisualGraphsRoute = AppVisualGraphsRouteImport.update({
+  id: '/visual-graphs',
+  path: '/visual-graphs',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppPoliciesRoute = AppPoliciesRouteImport.update({
   id: '/policies',
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/loss-runs': typeof AppLossRunsRoute
   '/policies': typeof AppPoliciesRoute
+  '/visual-graphs': typeof AppVisualGraphsRoute
   '/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/claims/new': typeof AppClaimsNewRoute
   '/claims/notice': typeof AppClaimsNoticeRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/loss-runs': typeof AppLossRunsRoute
   '/policies': typeof AppPoliciesRoute
+  '/visual-graphs': typeof AppVisualGraphsRoute
   '/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/claims/new': typeof AppClaimsNewRoute
   '/claims/notice': typeof AppClaimsNoticeRoute
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/loss-runs': typeof AppLossRunsRoute
   '/_app/policies': typeof AppPoliciesRoute
+  '/_app/visual-graphs': typeof AppVisualGraphsRoute
   '/_app/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/_app/claims/new': typeof AppClaimsNewRoute
   '/_app/claims/notice': typeof AppClaimsNoticeRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/loss-runs'
     | '/policies'
+    | '/visual-graphs'
     | '/claims/$claimId'
     | '/claims/new'
     | '/claims/notice'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/loss-runs'
     | '/policies'
+    | '/visual-graphs'
     | '/claims/$claimId'
     | '/claims/new'
     | '/claims/notice'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/loss-runs'
     | '/_app/policies'
+    | '/_app/visual-graphs'
     | '/_app/claims/$claimId'
     | '/_app/claims/new'
     | '/_app/claims/notice'
@@ -194,6 +206,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/visual-graphs': {
+      id: '/_app/visual-graphs'
+      path: '/visual-graphs'
+      fullPath: '/visual-graphs'
+      preLoaderRoute: typeof AppVisualGraphsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/policies': {
       id: '/_app/policies'
@@ -267,6 +286,7 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppLossRunsRoute: typeof AppLossRunsRoute
   AppPoliciesRoute: typeof AppPoliciesRoute
+  AppVisualGraphsRoute: typeof AppVisualGraphsRoute
   AppClaimsClaimIdRoute: typeof AppClaimsClaimIdRoute
   AppClaimsNewRoute: typeof AppClaimsNewRoute
   AppClaimsNoticeRoute: typeof AppClaimsNoticeRoute
@@ -279,6 +299,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppLossRunsRoute: AppLossRunsRoute,
   AppPoliciesRoute: AppPoliciesRoute,
+  AppVisualGraphsRoute: AppVisualGraphsRoute,
   AppClaimsClaimIdRoute: AppClaimsClaimIdRoute,
   AppClaimsNewRoute: AppClaimsNewRoute,
   AppClaimsNoticeRoute: AppClaimsNoticeRoute,
@@ -295,13 +316,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
