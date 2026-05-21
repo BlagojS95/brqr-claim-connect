@@ -98,7 +98,29 @@ function VisualGraphsPage() {
     const reserve = claims.reduce((s, c) => s + Number(c.reserve_amount ?? 0), 0);
     const paid = claims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
     const open = claims.filter((c) => c.status?.toLowerCase() !== "closed").length;
-    return { reserve, paid, open, total: claims.length };
+    const avgCost = claims.length ? (reserve + paid) / claims.length : 0;
+    return { reserve, paid, open, total: claims.length, avgCost };
+  }, [claims]);
+
+  const avgCostYoY = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getUTCFullYear();
+    const lastYear = currentYear - 1;
+    const costFor = (year: number) => {
+      const yearClaims = claims.filter(
+        (c) => c.date_of_loss && new Date(c.date_of_loss).getUTCFullYear() === year,
+      );
+      if (!yearClaims.length) return null;
+      const total = yearClaims.reduce(
+        (s, c) => s + Number(c.reserve_amount ?? 0) + Number(c.paid_amount ?? 0),
+        0,
+      );
+      return total / yearClaims.length;
+    };
+    const current = costFor(currentYear);
+    const previous = costFor(lastYear);
+    if (current === null || previous === null || previous === 0) return null;
+    return { pct: ((current - previous) / previous) * 100, currentYear, lastYear };
   }, [claims]);
 
   return (
