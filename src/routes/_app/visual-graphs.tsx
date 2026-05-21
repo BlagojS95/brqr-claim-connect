@@ -134,11 +134,21 @@ function VisualGraphsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Stat label="Total Claims" value={String(totals.total)} />
         <Stat label="Open Claims" value={String(totals.open)} />
         <Stat label="Total Reserve" value={fmt(totals.reserve)} />
         <Stat label="Total Paid" value={fmt(totals.paid)} />
+        <Stat
+          label="Avg Cost / Claim"
+          value={fmt(totals.avgCost)}
+          sub={
+            avgCostYoY
+              ? `${avgCostYoY.pct >= 0 ? "▲" : "▼"} ${Math.abs(avgCostYoY.pct).toFixed(1)}% vs ${avgCostYoY.lastYear}`
+              : "No prior-year data"
+          }
+          subTone={avgCostYoY ? (avgCostYoY.pct >= 0 ? "up" : "down") : "neutral"}
+        />
       </div>
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
