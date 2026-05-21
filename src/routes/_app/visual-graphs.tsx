@@ -123,6 +123,22 @@ function VisualGraphsPage() {
     return { pct: ((current - previous) / previous) * 100, currentYear, lastYear };
   }, [claims]);
 
+  const totalClaimsYoY = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getUTCFullYear();
+    const lastYear = currentYear - 1;
+    const countFor = (year: number) => {
+      return claims.filter(
+        (c) => c.date_of_loss && new Date(c.date_of_loss).getUTCFullYear() === year,
+      ).length;
+    };
+    const current = countFor(currentYear);
+    const previous = countFor(lastYear);
+    if (previous === 1 && current === 0) return null;
+    if (previous === 0) return null;
+    return { pct: ((current - previous) / previous) * 100, currentYear, lastYear };
+  }, [claims]);
+
   return (
     <div className="space-y-6 max-w-7xl">
       <div>
@@ -135,7 +151,16 @@ function VisualGraphsPage() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Stat label="Total Claims" value={String(totals.total)} />
+        <Stat
+          label="Total Claims"
+          value={String(totals.total)}
+          sub={
+            totalClaimsYoY
+              ? `${totalClaimsYoY.pct >= 0 ? "▲" : "▼"} ${Math.abs(totalClaimsYoY.pct).toFixed(1)}% vs ${totalClaimsYoY.lastYear}`
+              : "No prior-year data"
+          }
+          subTone={totalClaimsYoY ? (totalClaimsYoY.pct >= 0 ? "up" : "down") : "neutral"}
+        />
         <Stat label="Open Claims" value={String(totals.open)} />
         <Stat label="Total Reserve" value={fmt(totals.reserve)} />
         <Stat label="Total Paid" value={fmt(totals.paid)} />
