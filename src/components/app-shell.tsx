@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, FileText, PlusCircle, Bell, Users, LogOut, Shield, FolderArchive, BarChart3 } from "lucide-react";
+import { Home, FileText, PlusCircle, Bell, Users, LogOut, Shield, FolderArchive, BarChart3, LineChart } from "lucide-react";
 import brqrLogo from "@/assets/brqr-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ const items: NavItem[] = [
   { to: "/claims/notice", label: "Incident Notice Only", icon: Bell, mobileHide: true },
   { to: "/claims", label: "Claims", icon: FileText },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/visual-graphs", label: "Visual Graphs", icon: LineChart },
   { to: "/policies", label: "Policies", icon: Shield },
   { to: "/loss-runs", label: "Loss Runs", icon: FolderArchive },
   { to: "/admin", label: "Admin", icon: Users, adminOnly: true },
