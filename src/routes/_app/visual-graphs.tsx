@@ -237,11 +237,28 @@ function VisualGraphsPage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  sub,
+  subTone = "neutral",
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  subTone?: "up" | "down" | "neutral";
+}) {
+  const toneClass =
+    subTone === "up"
+      ? "text-red-600"
+      : subTone === "down"
+        ? "text-emerald-600"
+        : "text-muted-foreground";
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <div className="text-xs text-muted-foreground uppercase tracking-wide">{label}</div>
       <div className="text-2xl font-bold text-navy mt-1">{value}</div>
+      {sub && <div className={`text-xs mt-1 font-medium ${toneClass}`}>{sub}</div>}
     </div>
   );
 }
