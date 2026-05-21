@@ -158,7 +158,7 @@ function VisualGraphsPage() {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={byLob}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="lob" fontSize={12} />
+              <XAxis dataKey="lob" fontSize={12} interval={0} angle={-15} textAnchor="end" height={60} />
               <YAxis fontSize={12} />
               <Tooltip />
               <Bar dataKey="count" fill="#0c2340" name="Claims" />
