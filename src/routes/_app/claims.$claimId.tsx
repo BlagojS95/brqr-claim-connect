@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchClaimDetail } from "@/lib/vertafore.functions";
 import { StatusBadge } from "@/components/status-badge";
 import { ArrowLeft, FileDown } from "lucide-react";
 
@@ -19,11 +21,12 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 function ClaimDetail() {
   const { claimId } = Route.useParams();
+  const getClaim = useServerFn(fetchClaimDetail);
   const { data, isLoading } = useQuery({
     queryKey: ["claim", claimId],
     queryFn: async () => {
-      const [{ data: claim }, { data: docs }] = await Promise.all([
-        supabase.from("claims").select("*, policies(policy_number, carrier)").eq("id", claimId).maybeSingle(),
+      const [claim, { data: docs }] = await Promise.all([
+        getClaim({ data: { claimId } }),
         supabase.from("documents").select("*").eq("claim_id", claimId).order("uploaded_at", { ascending: false }),
       ]);
       return { claim, docs: docs ?? [] };
@@ -33,13 +36,11 @@ function ClaimDetail() {
   if (isLoading) return <div className="text-muted-foreground">Loading…</div>;
   const claim = data?.claim;
   if (!claim) return <div>Claim not found.</div>;
-  const policy = claim.policies as { policy_number?: string; carrier?: string } | null;
 
   const timeline = [
     { label: "Date of Loss", date: claim.date_of_loss },
     { label: "Reported", date: claim.date_reported },
-    { label: "FNOL Sent", date: claim.fnol_sent_date },
-    { label: "Last Follow-Up", date: claim.last_follow_up },
+    { label: "Closed", date: claim.closed_date },
   ].filter((t) => t.date);
 
   return (
@@ -51,38 +52,29 @@ function ClaimDetail() {
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-navy">
-            {claim.claim_type} Claim {claim.is_notice_only && <span className="text-base text-gold font-medium">· Notice of Claim</span>}
+            {claim.claim_type} Claim
           </h1>
           <p className="text-sm text-muted-foreground mt-1 font-mono">
             {claim.claim_number ?? "Claim number pending"}
           </p>
+          <p className="text-xs text-muted-foreground mt-1">{claim.client_name}</p>
         </div>
         <StatusBadge status={claim.status} />
       </div>
 
       <section className="rounded-lg border border-border bg-card p-6 grid sm:grid-cols-2 md:grid-cols-3 gap-5">
-        <Field label="Carrier" value={claim.carrier ?? policy?.carrier} />
-        <Field label="Policy #" value={policy?.policy_number} />
+        <Field label="Carrier" value={claim.carrier} />
+        <Field label="Policy #" value={claim.policy_number} />
+        <Field label="Line of Business" value={claim.line_of_business_description} />
         <Field label="Date of Loss" value={claim.date_of_loss ? new Date(claim.date_of_loss).toLocaleDateString() : null} />
         <Field label="Adjuster" value={claim.adjuster_name} />
-        <Field label="Adjuster Email" value={claim.adjuster_email} />
-        <Field label="Adjuster Phone" value={claim.adjuster_phone} />
-        <Field label="Reserve" value={claim.reserve_amount != null ? `$${Number(claim.reserve_amount).toLocaleString()}` : null} />
         <Field label="Paid" value={claim.paid_amount != null ? `$${Number(claim.paid_amount).toLocaleString()}` : null} />
-        <Field label="Carrier Email" value={claim.carrier_email} />
       </section>
 
       {claim.description && (
         <section className="rounded-lg border border-border bg-card p-6">
           <h2 className="font-semibold text-navy mb-2">Description</h2>
           <p className="text-sm whitespace-pre-wrap text-foreground/90">{claim.description}</p>
-        </section>
-      )}
-
-      {claim.notes && (
-        <section className="rounded-lg border border-border bg-card p-6">
-          <h2 className="font-semibold text-navy mb-2">Notes</h2>
-          <p className="text-sm whitespace-pre-wrap text-muted-foreground">{claim.notes}</p>
         </section>
       )}
 

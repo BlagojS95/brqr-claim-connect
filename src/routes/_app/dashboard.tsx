@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { fetchAgencyOverview } from "@/lib/vertafore.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Bell, FileText, DollarSign, ClipboardList, Calendar, Download } from "lucide-react";
+import { PlusCircle, Bell, FileText, DollarSign, ClipboardList, Calendar } from "lucide-react";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: Dashboard,
@@ -16,23 +17,19 @@ const fmtCurrency = (n: number) =>
 function Dashboard() {
   const { role, user } = useAuth();
   const isAdmin = role === "agency_admin";
+  const getOverview = useServerFn(fetchAgencyOverview);
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", user?.id, isAdmin],
     enabled: !!user,
     queryFn: async () => {
-      const [{ data: claims }, { data: policies }, { data: lossRuns }] = await Promise.all([
-        supabase.from("claims").select("*").order("date_of_loss", { ascending: false, nullsFirst: false }).limit(50),
-        supabase.from("policies").select("*"),
-        supabase.from("loss_runs").select("*").order("year", { ascending: false }),
-      ]);
-      return { claims: claims ?? [], policies: policies ?? [], lossRuns: lossRuns ?? [] };
+      const overview = await getOverview();
+      return { claims: overview.claims.slice(0, 50), policies: overview.policies };
     },
   });
 
   const claims = data?.claims ?? [];
   const policies = data?.policies ?? [];
-  const lossRuns = data?.lossRuns ?? [];
   const openClaims = claims.filter((c) => c.status === "Open").length;
   const totalPaid = claims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
   const lastLoss = claims[0]?.date_of_loss ?? null;
@@ -124,32 +121,6 @@ function Dashboard() {
         </div>
       </section>
 
-      <section className="rounded-lg border border-border bg-card">
-        <div className="p-5 border-b border-border flex items-center justify-between">
-          <h2 className="font-semibold text-navy">Loss Runs</h2>
-          <Link to="/loss-runs" className="text-sm text-navy hover:text-gold">Manage & request →</Link>
-        </div>
-        <div className="p-5 grid gap-3 md:grid-cols-3">
-          {lossRuns.length === 0 && (
-            <p className="text-sm text-muted-foreground col-span-full">No loss runs available.</p>
-          )}
-          {lossRuns.map((lr) => (
-            <div key={lr.id} className="rounded-md border border-border p-4 flex items-center justify-between">
-              <div>
-                <div className="font-medium text-navy">{lr.year}</div>
-                <div className="text-xs text-muted-foreground">
-                  {lr.total_claims} claims · {fmtCurrency(Number(lr.total_paid ?? 0))} paid
-                </div>
-              </div>
-              {lr.document_url && (
-                <a href={lr.document_url} target="_blank" rel="noopener noreferrer" className="text-navy hover:text-gold">
-                  <Download className="h-4 w-4" />
-                </a>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }
@@ -157,13 +128,13 @@ function Dashboard() {
 interface ClaimRow {
   status: string;
   claim_type: string;
-  reserve_amount: number | string | null;
   paid_amount: number | string | null;
 }
 
 function ClaimsSummary({ claims }: { claims: ClaimRow[] }) {
   const total = claims.length;
   const byStatus = claims.reduce<Record<string, number>>((acc, c) => {
+    if (c.status === "Under Review") return acc;
     acc[c.status] = (acc[c.status] ?? 0) + 1;
     return acc;
   }, {});
@@ -171,13 +142,10 @@ function ClaimsSummary({ claims }: { claims: ClaimRow[] }) {
     acc[c.claim_type] = (acc[c.claim_type] ?? 0) + 1;
     return acc;
   }, {});
-  const reserves = claims.reduce((s, c) => s + Number(c.reserve_amount ?? 0), 0);
   const paid = claims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
-  const outstanding = Math.max(reserves - paid, 0);
 
   const statusTones: Record<string, string> = {
     Open: "bg-emerald-500",
-    "Under Review": "bg-amber-500",
     Pending: "bg-amber-500",
     Closed: "bg-slate-400",
     "Notice Only": "bg-blue-500",
@@ -241,16 +209,8 @@ function ClaimsSummary({ claims }: { claims: ClaimRow[] }) {
           <div className="text-xs uppercase tracking-wide text-muted-foreground mb-3">Financials</div>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Reserves</span>
-              <span className="font-semibold text-navy">{fmtCurrency(reserves)}</span>
-            </div>
-            <div className="flex justify-between">
               <span className="text-muted-foreground">Paid</span>
               <span className="font-semibold text-navy">{fmtCurrency(paid)}</span>
-            </div>
-            <div className="flex justify-between pt-2 border-t border-border">
-              <span className="text-muted-foreground">Outstanding</span>
-              <span className="font-semibold text-gold">{fmtCurrency(outstanding)}</span>
             </div>
           </div>
         </div>

@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchAgencyOverview } from "@/lib/vertafore.functions";
 import { BarChart3, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -16,32 +17,27 @@ type Claim = {
   id: string;
   claim_number: string | null;
   claim_type: string;
+  line_of_business_description: string | null;
   status: string;
   carrier: string | null;
   date_of_loss: string | null;
-  reserve_amount: number | null;
   paid_amount: number | null;
 };
 
 function AnalyticsPage() {
   const [search, setSearch] = useState("");
+  const getOverview = useServerFn(fetchAgencyOverview);
 
   const { data: claims = [], isLoading } = useQuery({
     queryKey: ["analytics-claims"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("claims")
-        .select("id, claim_number, claim_type, status, carrier, date_of_loss, reserve_amount, paid_amount")
-        .order("date_of_loss", { ascending: false });
-      return (data ?? []) as Claim[];
-    },
+    queryFn: async () => (await getOverview()).claims as Claim[],
   });
 
   const groups = useMemo(() => {
     const map = new Map<string, { year: number; lob: string; carrier: string; rows: Claim[] }>();
     for (const c of claims) {
       const year = c.date_of_loss ? new Date(c.date_of_loss).getUTCFullYear() : new Date().getUTCFullYear();
-      const lob = c.claim_type || "Other";
+      const lob = c.line_of_business_description || c.claim_type || "Other";
       const carrier = c.carrier || "—";
       const key = `${year}|${lob}|${carrier}`;
       if (!map.has(key)) map.set(key, { year, lob, carrier, rows: [] });
@@ -94,7 +90,6 @@ function AnalyticsPage() {
           const totalClaims = g.rows.length;
           const open = g.rows.filter((r) => r.status?.toLowerCase() !== "closed").length;
           const closed = totalClaims - open;
-          const reserve = g.rows.reduce((s, r) => s + Number(r.reserve_amount ?? 0), 0);
           const paid = g.rows.reduce((s, r) => s + Number(r.paid_amount ?? 0), 0);
           return (
             <section key={`${g.year}-${g.lob}-${g.carrier}`} className="rounded-lg border border-border bg-card overflow-hidden">
@@ -111,7 +106,6 @@ function AnalyticsPage() {
                       <th className="text-left p-3">Claim #</th>
                       <th className="text-center p-3">Open</th>
                       <th className="text-center p-3">Closed</th>
-                      <th className="text-right p-3">Reserve</th>
                       <th className="text-right p-3">Paid</th>
                     </tr>
                   </thead>
@@ -123,7 +117,6 @@ function AnalyticsPage() {
                           <td className="p-3 font-mono text-xs">{r.claim_number ?? "—"}</td>
                           <td className="p-3 text-center">{isClosed ? 0 : 1}</td>
                           <td className="p-3 text-center">{isClosed ? 1 : 0}</td>
-                          <td className="p-3 text-right">{fmt(Number(r.reserve_amount ?? 0))}</td>
                           <td className="p-3 text-right">{fmt(Number(r.paid_amount ?? 0))}</td>
                         </tr>
                       );
@@ -132,7 +125,6 @@ function AnalyticsPage() {
                       <td className="p-3">Total ({totalClaims})</td>
                       <td className="p-3 text-center">{open}</td>
                       <td className="p-3 text-center">{closed}</td>
-                      <td className="p-3 text-right">{fmt(reserve)}</td>
                       <td className="p-3 text-right">{fmt(paid)}</td>
                     </tr>
                   </tbody>

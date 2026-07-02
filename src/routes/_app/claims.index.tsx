@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchAgencyOverview } from "@/lib/vertafore.functions";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,15 +15,10 @@ export const Route = createFileRoute("/_app/claims/")({
 function ClaimsList() {
   const [filter, setFilter] = useState<string>("All");
   const [search, setSearch] = useState("");
+  const getOverview = useServerFn(fetchAgencyOverview);
   const { data: claims = [], isLoading } = useQuery({
     queryKey: ["claims-list"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("claims")
-        .select("*")
-        .order("date_of_loss", { ascending: false, nullsFirst: false });
-      return data ?? [];
-    },
+    queryFn: async () => (await getOverview()).claims,
   });
 
   const q = search.trim().toLowerCase();
@@ -83,7 +79,7 @@ function ClaimsList() {
               <th className="text-left p-3">Status</th>
               <th className="text-left p-3">Claim #</th>
               <th className="text-left p-3">Adjuster</th>
-              <th className="text-left p-3">Last Follow Up</th>
+              <th className="text-left p-3">Closed</th>
             </tr>
           </thead>
           <tbody>
@@ -98,12 +94,12 @@ function ClaimsList() {
                     {c.date_of_loss ? new Date(c.date_of_loss).toLocaleDateString() : "—"}
                   </Link>
                 </td>
-                <td className="p-3">{c.claim_type}{c.is_notice_only && <span className="ml-2 text-xs text-gold">(Notice)</span>}</td>
+                <td className="p-3">{c.claim_type}</td>
                 <td className="p-3">{c.carrier ?? "—"}</td>
                 <td className="p-3"><StatusBadge status={c.status} /></td>
                 <td className="p-3 font-mono text-xs">{c.claim_number ?? "—"}</td>
                 <td className="p-3">{c.adjuster_name ?? "—"}</td>
-                <td className="p-3 text-muted-foreground">{c.last_follow_up ? new Date(c.last_follow_up).toLocaleDateString() : "—"}</td>
+                <td className="p-3 text-muted-foreground">{c.closed_date ? new Date(c.closed_date).toLocaleDateString() : "—"}</td>
               </tr>
             ))}
           </tbody>

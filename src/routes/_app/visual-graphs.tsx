@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchAgencyOverview } from "@/lib/vertafore.functions";
 import { LineChart as LineIcon } from "lucide-react";
 import {
   BarChart,
@@ -26,10 +27,10 @@ export const Route = createFileRoute("/_app/visual-graphs")({
 type Claim = {
   id: string;
   claim_type: string;
+  line_of_business_description: string | null;
   status: string;
   carrier: string | null;
   date_of_loss: string | null;
-  reserve_amount: number | null;
   paid_amount: number | null;
 };
 
@@ -39,23 +40,19 @@ const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
 function VisualGraphsPage() {
+  const getOverview = useServerFn(fetchAgencyOverview);
+
   const { data: claims = [], isLoading } = useQuery({
     queryKey: ["visual-graphs-claims"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("claims")
-        .select("id, claim_type, status, carrier, date_of_loss, reserve_amount, paid_amount");
-      return (data ?? []) as Claim[];
-    },
+    queryFn: async () => (await getOverview()).claims as Claim[],
   });
 
   const byLob = useMemo(() => {
-    const m = new Map<string, { lob: string; count: number; reserve: number; paid: number }>();
+    const m = new Map<string, { lob: string; count: number; paid: number }>();
     for (const c of claims) {
-      const k = c.claim_type || "Other";
-      const r = m.get(k) ?? { lob: k, count: 0, reserve: 0, paid: 0 };
+      const k = c.line_of_business_description || c.claim_type || "Other";
+      const r = m.get(k) ?? { lob: k, count: 0, paid: 0 };
       r.count += 1;
-      r.reserve += Number(c.reserve_amount ?? 0);
       r.paid += Number(c.paid_amount ?? 0);
       m.set(k, r);
     }
@@ -72,14 +69,13 @@ function VisualGraphsPage() {
   }, [claims]);
 
   const byYear = useMemo(() => {
-    const m = new Map<number, { year: number; count: number; paid: number; reserve: number }>();
+    const m = new Map<number, { year: number; count: number; paid: number }>();
     for (const c of claims) {
       if (!c.date_of_loss) continue;
       const y = new Date(c.date_of_loss).getUTCFullYear();
-      const r = m.get(y) ?? { year: y, count: 0, paid: 0, reserve: 0 };
+      const r = m.get(y) ?? { year: y, count: 0, paid: 0 };
       r.count += 1;
       r.paid += Number(c.paid_amount ?? 0);
-      r.reserve += Number(c.reserve_amount ?? 0);
       m.set(y, r);
     }
     return Array.from(m.values()).sort((a, b) => a.year - b.year);
@@ -95,11 +91,10 @@ function VisualGraphsPage() {
   }, [claims]);
 
   const totals = useMemo(() => {
-    const reserve = claims.reduce((s, c) => s + Number(c.reserve_amount ?? 0), 0);
     const paid = claims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
     const open = claims.filter((c) => c.status?.toLowerCase() !== "closed").length;
-    const avgCost = claims.length ? (reserve + paid) / claims.length : 0;
-    return { reserve, paid, open, total: claims.length, avgCost };
+    const avgCost = claims.length ? paid / claims.length : 0;
+    return { paid, open, total: claims.length, avgCost };
   }, [claims]);
 
   const avgCostYoY = useMemo(() => {
@@ -111,10 +106,7 @@ function VisualGraphsPage() {
         (c) => c.date_of_loss && new Date(c.date_of_loss).getUTCFullYear() === year,
       );
       if (!yearClaims.length) return null;
-      const total = yearClaims.reduce(
-        (s, c) => s + Number(c.reserve_amount ?? 0) + Number(c.paid_amount ?? 0),
-        0,
-      );
+      const total = yearClaims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
       return total / yearClaims.length;
     };
     const current = costFor(currentYear);
@@ -150,7 +142,7 @@ function VisualGraphsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Stat
           label="Total Claims"
           value={String(totals.total)}
@@ -162,7 +154,6 @@ function VisualGraphsPage() {
           subTone={totalClaimsYoY ? (totalClaimsYoY.pct >= 0 ? "up" : "down") : "neutral"}
         />
         <Stat label="Open Claims" value={String(totals.open)} />
-        <Stat label="Total Reserve" value={fmt(totals.reserve)} />
         <Stat label="Total Paid" value={fmt(totals.paid)} />
         <Stat
           label="Avg Cost / Claim"
@@ -205,20 +196,6 @@ function VisualGraphsPage() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Reserve vs Paid by LOB">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={byLob}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="lob" fontSize={12} interval={0} angle={-15} textAnchor="end" height={60} />
-              <YAxis fontSize={12} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v: number) => fmt(v)} />
-              <Legend />
-              <Bar dataKey="reserve" fill="#c9a84c" name="Reserve" />
-              <Bar dataKey="paid" fill="#2d8a9e" name="Paid" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
         <ChartCard title="Claims Trend by Year">
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={byYear}>
@@ -232,7 +209,7 @@ function VisualGraphsPage() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Paid & Reserve by Year" className="lg:col-span-2">
+        <ChartCard title="Paid by Year">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={byYear}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -241,7 +218,6 @@ function VisualGraphsPage() {
               <Tooltip formatter={(v: number) => fmt(v)} />
               <Legend />
               <Bar dataKey="paid" fill="#2d8a9e" name="Paid" />
-              <Bar dataKey="reserve" fill="#c9a84c" name="Reserve" />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>

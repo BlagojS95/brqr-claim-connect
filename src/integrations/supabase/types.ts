@@ -19,12 +19,15 @@ export type Database = {
           adjuster_email: string | null
           adjuster_name: string | null
           adjuster_phone: string | null
+          ams360_claim_id: string | null
+          ams360_closs_hist_id: string | null
           ams360_doc_id: string | null
           carrier: string | null
           carrier_email: string | null
           claim_number: string | null
           claim_type: string
           client_id: string
+          closed_date: string | null
           created_at: string
           created_by: string | null
           date_of_loss: string | null
@@ -34,6 +37,8 @@ export type Database = {
           id: string
           is_notice_only: boolean
           last_follow_up: string | null
+          line_of_business: string | null
+          line_of_business_description: string | null
           notes: string | null
           paid_amount: number | null
           policy_id: string | null
@@ -44,12 +49,15 @@ export type Database = {
           adjuster_email?: string | null
           adjuster_name?: string | null
           adjuster_phone?: string | null
+          ams360_claim_id?: string | null
+          ams360_closs_hist_id?: string | null
           ams360_doc_id?: string | null
           carrier?: string | null
           carrier_email?: string | null
           claim_number?: string | null
           claim_type: string
           client_id: string
+          closed_date?: string | null
           created_at?: string
           created_by?: string | null
           date_of_loss?: string | null
@@ -59,6 +67,8 @@ export type Database = {
           id?: string
           is_notice_only?: boolean
           last_follow_up?: string | null
+          line_of_business?: string | null
+          line_of_business_description?: string | null
           notes?: string | null
           paid_amount?: number | null
           policy_id?: string | null
@@ -69,12 +79,15 @@ export type Database = {
           adjuster_email?: string | null
           adjuster_name?: string | null
           adjuster_phone?: string | null
+          ams360_claim_id?: string | null
+          ams360_closs_hist_id?: string | null
           ams360_doc_id?: string | null
           carrier?: string | null
           carrier_email?: string | null
           claim_number?: string | null
           claim_type?: string
           client_id?: string
+          closed_date?: string | null
           created_at?: string
           created_by?: string | null
           date_of_loss?: string | null
@@ -84,6 +97,8 @@ export type Database = {
           id?: string
           is_notice_only?: boolean
           last_follow_up?: string | null
+          line_of_business?: string | null
+          line_of_business_description?: string | null
           notes?: string | null
           paid_amount?: number | null
           policy_id?: string | null
