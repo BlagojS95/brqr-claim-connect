@@ -4,13 +4,24 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { fetchAgencyOverview } from "@/lib/vertafore.functions";
 import type { AgencyClient } from "@/integrations/vertafore/aggregate.server";
-import { fetchClientAccounts, createClientAccount } from "@/lib/accounts.functions";
+import { fetchClientAccounts, createClientAccount, resetClientPassword, deleteClientAccount } from "@/lib/accounts.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/admin")({
@@ -23,11 +34,13 @@ function AdminPage() {
   const getOverview = useServerFn(fetchAgencyOverview);
   const getAccounts = useServerFn(fetchClientAccounts);
   const createAccount = useServerFn(createClientAccount);
+  const resetPassword = useServerFn(resetClientPassword);
+  const deleteAccount = useServerFn(deleteClientAccount);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-overview"],
     enabled: role === "agency_admin",
-    queryFn: () => getOverview(),
+    queryFn: () => getOverview({ data: { scope: "claims" } }),
   });
 
   const { data: accounts = [] } = useQuery({
@@ -44,6 +57,21 @@ function AdminPage() {
       qc.invalidateQueries({ queryKey: ["client-accounts"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to create account"),
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: (input: { userId: string; password: string }) => resetPassword({ data: input }),
+    onSuccess: () => toast.success("Password reset"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to reset password"),
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: (input: { userId: string }) => deleteAccount({ data: input }),
+    onSuccess: () => {
+      toast.success("Account deleted");
+      qc.invalidateQueries({ queryKey: ["client-accounts"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to delete account"),
   });
 
   if (role !== "agency_admin") {
@@ -91,7 +119,11 @@ function AdminPage() {
                     <td className="p-3">{c.claims_count}</td>
                     <td className="p-3">
                       {account ? (
-                        <span className="text-xs text-muted-foreground">{account.email}</span>
+                        <AccountActions
+                          email={account.email ?? ""}
+                          onReset={(password) => resetPasswordMutation.mutate({ userId: account.user_id!, password })}
+                          onDelete={() => deleteAccountMutation.mutate({ userId: account.user_id! })}
+                        />
                       ) : (
                         <CreateAccountDialog
                           client={c}
@@ -228,5 +260,79 @@ function CreateAccountDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function AccountActions({
+  email,
+  onReset,
+  onDelete,
+}: {
+  email: string;
+  onReset: (password: string) => void;
+  onDelete: () => void;
+}) {
+  const [resetOpen, setResetOpen] = useState(false);
+  const [password, setPassword] = useState("");
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-muted-foreground">{email}</span>
+
+      <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+        <DialogTrigger asChild>
+          <Button size="sm" variant="ghost">Reset Password</Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Reset Password for {email}</DialogTitle></DialogHeader>
+          <div className="space-y-1">
+            <Label>New Password</Label>
+            <div className="flex gap-2">
+              <Input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min 8 characters"
+              />
+              <Button type="button" variant="outline" onClick={() => setPassword(generateTempPassword())}>
+                Generate
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Share this with the client directly — it won't be shown again.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetOpen(false)}>Cancel</Button>
+            <Button
+              className="bg-navy hover:bg-navy/90 text-navy-foreground"
+              disabled={password.length < 8}
+              onClick={() => {
+                onReset(password);
+                setPassword("");
+                setResetOpen(false);
+              }}
+            >
+              Reset Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">Delete</Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete login for {email}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes their login. They won't be able to sign in again unless a new account is created for them.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={onDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }

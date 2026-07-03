@@ -30,7 +30,7 @@ function AnalyticsPage() {
 
   const { data: claims = [], isLoading } = useQuery({
     queryKey: ["analytics-claims"],
-    queryFn: async () => (await getOverview()).claims as Claim[],
+    queryFn: async () => (await getOverview({ data: { scope: "claims" } })).claims as Claim[],
   });
 
   const groups = useMemo(() => {

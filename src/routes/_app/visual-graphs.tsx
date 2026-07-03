@@ -44,7 +44,7 @@ function VisualGraphsPage() {
 
   const { data: claims = [], isLoading } = useQuery({
     queryKey: ["visual-graphs-claims"],
-    queryFn: async () => (await getOverview()).claims as Claim[],
+    queryFn: async () => (await getOverview({ data: { scope: "claims" } })).claims as Claim[],
   });
 
   const byLob = useMemo(() => {

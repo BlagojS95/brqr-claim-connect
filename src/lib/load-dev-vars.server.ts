@@ -1,11 +1,9 @@
 // `vite dev` doesn't load .dev.vars (that's Wrangler/Miniflare's job, and the Cloudflare
 // plugin only runs at build time) — so read it directly as a dev-only fallback.
 // In production, wrangler injects real secrets into process.env and this file won't exist.
-let loaded = false;
-
+// Deliberately re-reads every call (no "load once" cache) — it's a tiny local file, and
+// caching meant vars added to .dev.vars after the process started were silently never seen.
 export async function loadDevVars() {
-  if (loaded) return;
-  loaded = true;
   try {
     const { readFileSync } = await import("node:fs");
     const { resolve } = await import("node:path");

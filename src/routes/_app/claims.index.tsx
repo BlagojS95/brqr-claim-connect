@@ -18,7 +18,7 @@ function ClaimsList() {
   const getOverview = useServerFn(fetchAgencyOverview);
   const { data: claims = [], isLoading } = useQuery({
     queryKey: ["claims-list"],
-    queryFn: async () => (await getOverview()).claims,
+    queryFn: async () => (await getOverview({ data: { scope: "claims" } })).claims,
   });
 
   const q = search.trim().toLowerCase();

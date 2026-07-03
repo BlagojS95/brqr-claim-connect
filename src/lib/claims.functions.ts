@@ -14,7 +14,7 @@ export const notifyNewClaim = createServerFn({ method: "POST" })
     const { supabase } = context;
     const { data: claim } = await supabase
       .from("claims")
-      .select("*, policies(policy_number), clients(name, company_name)")
+      .select("*, clients(name, company_name)")
       .eq("id", data.claim_id)
       .maybeSingle();
     const { data: docs } = await supabase
@@ -27,7 +27,8 @@ export const notifyNewClaim = createServerFn({ method: "POST" })
       client_id: data.client_id,
       client_name: (claim?.clients as { name?: string; company_name?: string } | null)?.company_name ||
         (claim?.clients as { name?: string } | null)?.name || "",
-      policy_number: (claim?.policies as { policy_number?: string } | null)?.policy_number ?? "",
+      // `policy_number` isn't in the generated Database type yet.
+      policy_number: (claim as { policy_number?: string } | null)?.policy_number ?? "",
       claim_type: claim?.claim_type ?? "",
       date_of_loss: claim?.date_of_loss ?? "",
       description: claim?.description ?? "",

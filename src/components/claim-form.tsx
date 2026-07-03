@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -9,20 +10,46 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { notifyNewClaim } from "@/lib/claims.functions";
+import { fetchAgencyOverview } from "@/lib/vertafore.functions";
+import { fetchClientAccounts } from "@/lib/accounts.functions";
+import { sendClaimNotificationEmail } from "@/lib/email.functions";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
-
-type Policy = { id: string; policy_number: string; carrier: string | null; client_id: string };
 
 export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const navigate = useNavigate();
   const { clientId, role } = useAuth();
   const isAdmin = role === "agency_admin";
   const notify = useServerFn(notifyNewClaim);
+  const getOverview = useServerFn(fetchAgencyOverview);
+  const getAccounts = useServerFn(fetchClientAccounts);
+  const sendEmail = useServerFn(sendClaimNotificationEmail);
 
-  const [policies, setPolicies] = useState<Policy[]>([]);
-  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
-  const [selectedClient, setSelectedClient] = useState<string>("");
+  const { data: overview } = useQuery({
+    queryKey: ["claim-form-policies"],
+    queryFn: () => getOverview({ data: { scope: "policies" } }),
+  });
+
+  // Admin can only report on behalf of clients who already have a portal
+  // account, since claims.client_id is a required FK to the local clients row.
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["claim-form-accounts"],
+    enabled: isAdmin,
+    queryFn: () => getAccounts(),
+  });
+
+  const selectableClients = isAdmin
+    ? (overview?.clients ?? [])
+        .filter((c) => accounts.some((a) => a.ams360_id === c.id))
+        .map((c) => ({
+          vertaforeId: c.id,
+          localId: accounts.find((a) => a.ams360_id === c.id)!.id,
+          name: c.name,
+        }))
+    : [];
+
+  const [selectedLocalClientId, setSelectedLocalClientId] = useState<string>("");
+  const [selectedVertaforeClientId, setSelectedVertaforeClientId] = useState<string>("");
   const [claimType, setClaimType] = useState("GL");
   const [dateOfLoss, setDateOfLoss] = useState("");
   const [description, setDescription] = useState("");
@@ -31,56 +58,52 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      if (isAdmin) {
-        const { data } = await supabase.from("clients").select("id, name").order("name");
-        setClients(data ?? []);
-      } else if (clientId) {
-        setSelectedClient(clientId);
-      }
-    })();
+    if (!isAdmin && clientId) {
+      setSelectedLocalClientId(clientId);
+    }
   }, [isAdmin, clientId]);
 
-  useEffect(() => {
-    if (!selectedClient) { setPolicies([]); return; }
-    supabase.from("policies").select("id, policy_number, carrier, client_id").eq("client_id", selectedClient)
-      .then(({ data }) => setPolicies(data ?? []));
-  }, [selectedClient]);
+  const policies = isAdmin
+    ? (overview?.policies ?? []).filter((p) => p.client_id === selectedVertaforeClientId)
+    : (overview?.policies ?? []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedClient) {
+    if (!selectedLocalClientId) {
       toast.error("No client selected");
       return;
     }
     setBusy(true);
     try {
       const policy = policies.find((p) => p.id === policyId);
+      // `policy_number` isn't in the generated Database type yet (added via a
+      // migration the generated types.ts hasn't been regenerated against).
       const { data: claim, error } = await supabase
         .from("claims")
         .insert({
-          client_id: selectedClient,
-          policy_id: policyId || null,
+          client_id: selectedLocalClientId,
+          policy_id: null,
+          policy_number: policy?.policy_number ?? null,
           claim_type: claimType,
           is_notice_only: isNotice,
           date_of_loss: dateOfLoss || null,
           description,
           carrier: policy?.carrier ?? null,
           status: isNotice ? "Pending" : "Open",
-        })
+        } as any)
         .select()
         .single();
       if (error) throw error;
 
       // Upload documents
       for (const file of files) {
-        const path = `${selectedClient}/${claim.id}/${Date.now()}-${file.name}`;
+        const path = `${selectedLocalClientId}/${claim.id}/${Date.now()}-${file.name}`;
         const { error: upErr } = await supabase.storage.from("claim-documents").upload(path, file);
         if (upErr) { toast.error(`Upload failed: ${file.name}`); continue; }
         const { data: signed } = await supabase.storage.from("claim-documents").createSignedUrl(path, 60 * 60 * 24 * 365);
         await supabase.from("documents").insert({
           claim_id: claim.id,
-          client_id: selectedClient,
+          client_id: selectedLocalClientId,
           file_name: file.name,
           file_url: signed?.signedUrl ?? path,
         });
@@ -88,9 +111,16 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
 
       // Fire webhook
       try {
-        await notify({ data: { claim_id: claim.id, client_id: selectedClient } });
+        await notify({ data: { claim_id: claim.id, client_id: selectedLocalClientId } });
       } catch (err) {
         console.warn("webhook error", err);
+      }
+
+      // Send branded notification email
+      try {
+        await sendEmail({ data: { claimId: claim.id } });
+      } catch (err) {
+        console.warn("email error", err);
       }
 
       toast.success(isNotice ? "Notice of claim submitted" : "Claim reported");
@@ -118,10 +148,18 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
       {isAdmin && (
         <div className="space-y-2">
           <Label>Client</Label>
-          <Select value={selectedClient} onValueChange={setSelectedClient}>
+          <Select
+            value={selectedLocalClientId}
+            onValueChange={(localId) => {
+              setSelectedLocalClientId(localId);
+              const match = selectableClients.find((c) => c.localId === localId);
+              setSelectedVertaforeClientId(match?.vertaforeId ?? "");
+              setPolicyId("");
+            }}
+          >
             <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
             <SelectContent>
-              {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              {selectableClients.map((c) => <SelectItem key={c.localId} value={c.localId}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

@@ -36,6 +36,8 @@ export interface VertaforePolicy {
   UILineOfBusinessCodes: string;
   TypeOfBusinessDisplay: string;
   Status: string;
+  EffectiveDate: string | null;
+  ExpiryDate: string | null;
 }
 
 export interface VertaforeClaim {
@@ -135,21 +137,41 @@ async function vertaforeGet<T>(path: string, attempt = 1): Promise<T> {
   return (await res.json()) as T;
 }
 
+// Short-lived cache so bouncing between pages within the same server instance
+// doesn't re-fire the same live AMS360 calls every single navigation. Claims/
+// policies data doesn't change second-to-second, so a short TTL is safe.
+const CACHE_TTL_MS = 60_000;
+const cache = new Map<string, { value: unknown; expiresAt: number }>();
+
+async function cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const hit = cache.get(key);
+  if (hit && hit.expiresAt > Date.now()) return hit.value as T;
+  const value = await fetcher();
+  cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+  return value;
+}
+
 export async function getCustomers(): Promise<VertaforeCustomer[]> {
-  const json = await vertaforeGet<{ value: VertaforeCustomer[] }>("/Customers");
-  return json.value ?? [];
+  return cached("customers", async () => {
+    const json = await vertaforeGet<{ value: VertaforeCustomer[] }>("/Customers");
+    return json.value ?? [];
+  });
 }
 
 export async function getCustomer(customerId: string): Promise<VertaforeCustomer> {
-  return vertaforeGet<VertaforeCustomer>(`/Customers(${customerId})`);
+  return cached(`customer:${customerId}`, () => vertaforeGet<VertaforeCustomer>(`/Customers(${customerId})`));
 }
 
 export async function getCustomerPolicies(customerId: string): Promise<VertaforePolicy[]> {
-  const json = await vertaforeGet<{ value: VertaforePolicy[] }>(`/Customers(${customerId})/Policies`);
-  return json.value ?? [];
+  return cached(`policies:${customerId}`, async () => {
+    const json = await vertaforeGet<{ value: VertaforePolicy[] }>(`/Customers(${customerId})/Policies`);
+    return json.value ?? [];
+  });
 }
 
 export async function getCustomerClaims(customerId: string): Promise<VertaforeClaim[]> {
-  const json = await vertaforeGet<{ value: VertaforeClaim[] }>(`/Customers(${customerId})/CustomerLossHistory`);
-  return json.value ?? [];
+  return cached(`claims:${customerId}`, async () => {
+    const json = await vertaforeGet<{ value: VertaforeClaim[] }>(`/Customers(${customerId})/CustomerLossHistory`);
+    return json.value ?? [];
+  });
 }

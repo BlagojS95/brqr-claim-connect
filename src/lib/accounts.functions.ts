@@ -82,3 +82,37 @@ export const createClientAccount = createServerFn({ method: "POST" })
 
     return { userId: created.user.id };
   });
+
+const ResetPasswordSchema = z.object({
+  userId: z.string().uuid(),
+  password: z.string().min(8),
+});
+
+export const resetClientPassword = createServerFn({ method: "POST" })
+  .middleware([requireAgencyAdmin])
+  .inputValidator((input) => ResetPasswordSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    // No service-role key, so we can't use auth.admin.updateUserById. Instead this
+    // calls a SECURITY DEFINER Postgres function (see migration
+    // 20260703000000_admin_account_management.sql) that re-checks the caller is an
+    // agency_admin itself before touching auth.users.
+    const { error } = await (context.supabase.rpc as any)("admin_set_user_password", {
+      target_user_id: data.userId,
+      new_password: data.password,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const DeleteAccountSchema = z.object({ userId: z.string().uuid() });
+
+export const deleteClientAccount = createServerFn({ method: "POST" })
+  .middleware([requireAgencyAdmin])
+  .inputValidator((input) => DeleteAccountSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await (context.supabase.rpc as any)("admin_delete_client_account", {
+      target_user_id: data.userId,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

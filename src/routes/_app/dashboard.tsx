@@ -23,7 +23,7 @@ function Dashboard() {
     queryKey: ["dashboard", user?.id, isAdmin],
     enabled: !!user,
     queryFn: async () => {
-      const overview = await getOverview();
+      const overview = await getOverview({ data: { scope: "all" } });
       return { claims: overview.claims.slice(0, 50), policies: overview.policies };
     },
   });

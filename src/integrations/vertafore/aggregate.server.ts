@@ -22,6 +22,23 @@ export interface AgencyPolicy {
   policy_number: string;
   carrier: string | null;
   policy_type: string | null;
+  effective_date: string | null;
+  expiry_date: string | null;
+  status: "Active" | "Non Active";
+}
+
+// Vertafore's own Status code was proven unreliable (the same real-world policy term
+// shows up with different Status values, and it doesn't correlate with real expiry
+// dates) — see research notes. Computing directly from EffectiveDate/ExpiryDate instead.
+function computePolicyStatus(effectiveDate: string | null, expiryDate: string | null): "Active" | "Non Active" {
+  if (!expiryDate) return "Active";
+  const now = Date.now();
+  const expiry = new Date(expiryDate).getTime();
+  if (effectiveDate) {
+    const effective = new Date(effectiveDate).getTime();
+    if (now < effective) return "Non Active";
+  }
+  return now <= expiry ? "Active" : "Non Active";
 }
 
 export interface AgencyClaim {
@@ -79,16 +96,22 @@ async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T)
   return results;
 }
 
-async function fetchCustomerData(customer: VertaforeCustomer) {
+export type OverviewScope = "all" | "claims" | "policies";
+
+async function fetchCustomerData(customer: VertaforeCustomer, scope: OverviewScope) {
   const [policies, claims] = await Promise.all([
-    getCustomerPolicies(customer.CustomerId).catch((e) => {
-      console.error(`[vertafore] policies failed for ${customer.CustomerId}:`, e?.message ?? e);
-      return [];
-    }),
-    getCustomerClaims(customer.CustomerId).catch((e) => {
-      console.error(`[vertafore] claims failed for ${customer.CustomerId}:`, e?.message ?? e);
-      return [];
-    }),
+    scope === "claims"
+      ? Promise.resolve([])
+      : getCustomerPolicies(customer.CustomerId).catch((e) => {
+          console.error(`[vertafore] policies failed for ${customer.CustomerId}:`, e?.message ?? e);
+          return [];
+        }),
+    scope === "policies"
+      ? Promise.resolve([])
+      : getCustomerClaims(customer.CustomerId).catch((e) => {
+          console.error(`[vertafore] claims failed for ${customer.CustomerId}:`, e?.message ?? e);
+          return [];
+        }),
   ]);
   return { customer, policies, claims };
 }
@@ -120,6 +143,9 @@ function buildOverview(
         policy_number: p.PolicyNumber,
         carrier: p.WritingCompanyName || null,
         policy_type: p.PolicyTypeLOB || null,
+        effective_date: p.EffectiveDate,
+        expiry_date: p.ExpiryDate,
+        status: computePolicyStatus(p.EffectiveDate, p.ExpiryDate),
       });
     }
 
@@ -153,16 +179,16 @@ function buildOverview(
   return { clients, policies, claims };
 }
 
-export async function getAgencyOverview(): Promise<AgencyOverview> {
+export async function getAgencyOverview(scope: OverviewScope = "all"): Promise<AgencyOverview> {
   const customers = await getCustomers();
-  const perCustomer = await mapWithConcurrency(customers, CONCURRENCY, fetchCustomerData);
+  const perCustomer = await mapWithConcurrency(customers, CONCURRENCY, (c) => fetchCustomerData(c, scope));
   return buildOverview(perCustomer);
 }
 
 // Single-customer version for client-role accounts — only fetches the one
 // customer's policies/claims instead of fanning out across the whole agency.
-export async function getCustomerOverview(customerId: string): Promise<AgencyOverview> {
+export async function getCustomerOverview(customerId: string, scope: OverviewScope = "all"): Promise<AgencyOverview> {
   const customer = await getCustomer(customerId);
-  const data = await fetchCustomerData(customer);
+  const data = await fetchCustomerData(customer, scope);
   return buildOverview([data]);
 }
