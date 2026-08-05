@@ -14,98 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
-      claims: {
+      claim_contact_emails: {
         Row: {
-          adjuster_email: string | null
-          adjuster_name: string | null
-          adjuster_phone: string | null
-          ams360_doc_id: string | null
-          carrier: string | null
-          carrier_email: string | null
-          claim_number: string | null
-          claim_type: string
-          client_id: string
-          created_at: string
-          created_by: string | null
-          date_of_loss: string | null
-          date_reported: string | null
-          description: string | null
-          fnol_sent_date: string | null
+          claim_contact_id: string
+          claim_id: string
           id: string
-          is_notice_only: boolean
-          last_follow_up: string | null
-          notes: string | null
-          paid_amount: number | null
-          policy_id: string | null
-          policy_number: string | null
-          reserve_amount: number | null
-          status: string
+          replied_at: string | null
+          sent_at: string
+          sent_by: string | null
+          subject: string | null
         }
         Insert: {
-          adjuster_email?: string | null
-          adjuster_name?: string | null
-          adjuster_phone?: string | null
-          ams360_doc_id?: string | null
-          carrier?: string | null
-          carrier_email?: string | null
-          claim_number?: string | null
-          claim_type: string
-          client_id: string
-          created_at?: string
-          created_by?: string | null
-          date_of_loss?: string | null
-          date_reported?: string | null
-          description?: string | null
-          fnol_sent_date?: string | null
+          claim_contact_id: string
+          claim_id: string
           id?: string
-          is_notice_only?: boolean
-          last_follow_up?: string | null
-          notes?: string | null
-          paid_amount?: number | null
-          policy_id?: string | null
-          policy_number?: string | null
-          reserve_amount?: number | null
-          status?: string
+          replied_at?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          subject?: string | null
         }
         Update: {
-          adjuster_email?: string | null
-          adjuster_name?: string | null
-          adjuster_phone?: string | null
-          ams360_doc_id?: string | null
-          carrier?: string | null
-          carrier_email?: string | null
-          claim_number?: string | null
-          claim_type?: string
-          client_id?: string
-          created_at?: string
-          created_by?: string | null
-          date_of_loss?: string | null
-          date_reported?: string | null
-          description?: string | null
-          fnol_sent_date?: string | null
+          claim_contact_id?: string
+          claim_id?: string
           id?: string
-          is_notice_only?: boolean
-          last_follow_up?: string | null
-          notes?: string | null
-          paid_amount?: number | null
-          policy_id?: string | null
-          policy_number?: string | null
-          reserve_amount?: number | null
-          status?: string
+          replied_at?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          subject?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "claims_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: "claim_contact_emails_claim_contact_id_fkey"
+            columns: ["claim_contact_id"]
             isOneToOne: false
-            referencedRelation: "clients"
+            referencedRelation: "claim_contacts"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "claims_policy_id_fkey"
-            columns: ["policy_id"]
+            foreignKeyName: "claim_contact_emails_claim_id_fkey"
+            columns: ["claim_id"]
             isOneToOne: false
-            referencedRelation: "policies"
+            referencedRelation: "claims"
             referencedColumns: ["id"]
           },
         ]
@@ -154,50 +103,101 @@ export type Database = {
           },
         ]
       }
-      claim_contact_emails: {
+      claims: {
         Row: {
-          claim_contact_id: string
-          claim_id: string
+          adjuster_email: string | null
+          adjuster_name: string | null
+          adjuster_phone: string | null
+          ams360_doc_id: string | null
+          carrier: string | null
+          carrier_email: string | null
+          claim_number: string | null
+          claim_type: string
+          client_id: string
+          closed_date: string | null
           created_at: string
+          created_by: string | null
+          date_of_loss: string | null
+          date_reported: string | null
+          description: string | null
+          fnol_sent_date: string | null
           id: string
-          replied_at: string | null
-          sent_at: string
-          sent_by: string | null
-          subject: string | null
+          is_notice_only: boolean
+          last_follow_up: string | null
+          notes: string | null
+          paid_amount: number | null
+          policy_id: string | null
+          policy_number: string | null
+          reserve_amount: number | null
+          status: string
         }
         Insert: {
-          claim_contact_id: string
-          claim_id: string
+          adjuster_email?: string | null
+          adjuster_name?: string | null
+          adjuster_phone?: string | null
+          ams360_doc_id?: string | null
+          carrier?: string | null
+          carrier_email?: string | null
+          claim_number?: string | null
+          claim_type: string
+          client_id: string
+          closed_date?: string | null
           created_at?: string
+          created_by?: string | null
+          date_of_loss?: string | null
+          date_reported?: string | null
+          description?: string | null
+          fnol_sent_date?: string | null
           id?: string
-          replied_at?: string | null
-          sent_at?: string
-          sent_by?: string | null
-          subject?: string | null
+          is_notice_only?: boolean
+          last_follow_up?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          policy_id?: string | null
+          policy_number?: string | null
+          reserve_amount?: number | null
+          status?: string
         }
         Update: {
-          claim_contact_id?: string
-          claim_id?: string
+          adjuster_email?: string | null
+          adjuster_name?: string | null
+          adjuster_phone?: string | null
+          ams360_doc_id?: string | null
+          carrier?: string | null
+          carrier_email?: string | null
+          claim_number?: string | null
+          claim_type?: string
+          client_id?: string
+          closed_date?: string | null
           created_at?: string
+          created_by?: string | null
+          date_of_loss?: string | null
+          date_reported?: string | null
+          description?: string | null
+          fnol_sent_date?: string | null
           id?: string
-          replied_at?: string | null
-          sent_at?: string
-          sent_by?: string | null
-          subject?: string | null
+          is_notice_only?: boolean
+          last_follow_up?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          policy_id?: string | null
+          policy_number?: string | null
+          reserve_amount?: number | null
+          status?: string
         }
         Relationships: [
           {
-            foreignKeyName: "claim_contact_emails_claim_contact_id_fkey"
-            columns: ["claim_contact_id"]
+            foreignKeyName: "claims_client_id_fkey"
+            columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: "claim_contacts"
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "claim_contact_emails_claim_id_fkey"
-            columns: ["claim_id"]
+            foreignKeyName: "claims_policy_id_fkey"
+            columns: ["policy_id"]
             isOneToOne: false
-            referencedRelation: "claims"
+            referencedRelation: "policies"
             referencedColumns: ["id"]
           },
         ]
