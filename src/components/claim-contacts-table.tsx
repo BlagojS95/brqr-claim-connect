@@ -67,8 +67,13 @@ export function ClaimContactsTable({
   const queryClient = useQueryClient();
   const queryKey = ["claim-contacts", claimId];
 
-  const { data: contacts, isLoading } = useQuery({
+  const {
+    data: contacts,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey,
+    retry: 1,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("claim_contacts")
@@ -137,6 +142,13 @@ export function ClaimContactsTable({
   }
 
   if (isLoading) return <div className="text-sm text-muted-foreground">Loading contacts…</div>;
+  if (error) {
+    return (
+      <div className="text-sm text-destructive">
+        Couldn't load contacts: {error instanceof Error ? error.message : "Unknown error"}
+      </div>
+    );
+  }
   if (!contacts?.length) return null;
 
   return (
