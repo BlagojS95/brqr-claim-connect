@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchClaimDetail } from "@/lib/vertafore.functions";
 import { StatusBadge } from "@/components/status-badge";
+import { ClaimContactsTable } from "@/components/claim-contacts-table";
 import { ArrowLeft, FileDown } from "lucide-react";
 
 export const Route = createFileRoute("/_app/claims/$claimId")({
@@ -27,7 +28,11 @@ function ClaimDetail() {
     queryFn: async () => {
       const [claim, { data: docs }] = await Promise.all([
         getClaim({ data: { claimId } }),
-        supabase.from("documents").select("*").eq("claim_id", claimId).order("uploaded_at", { ascending: false }),
+        supabase
+          .from("documents")
+          .select("*")
+          .eq("claim_id", claimId)
+          .order("uploaded_at", { ascending: false }),
       ]);
       return { claim, docs: docs ?? [] };
     },
@@ -45,15 +50,16 @@ function ClaimDetail() {
 
   return (
     <div className="space-y-6 max-w-5xl">
-      <Link to="/claims" className="inline-flex items-center gap-1 text-sm text-navy hover:text-gold">
+      <Link
+        to="/claims"
+        className="inline-flex items-center gap-1 text-sm text-navy hover:text-gold"
+      >
         <ArrowLeft className="h-4 w-4" /> Back to claims
       </Link>
 
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-navy">
-            {claim.claim_type} Claim
-          </h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-navy">{claim.claim_type} Claim</h1>
           <p className="text-sm text-muted-foreground mt-1 font-mono">
             {claim.claim_number ?? "Claim number pending"}
           </p>
@@ -66,9 +72,17 @@ function ClaimDetail() {
         <Field label="Carrier" value={claim.carrier} />
         <Field label="Policy #" value={claim.policy_number} />
         <Field label="Line of Business" value={claim.line_of_business_description} />
-        <Field label="Date of Loss" value={claim.date_of_loss ? new Date(claim.date_of_loss).toLocaleDateString() : null} />
+        <Field
+          label="Date of Loss"
+          value={claim.date_of_loss ? new Date(claim.date_of_loss).toLocaleDateString() : null}
+        />
         <Field label="Adjuster" value={claim.adjuster_name} />
-        <Field label="Paid" value={claim.paid_amount != null ? `$${Number(claim.paid_amount).toLocaleString()}` : null} />
+        <Field
+          label="Paid"
+          value={
+            claim.paid_amount != null ? `$${Number(claim.paid_amount).toLocaleString()}` : null
+          }
+        />
       </section>
 
       {claim.description && (
@@ -93,17 +107,32 @@ function ClaimDetail() {
 
       <section className="rounded-lg border border-border bg-card p-6">
         <h2 className="font-semibold text-navy mb-4">Documents</h2>
-        {data!.docs.length === 0 && <p className="text-sm text-muted-foreground">No documents uploaded.</p>}
+        {data!.docs.length === 0 && (
+          <p className="text-sm text-muted-foreground">No documents uploaded.</p>
+        )}
         <ul className="space-y-2">
           {data!.docs.map((d) => (
-            <li key={d.id} className="flex items-center justify-between p-3 rounded-md border border-border">
+            <li
+              key={d.id}
+              className="flex items-center justify-between p-3 rounded-md border border-border"
+            >
               <span className="text-sm">{d.file_name}</span>
-              <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="text-navy hover:text-gold inline-flex items-center gap-1 text-sm">
+              <a
+                href={d.file_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-navy hover:text-gold inline-flex items-center gap-1 text-sm"
+              >
                 <FileDown className="h-4 w-4" /> Download
               </a>
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="rounded-lg border border-border bg-card p-6">
+        <h2 className="font-semibold text-navy mb-4">Contacts</h2>
+        <ClaimContactsTable claimId={claim.id} claimNumber={claim.claim_number ?? null} />
       </section>
     </div>
   );

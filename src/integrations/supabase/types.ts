@@ -110,6 +110,98 @@ export type Database = {
           },
         ]
       }
+      claim_contacts: {
+        Row: {
+          claim_id: string
+          contact_person: string | null
+          created_at: string
+          email: string | null
+          id: string
+          notes: string | null
+          phone: string | null
+          row_key: string
+          updated_at: string
+        }
+        Insert: {
+          claim_id: string
+          contact_person?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          row_key: string
+          updated_at?: string
+        }
+        Update: {
+          claim_id?: string
+          contact_person?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          row_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_contacts_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      claim_contact_emails: {
+        Row: {
+          claim_contact_id: string
+          claim_id: string
+          created_at: string
+          id: string
+          replied_at: string | null
+          sent_at: string
+          sent_by: string | null
+          subject: string | null
+        }
+        Insert: {
+          claim_contact_id: string
+          claim_id: string
+          created_at?: string
+          id?: string
+          replied_at?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          subject?: string | null
+        }
+        Update: {
+          claim_contact_id?: string
+          claim_id?: string
+          created_at?: string
+          id?: string
+          replied_at?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_contact_emails_claim_contact_id_fkey"
+            columns: ["claim_contact_id"]
+            isOneToOne: false
+            referencedRelation: "claim_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claim_contact_emails_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           ams360_id: string | null
