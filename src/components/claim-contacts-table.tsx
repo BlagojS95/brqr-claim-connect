@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { ensureClaimContacts } from "@/lib/claim-contacts.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -66,6 +68,7 @@ export function ClaimContactsTable({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const queryKey = ["claim-contacts", claimId];
+  const ensureContacts = useServerFn(ensureClaimContacts);
 
   const {
     data: contacts,
@@ -75,12 +78,11 @@ export function ClaimContactsTable({
     queryKey,
     retry: 1,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("claim_contacts")
-        .select("*, claim_contact_emails(*)")
-        .eq("claim_id", claimId);
-      if (error) throw error;
-      const rows = (data ?? []) as unknown as Contact[];
+      // Most claims are sourced live from Vertafore/AMS360 and have no row in
+      // the local claims table, so the 5 contact rows can't be pre-seeded by
+      // a DB trigger — this server fn verifies claim ownership and seeds them
+      // on first load instead.
+      const rows = (await ensureContacts({ data: { claimId } })) as unknown as Contact[];
       return ROW_ORDER.map((key) => rows.find((r) => r.row_key === key)).filter(
         Boolean,
       ) as Contact[];

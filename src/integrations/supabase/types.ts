@@ -50,18 +50,12 @@ export type Database = {
             referencedRelation: "claim_contacts"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "claim_contact_emails_claim_id_fkey"
-            columns: ["claim_id"]
-            isOneToOne: false
-            referencedRelation: "claims"
-            referencedColumns: ["id"]
-          },
         ]
       }
       claim_contacts: {
         Row: {
           claim_id: string
+          client_id: string | null
           contact_person: string | null
           created_at: string
           email: string | null
@@ -73,6 +67,7 @@ export type Database = {
         }
         Insert: {
           claim_id: string
+          client_id?: string | null
           contact_person?: string | null
           created_at?: string
           email?: string | null
@@ -84,6 +79,7 @@ export type Database = {
         }
         Update: {
           claim_id?: string
+          client_id?: string | null
           contact_person?: string | null
           created_at?: string
           email?: string | null
@@ -95,10 +91,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "claim_contacts_claim_id_fkey"
-            columns: ["claim_id"]
+            foreignKeyName: "claim_contacts_client_id_fkey"
+            columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: "claims"
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
