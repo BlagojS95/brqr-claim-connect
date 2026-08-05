@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.seed_claim_contacts() FROM PUBLIC, anon, authenticated;
