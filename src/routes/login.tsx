@@ -13,10 +13,8 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -29,21 +27,8 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { name },
-            emailRedirectTo: window.location.origin + "/dashboard",
-          },
-        });
-        if (error) throw error;
-        toast.success("Account created");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
       navigate({ to: "/dashboard" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Authentication failed");
@@ -72,44 +57,25 @@ function LoginPage() {
             <div className="font-bold text-lg">BRQR Claims Portal</div>
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-navy">
-              {mode === "signin" ? "Sign in" : "Create an account"}
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              {mode === "signin"
-                ? "Enter your credentials to access your portal."
-                : "Register as a client to access your claims."}
-            </p>
+            <h2 className="text-2xl font-bold text-navy">Sign in</h2>
+            <p className="text-sm text-muted-foreground mt-1">Enter your credentials to access your portal.</p>
           </div>
 
-          {mode === "signup" && (
-            <div className="space-y-2">
-              <Label htmlFor="name">Full name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
-          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
 
           <Button type="submit" disabled={loading} className="w-full bg-navy hover:bg-navy/90 text-navy-foreground">
-            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+            {loading ? "Please wait…" : "Sign in"}
           </Button>
 
           <p className="text-sm text-center text-muted-foreground">
-            {mode === "signin" ? "Don't have an account?" : "Already have an account?"}{" "}
-            <button
-              type="button"
-              className="text-navy font-medium hover:text-gold"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            >
-              {mode === "signin" ? "Sign up" : "Sign in"}
-            </button>
+            Need access? Contact your BRQR representative to have an account set up.
           </p>
         </form>
       </div>

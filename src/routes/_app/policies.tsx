@@ -2,14 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { fetchAgencyOverview } from "@/lib/vertafore.functions";
-import { Shield, Calendar, Building2, Search } from "lucide-react";
+import { fetchAgencyOverview } from "@/lib/overview.functions";
+import { Shield, Calendar, Building2, Search, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_app/policies")({
   component: PoliciesPage,
 });
+
+const fmtCurrency = (n: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
 function PoliciesPage() {
   const [view, setView] = useState<"active" | "nonactive">("active");
@@ -27,19 +30,26 @@ function PoliciesPage() {
     return (
       (p.policy_type?.toLowerCase() ?? "").includes(term) ||
       (p.policy_number?.toLowerCase() ?? "").includes(term) ||
-      (p.carrier?.toLowerCase() ?? "").includes(term)
+      (p.carrier?.toLowerCase() ?? "").includes(term) ||
+      p.client_name.toLowerCase().includes(term)
     );
   });
 
   const activeCount = policies.filter((p) => p.status === "Active").length;
   const nonActiveCount = policies.length - activeCount;
+  const activePremium = policies
+    .filter((p) => p.status === "Active")
+    .reduce((sum, p) => sum + Number(p.premium ?? 0), 0);
 
   return (
     <div className="space-y-6 max-w-7xl">
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-navy">Policies</h1>
-          <p className="text-sm text-muted-foreground mt-1">All policies on file ({policies.length}).</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            All policies on file ({policies.length}).
+            {activePremium > 0 && <> Total premium on active policies: <b>{fmtCurrency(activePremium)}</b>.</>}
+          </p>
         </div>
         <div className="flex items-end gap-2 flex-wrap">
           <div className="relative">
@@ -88,11 +98,13 @@ function PoliciesPage() {
 
 type PolicyRow = {
   id: string;
+  client_name: string;
   policy_type: string | null;
   policy_number: string;
   carrier: string | null;
   effective_date: string | null;
   expiry_date: string | null;
+  premium: number | null;
   status: "Active" | "Non Active";
 };
 
@@ -119,6 +131,7 @@ function PolicyCard({ p }: { p: PolicyRow }) {
         </span>
       </div>
       <div className="space-y-1.5 text-sm">
+        {p.client_name && <div className="text-navy">{p.client_name}</div>}
         <div className="flex items-center gap-2 text-muted-foreground">
           <Building2 className="h-3.5 w-3.5" />
           <span>{p.carrier ?? "—"}</span>
@@ -131,6 +144,12 @@ function PolicyCard({ p }: { p: PolicyRow }) {
             {p.expiry_date ? new Date(p.expiry_date).toLocaleDateString() : "—"}
           </span>
         </div>
+        {p.premium != null && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <DollarSign className="h-3.5 w-3.5" />
+            <span>{fmtCurrency(Number(p.premium))} premium</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { fetchAgencyOverview } from "@/lib/vertafore.functions";
+import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -22,10 +22,7 @@ function Dashboard() {
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", user?.id, isAdmin],
     enabled: !!user,
-    queryFn: async () => {
-      const overview = await getOverview({ data: { scope: "all" } });
-      return { claims: overview.claims.slice(0, 50), policies: overview.policies };
-    },
+    queryFn: () => getOverview({ data: { scope: "all" } }),
   });
 
   const claims = data?.claims ?? [];
@@ -33,11 +30,12 @@ function Dashboard() {
   const openClaims = claims.filter((c) => c.status === "Open").length;
   const totalPaid = claims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
   const lastLoss = claims[0]?.date_of_loss ?? null;
+  const activePolicies = policies.filter((p) => p.status === "Active").length;
 
   const cards = [
     { label: "Open Claims", value: openClaims, icon: ClipboardList },
     { label: "Total Paid", value: fmtCurrency(totalPaid), icon: DollarSign },
-    { label: "Active Policies", value: policies.length, icon: FileText },
+    { label: "Active Policies", value: activePolicies, icon: FileText },
     { label: "Last Claim", value: lastLoss ? new Date(lastLoss).toLocaleDateString() : "—", icon: Calendar },
   ];
 

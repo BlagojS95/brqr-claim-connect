@@ -1,83 +1,58 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
-import type { Database } from "@/integrations/supabase/types";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
 
 await loadDevVars();
 
-export const fetchClientAccounts = createServerFn({ method: "GET" })
-  .middleware([requireAgencyAdmin])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("clients")
-      .select("id, user_id, email, ams360_id")
-      .not("user_id", "is", null);
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  });
+// Reset/delete take a raw auth user id, so make sure it really is a client's
+// login before touching it — otherwise an admin could hit another admin's account.
+async function requireClientLogin(userId: string) {
+  const { data } = await supabaseAdmin.from("clients").select("id").eq("user_id", userId).maybeSingle();
+  if (!data) throw new Error("No client login found for this user.");
+}
 
 const CreateAccountSchema = z.object({
+  clientId: z.string().uuid(),
   email: z.string().email(),
   password: z.string().min(8),
-  name: z.string().min(1),
-  company_name: z.string().nullable(),
-  ams360_id: z.string().min(1),
 });
 
 export const createClientAccount = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
   .inputValidator((input) => CreateAccountSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { data: existing } = await context.supabase
+    const { data: client } = await context.supabase
       .from("clients")
-      .select("id")
-      .eq("ams360_id", data.ams360_id)
-      .not("user_id", "is", null)
+      .select("id, user_id, name")
+      .eq("id", data.clientId)
       .maybeSingle();
 
-    if (existing) {
-      throw new Error("This client already has a login account.");
-    }
+    if (!client) throw new Error("Client not found.");
+    if (client.user_id) throw new Error("This client already has a login account.");
 
-    // No service-role key available (Lovable Cloud doesn't expose the raw Supabase
-    // dashboard), so we can't use the admin.createUser API. Instead, sign this account
-    // up the same way self-signup does, just from a throwaway client instance that never
-    // touches the browser's session/localStorage — so the admin stays logged in as
-    // themselves the whole time.
-    const signupClient = createClient<Database>(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
-
-    const { data: created, error: signUpError } = await signupClient.auth.signUp({
+    const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
       password: data.password,
-      options: { data: { name: data.name } },
+      email_confirm: true,
+      user_metadata: { name: client.name },
     });
 
-    if (signUpError || !created.user) {
-      throw new Error(signUpError?.message ?? "Failed to create account.");
+    if (createError || !created.user) {
+      throw new Error(createError?.message ?? "Failed to create account.");
     }
 
-    // The handle_new_user() trigger already inserted a user_roles('client') row
-    // and a blank clients row for this user_id — fill it in with the real details.
-    // context.supabase carries the calling admin's own auth token, and the "admin
-    // manages clients" RLS policy allows this update.
-    const { error: updateError } = await context.supabase
+    // The handle_new_user() trigger already gave this user the 'client' role.
+    // Linking the existing clients row to it is what makes RLS show them their data.
+    const { error: linkError } = await supabaseAdmin
       .from("clients")
-      .update({
-        name: data.name,
-        company_name: data.company_name,
-        email: data.email,
-        ams360_id: data.ams360_id,
-      })
-      .eq("user_id", created.user.id);
+      .update({ user_id: created.user.id, email: data.email })
+      .eq("id", client.id);
 
-    if (updateError) {
-      throw new Error(updateError.message);
+    if (linkError) {
+      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
+      throw new Error(linkError.message);
     }
 
     return { userId: created.user.id };
@@ -91,28 +66,23 @@ const ResetPasswordSchema = z.object({
 export const resetClientPassword = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
   .inputValidator((input) => ResetPasswordSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    // No service-role key, so we can't use auth.admin.updateUserById. Instead this
-    // calls a SECURITY DEFINER Postgres function (see migration
-    // 20260703000000_admin_account_management.sql) that re-checks the caller is an
-    // agency_admin itself before touching auth.users.
-    const { error } = await (context.supabase.rpc as any)("admin_set_user_password", {
-      target_user_id: data.userId,
-      new_password: data.password,
-    });
+  .handler(async ({ data }) => {
+    await requireClientLogin(data.userId);
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password: data.password });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 const DeleteAccountSchema = z.object({ userId: z.string().uuid() });
 
+// Removes the login only. The clients row keeps its policies and claims
+// (clients.user_id is ON DELETE SET NULL), so a new login can be created later.
 export const deleteClientAccount = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
   .inputValidator((input) => DeleteAccountSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    const { error } = await (context.supabase.rpc as any)("admin_delete_client_account", {
-      target_user_id: data.userId,
-    });
+  .handler(async ({ data }) => {
+    await requireClientLogin(data.userId);
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { notifyNewClaim } from "@/lib/claims.functions";
-import { fetchAgencyOverview } from "@/lib/vertafore.functions";
-import { fetchClientAccounts } from "@/lib/accounts.functions";
+import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { sendClaimNotificationEmail } from "@/lib/email.functions";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
@@ -22,7 +21,6 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const isAdmin = role === "agency_admin";
   const notify = useServerFn(notifyNewClaim);
   const getOverview = useServerFn(fetchAgencyOverview);
-  const getAccounts = useServerFn(fetchClientAccounts);
   const sendEmail = useServerFn(sendClaimNotificationEmail);
 
   const { data: overview } = useQuery({
@@ -30,26 +28,11 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
     queryFn: () => getOverview({ data: { scope: "policies" } }),
   });
 
-  // Admin can only report on behalf of clients who already have a portal
-  // account, since claims.client_id is a required FK to the local clients row.
-  const { data: accounts = [] } = useQuery({
-    queryKey: ["claim-form-accounts"],
-    enabled: isAdmin,
-    queryFn: () => getAccounts(),
-  });
-
   const selectableClients = isAdmin
-    ? (overview?.clients ?? [])
-        .filter((c) => accounts.some((a) => a.ams360_id === c.id))
-        .map((c) => ({
-          vertaforeId: c.id,
-          localId: accounts.find((a) => a.ams360_id === c.id)!.id,
-          name: c.name,
-        }))
+    ? (overview?.clients ?? []).map((c) => ({ id: c.id, name: c.company_name || c.name }))
     : [];
 
   const [selectedLocalClientId, setSelectedLocalClientId] = useState<string>("");
-  const [selectedVertaforeClientId, setSelectedVertaforeClientId] = useState<string>("");
   const [claimType, setClaimType] = useState("GL");
   const [dateOfLoss, setDateOfLoss] = useState("");
   const [description, setDescription] = useState("");
@@ -64,7 +47,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   }, [isAdmin, clientId]);
 
   const policies = isAdmin
-    ? (overview?.policies ?? []).filter((p) => p.client_id === selectedVertaforeClientId)
+    ? (overview?.policies ?? []).filter((p) => p.client_id === selectedLocalClientId)
     : (overview?.policies ?? []);
 
   const submit = async (e: React.FormEvent) => {
@@ -76,13 +59,11 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
     setBusy(true);
     try {
       const policy = policies.find((p) => p.id === policyId);
-      // `policy_number` isn't in the generated Database type yet (added via a
-      // migration the generated types.ts hasn't been regenerated against).
       const { data: claim, error } = await supabase
         .from("claims")
         .insert({
           client_id: selectedLocalClientId,
-          policy_id: null,
+          policy_id: policy?.id ?? null,
           policy_number: policy?.policy_number ?? null,
           claim_type: claimType,
           is_notice_only: isNotice,
@@ -90,7 +71,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
           description,
           carrier: policy?.carrier ?? null,
           status: isNotice ? "Pending" : "Open",
-        } as any)
+        })
         .select()
         .single();
       if (error) throw error;
@@ -150,16 +131,14 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
           <Label>Client</Label>
           <Select
             value={selectedLocalClientId}
-            onValueChange={(localId) => {
-              setSelectedLocalClientId(localId);
-              const match = selectableClients.find((c) => c.localId === localId);
-              setSelectedVertaforeClientId(match?.vertaforeId ?? "");
+            onValueChange={(id) => {
+              setSelectedLocalClientId(id);
               setPolicyId("");
             }}
           >
             <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
             <SelectContent>
-              {selectableClients.map((c) => <SelectItem key={c.localId} value={c.localId}>{c.name}</SelectItem>)}
+              {selectableClients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

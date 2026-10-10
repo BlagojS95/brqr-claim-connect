@@ -2,11 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { fetchAgencyOverview } from "@/lib/vertafore.functions";
-import type { AgencyClient } from "@/integrations/vertafore/aggregate.server";
-import { fetchClientAccounts, createClientAccount, resetClientPassword, deleteClientAccount } from "@/lib/accounts.functions";
+import { fetchAgencyOverview } from "@/lib/overview.functions";
+import type { AgencyClient } from "@/lib/overview.types";
+import { createClientAccount, resetClientPassword, deleteClientAccount } from "@/lib/accounts.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
+import { CsvImportCard } from "@/components/csv-import-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +33,6 @@ function AdminPage() {
   const { role } = useAuth();
   const qc = useQueryClient();
   const getOverview = useServerFn(fetchAgencyOverview);
-  const getAccounts = useServerFn(fetchClientAccounts);
   const createAccount = useServerFn(createClientAccount);
   const resetPassword = useServerFn(resetClientPassword);
   const deleteAccount = useServerFn(deleteClientAccount);
@@ -43,18 +43,11 @@ function AdminPage() {
     queryFn: () => getOverview({ data: { scope: "claims" } }),
   });
 
-  const { data: accounts = [] } = useQuery({
-    queryKey: ["client-accounts"],
-    enabled: role === "agency_admin",
-    queryFn: () => getAccounts(),
-  });
-
   const createAccountMutation = useMutation({
-    mutationFn: (input: { email: string; password: string; name: string; company_name: string | null; ams360_id: string }) =>
-      createAccount({ data: input }),
+    mutationFn: (input: { clientId: string; email: string; password: string }) => createAccount({ data: input }),
     onSuccess: () => {
       toast.success("Account created");
-      qc.invalidateQueries({ queryKey: ["client-accounts"] });
+      qc.invalidateQueries({ queryKey: ["admin-overview"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to create account"),
   });
@@ -69,7 +62,7 @@ function AdminPage() {
     mutationFn: (input: { userId: string }) => deleteAccount({ data: input }),
     onSuccess: () => {
       toast.success("Account deleted");
-      qc.invalidateQueries({ queryKey: ["client-accounts"] });
+      qc.invalidateQueries({ queryKey: ["admin-overview"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to delete account"),
   });
@@ -81,7 +74,6 @@ function AdminPage() {
   const clients = data?.clients ?? [];
   const claims = data?.claims ?? [];
   const openClaims = claims.filter((c) => c.status === "Open");
-  const accountByAms360Id = new Map(accounts.map((a) => [a.ams360_id, a]));
 
   return (
     <div className="space-y-8 max-w-7xl">
@@ -89,6 +81,8 @@ function AdminPage() {
         <h1 className="text-2xl md:text-3xl font-bold text-navy">Admin</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage all clients and open claims.</p>
       </div>
+
+      <CsvImportCard />
 
       <section className="rounded-lg border border-border bg-card">
         <div className="p-5 border-b border-border">
@@ -101,15 +95,18 @@ function AdminPage() {
                 <th className="text-left p-3">Name</th>
                 <th className="text-left p-3">Company</th>
                 <th className="text-left p-3">Email</th>
-                <th className="text-left p-3">AMS360</th>
+                <th className="text-left p-3">Client #</th>
                 <th className="text-left p-3">Claims</th>
                 <th className="text-left p-3">Account</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {!isLoading && clients.length === 0 && (
+                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No clients yet. Import a CSV above.</td></tr>
+              )}
               {clients.map((c) => {
-                const account = accountByAms360Id.get(c.id);
+                const userId = c.user_id;
                 return (
                   <tr key={c.id} className="border-t border-border">
                     <td className="p-3">{c.name}</td>
@@ -118,11 +115,11 @@ function AdminPage() {
                     <td className="p-3 font-mono text-xs">{c.ams360_id ?? "—"}</td>
                     <td className="p-3">{c.claims_count}</td>
                     <td className="p-3">
-                      {account ? (
+                      {userId ? (
                         <AccountActions
-                          email={account.email ?? ""}
-                          onReset={(password) => resetPasswordMutation.mutate({ userId: account.user_id!, password })}
-                          onDelete={() => deleteAccountMutation.mutate({ userId: account.user_id! })}
+                          email={c.email ?? ""}
+                          onReset={(password) => resetPasswordMutation.mutate({ userId, password })}
+                          onDelete={() => deleteAccountMutation.mutate({ userId })}
                         />
                       ) : (
                         <CreateAccountDialog
@@ -190,14 +187,12 @@ function CreateAccountDialog({
   onCreate,
 }: {
   client: AgencyClient;
-  onCreate: (input: { email: string; password: string; name: string; company_name: string | null; ams360_id: string }) => void;
+  onCreate: (input: { clientId: string; email: string; password: string }) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     email: client.email ?? "",
     password: "",
-    name: client.name,
-    company_name: client.company_name ?? "",
   });
 
   return (
@@ -211,14 +206,6 @@ function CreateAccountDialog({
           <div className="space-y-1">
             <Label>Email</Label>
             <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          </div>
-          <div className="space-y-1">
-            <Label>Name</Label>
-            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </div>
-          <div className="space-y-1">
-            <Label>Company</Label>
-            <Input value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} />
           </div>
           <div className="space-y-1">
             <Label>Temporary Password</Label>
@@ -243,14 +230,12 @@ function CreateAccountDialog({
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button
             className="bg-navy hover:bg-navy/90 text-navy-foreground"
-            disabled={!form.email || form.password.length < 8 || !form.name}
+            disabled={!form.email || form.password.length < 8}
             onClick={() => {
               onCreate({
+                clientId: client.id,
                 email: form.email,
                 password: form.password,
-                name: form.name,
-                company_name: form.company_name || null,
-                ams360_id: client.id,
               });
               setOpen(false);
             }}

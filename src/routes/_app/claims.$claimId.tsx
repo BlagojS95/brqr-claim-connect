@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchClaimDetail } from "@/lib/vertafore.functions";
+import { fetchClaimDetail } from "@/lib/overview.functions";
 import { StatusBadge } from "@/components/status-badge";
 import { ClaimContactsTable } from "@/components/claim-contacts-table";
 import { ArrowLeft, FileDown } from "lucide-react";

@@ -104,6 +104,8 @@ export type Database = {
           adjuster_email: string | null
           adjuster_name: string | null
           adjuster_phone: string | null
+          ams360_claim_id: string | null
+          ams360_closs_hist_id: string | null
           ams360_doc_id: string | null
           carrier: string | null
           carrier_email: string | null
@@ -120,6 +122,8 @@ export type Database = {
           id: string
           is_notice_only: boolean
           last_follow_up: string | null
+          line_of_business: string | null
+          line_of_business_description: string | null
           notes: string | null
           paid_amount: number | null
           policy_id: string | null
@@ -374,6 +378,7 @@ export type Database = {
           id: string
           policy_number: string
           policy_type: string | null
+          premium: number | null
         }
         Insert: {
           broker_name?: string | null
@@ -385,6 +390,7 @@ export type Database = {
           id?: string
           policy_number: string
           policy_type?: string | null
+          premium?: number | null
         }
         Update: {
           broker_name?: string | null
@@ -396,6 +402,7 @@ export type Database = {
           id?: string
           policy_number?: string
           policy_type?: string | null
+          premium?: number | null
         }
         Relationships: [
           {
@@ -433,14 +440,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_delete_client_account: {
-        Args: { target_user_id: string }
-        Returns: undefined
-      }
-      admin_set_user_password: {
-        Args: { new_password: string; target_user_id: string }
-        Returns: undefined
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

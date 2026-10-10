@@ -78,10 +78,8 @@ export function ClaimContactsTable({
     queryKey,
     retry: 1,
     queryFn: async () => {
-      // Most claims are sourced live from Vertafore/AMS360 and have no row in
-      // the local claims table, so the 5 contact rows can't be pre-seeded by
-      // a DB trigger — this server fn verifies claim ownership and seeds them
-      // on first load instead.
+      // This server fn verifies claim ownership and makes sure the 5 contact
+      // rows exist before returning them.
       const rows = (await ensureContacts({ data: { claimId } })) as unknown as Contact[];
       return ROW_ORDER.map((key) => rows.find((r) => r.row_key === key)).filter(
         Boolean,
