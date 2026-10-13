@@ -29,16 +29,31 @@ const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
 function LossRunsPage() {
-  const { clientId } = useAuth();
+  const { clientId, role } = useAuth();
   const qc = useQueryClient();
 
   const { data: lossRuns = [] } = useQuery({
     queryKey: ["loss-runs"],
     queryFn: async () => {
-      const { data } = await supabase.from("loss_runs").select("*").order("year", { ascending: false });
+      const { data } = await supabase
+        .from("loss_runs")
+        .select("*, clients(name, company_name)")
+        .order("year", { ascending: false });
       return data ?? [];
     },
   });
+
+  // document_url holds the storage path; sign it at click time so links never go stale
+  const download = async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from("claim-documents")
+      .createSignedUrl(path, 60, { download: true });
+    if (error || !data) {
+      toast.error("Could not open the file");
+      return;
+    }
+    window.location.assign(data.signedUrl);
+  };
 
   const { data: requests = [] } = useQuery({
     queryKey: ["loss-run-requests"],
@@ -108,18 +123,20 @@ function LossRunsPage() {
               <div className="flex items-center justify-between mb-2">
                 <div className="font-semibold text-navy text-lg">{lr.year}</div>
                 {lr.document_url ? (
-                  <a
-                    href={lr.document_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => download(lr.document_url!)}
                     className="inline-flex items-center gap-1 text-xs text-navy hover:text-gold"
                   >
                     <Download className="h-3.5 w-3.5" /> Download
-                  </a>
+                  </button>
                 ) : (
                   <span className="text-xs text-muted-foreground">No file</span>
                 )}
               </div>
+              {role === "agency_admin" && lr.clients && (
+                <div className="text-xs text-navy mb-1">{lr.clients.company_name || lr.clients.name}</div>
+              )}
               <div className="text-xs text-muted-foreground space-y-0.5">
                 <div>{lr.total_claims ?? 0} claims</div>
                 <div>Paid: {fmt(Number(lr.total_paid ?? 0))}</div>

@@ -4,6 +4,8 @@ import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app")({
+  // The session lives in the browser, so the server would always redirect to /login
+  ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
