@@ -131,6 +131,53 @@ export type Database = {
           },
         ]
       }
+      client_signatures: {
+        Row: {
+          client_id: string
+          consent_text: string
+          consent_version: string
+          id: string
+          revoked_at: string | null
+          signature_path: string
+          signed_at: string
+          signed_by: string
+          signer_name: string
+          user_agent: string | null
+        }
+        Insert: {
+          client_id: string
+          consent_text: string
+          consent_version: string
+          id?: string
+          revoked_at?: string | null
+          signature_path: string
+          signed_at?: string
+          signed_by: string
+          signer_name: string
+          user_agent?: string | null
+        }
+        Update: {
+          client_id?: string
+          consent_text?: string
+          consent_version?: string
+          id?: string
+          revoked_at?: string | null
+          signature_path?: string
+          signed_at?: string
+          signed_by?: string
+          signer_name?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_signatures_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claims: {
         Row: {
           adjuster_email: string | null

@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
 import { CsvImportCard } from "@/components/csv-import-card";
+import { ClientSignatureView } from "@/components/client-signature-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -78,6 +79,22 @@ function AdminPage() {
         .eq("status", "Pending")
         .order("created_at", { ascending: false });
       return data ?? [];
+    },
+  });
+
+  // Newest active signature per client, for the Signature column.
+  const { data: signatures } = useQuery({
+    queryKey: ["admin-client-signatures"],
+    enabled: role === "agency_admin",
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("client_signatures")
+        .select("client_id, signer_name, signed_at, signature_path, consent_version, consent_text")
+        .is("revoked_at", null)
+        .order("signed_at", { ascending: false });
+      const byClient = new Map<string, NonNullable<typeof data>[number]>();
+      for (const s of data ?? []) if (!byClient.has(s.client_id)) byClient.set(s.client_id, s);
+      return byClient;
     },
   });
 
@@ -155,13 +172,14 @@ function AdminPage() {
                 <th className="text-left p-3">Client #</th>
                 <th className="text-left p-3">Claims</th>
                 <th className="text-left p-3">Account</th>
+                <th className="text-left p-3">Signature</th>
                 <th className="text-left p-3">Loss Runs</th>
               </tr>
             </thead>
             <tbody>
-              {isLoading && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {isLoading && <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
               {!isLoading && clients.length === 0 && (
-                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No clients yet. Import a CSV above.</td></tr>
+                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No clients yet. Import a CSV above.</td></tr>
               )}
               {clients.map((c) => {
                 const userId = c.user_id;
@@ -185,6 +203,9 @@ function AdminPage() {
                           onCreate={(input) => createAccountMutation.mutate(input)}
                         />
                       )}
+                    </td>
+                    <td className="p-3">
+                      <ClientSignatureView signature={signatures?.get(c.id)} />
                     </td>
                     <td className="p-3">
                       <AddLossRunDialog client={c} onAdd={(input) => addLossRunMutation.mutate(input)} />
