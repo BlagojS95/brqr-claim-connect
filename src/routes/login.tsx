@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import brqrLogo from "@/assets/brqr-logo.png";
+import claimsQrLogoWhite from "@/assets/claims-qr-logo-white.png";
+import claimsQrLogoNavy from "@/assets/claims-qr-logo-navy.png";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -40,7 +41,7 @@ function LoginPage() {
   return (
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="hidden md:flex flex-col justify-between bg-navy text-navy-foreground p-12">
-        <img src={brqrLogo} alt="BRQR Broker" className="h-20 w-20 rounded-md" />
+        <img src={claimsQrLogoWhite} alt="Claims QR" className="h-16 w-auto self-start" />
         <div>
           <h1 className="text-4xl font-bold leading-tight">Client Claims Portal</h1>
           <p className="mt-4 text-navy-foreground/75 max-w-md">
@@ -52,10 +53,7 @@ function LoginPage() {
 
       <div className="flex items-center justify-center p-6 md:p-12 bg-background">
         <form onSubmit={submit} className="w-full max-w-md space-y-6">
-          <div className="md:hidden flex items-center gap-3">
-            <img src={brqrLogo} alt="BRQR" className="h-10 w-10 rounded-md" />
-            <div className="font-bold text-lg">BRQR Claims Portal</div>
-          </div>
+          <img src={claimsQrLogoNavy} alt="Claims QR" className="md:hidden h-10 w-auto" />
           <div>
             <h2 className="text-2xl font-bold text-navy">Sign in</h2>
             <p className="text-sm text-muted-foreground mt-1">Enter your credentials to access your portal.</p>

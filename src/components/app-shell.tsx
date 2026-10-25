@@ -1,6 +1,6 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { Home, FileText, PlusCircle, Bell, Users, LogOut, Shield, FolderArchive, BarChart3, LineChart } from "lucide-react";
-import brqrLogo from "@/assets/brqr-logo.png";
+import claimsQrLogo from "@/assets/claims-qr-logo-white.png";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import type { AppRole } from "@/hooks/use-auth";
@@ -39,12 +39,8 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
     <div className="min-h-screen flex bg-background">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-64 flex-col bg-sidebar text-sidebar-foreground">
-        <div className="p-6 border-b border-sidebar-border flex items-center gap-3">
-          <img src={brqrLogo} alt="BRQR" className="h-10 w-10 rounded-md" />
-          <div>
-            <div className="font-bold text-base leading-tight">BRQR</div>
-            <div className="text-xs text-sidebar-foreground/70">Claims Portal</div>
-          </div>
+        <div className="p-6 border-b border-sidebar-border">
+          <img src={claimsQrLogo} alt="Claims QR" className="h-11 w-auto" />
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {visible.map((item) => {
@@ -77,10 +73,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden flex items-center justify-between p-4 bg-navy text-navy-foreground">
-          <div className="flex items-center gap-2">
-            <img src={brqrLogo} alt="BRQR" className="h-7 w-7 rounded" />
-            <span className="font-bold">BRQR Claims</span>
-          </div>
+          <img src={claimsQrLogo} alt="Claims QR" className="h-8 w-auto" />
           <button onClick={logout} className="text-sm opacity-90">
             <LogOut className="h-4 w-4" />
           </button>
