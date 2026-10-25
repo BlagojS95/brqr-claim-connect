@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { sendLossRunRequestEmail } from "@/lib/email.functions";
-import { INSURGRID_IFRAME_SRC } from "@/lib/insurgrid";
+import { InsurGridLossRuns } from "@/components/insurgrid-loss-runs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -169,25 +169,14 @@ function LossRunsPage() {
           <Send className="h-4 w-4 text-gold" />
           <h2 className="font-semibold text-navy">Request a Loss Run</h2>
         </div>
-        <Tabs defaultValue={INSURGRID_IFRAME_SRC ? "insurgrid" : "manual"} className="p-5">
+        <Tabs defaultValue="insurgrid" className="p-5">
           <TabsList>
             <TabsTrigger value="insurgrid">Request through InsurGrid</TabsTrigger>
             <TabsTrigger value="manual">Request Manually</TabsTrigger>
           </TabsList>
 
           <TabsContent value="insurgrid" className="pt-4">
-            {INSURGRID_IFRAME_SRC ? (
-              <iframe
-                src={INSURGRID_IFRAME_SRC}
-                title="Connect your carrier through InsurGrid"
-                className="w-full h-[640px] rounded-md border border-border"
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Connecting directly to your carrier through InsurGrid is coming soon. Use
-                "Request Manually" in the meantime.
-              </p>
-            )}
+            <InsurGridLossRuns />
           </TabsContent>
 
           <TabsContent value="manual" className="pt-4 space-y-5">
