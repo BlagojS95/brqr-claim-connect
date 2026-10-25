@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -15,6 +15,7 @@ export const Route = createFileRoute("/_app/claims/")({
 function ClaimsList() {
   const [filter, setFilter] = useState<string>("All");
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
   const getOverview = useServerFn(fetchAgencyOverview);
   const { data: claims = [], isLoading } = useQuery({
     queryKey: ["claims-list"],
@@ -88,9 +89,19 @@ function ClaimsList() {
               <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No claims found.</td></tr>
             )}
             {filtered.map((c) => (
-              <tr key={c.id} className="border-t border-border hover:bg-muted/30 cursor-pointer">
+              <tr
+                key={c.id}
+                className="border-t border-border hover:bg-muted/30 cursor-pointer"
+                onClick={() => navigate({ to: "/claims/$claimId", params: { claimId: c.id } })}
+              >
                 <td className="p-3">
-                  <Link to="/claims/$claimId" params={{ claimId: c.id }} className="block">
+                  {/* Kept as a real link so ctrl/middle-click still opens a new tab */}
+                  <Link
+                    to="/claims/$claimId"
+                    params={{ claimId: c.id }}
+                    className="block"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {c.date_of_loss ? new Date(c.date_of_loss).toLocaleDateString() : "—"}
                   </Link>
                 </td>
