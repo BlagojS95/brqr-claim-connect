@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { ensureClaimContacts } from "@/lib/claim-contacts.functions";
+import { claimEmailSubject, followUpEmailBody, type ClaimEmailInfo } from "@/lib/claim-email";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -60,10 +61,10 @@ function latestEmail(emails: ContactEmail[]): ContactEmail | null {
 
 export function ClaimContactsTable({
   claimId,
-  claimNumber,
+  email: emailInfo,
 }: {
   claimId: string;
-  claimNumber: string | null;
+  email: ClaimEmailInfo;
 }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -106,13 +107,15 @@ export function ClaimContactsTable({
     invalidate();
   }
 
-  async function sendEmail(contact: Contact) {
+  async function sendEmail(contact: Contact, followUp = false) {
     if (!contact.email) {
       toast.error("Add an email address first");
       return;
     }
-    const subject = `RE: ${claimNumber ?? "Claim"}`;
-    window.location.href = `mailto:${contact.email}?subject=${encodeURIComponent(subject)}`;
+    const subject = claimEmailSubject(emailInfo);
+    let href = `mailto:${contact.email}?subject=${encodeURIComponent(subject)}`;
+    if (followUp) href += `&body=${encodeURIComponent(followUpEmailBody(contact.contact_person))}`;
+    window.location.href = href;
 
     const { error } = await supabase.from("claim_contact_emails").insert({
       claim_contact_id: contact.id,
@@ -207,7 +210,7 @@ export function ClaimContactsTable({
                 <td className="p-3">
                   <FollowUpStatus
                     latest={latest}
-                    onSendFollowUp={() => sendEmail(contact)}
+                    onSendFollowUp={() => sendEmail(contact, true)}
                     onMarkReplied={markReplied}
                   />
                 </td>
@@ -269,7 +272,7 @@ function NotesPopover({
           <StickyNote className="h-3.5 w-3.5" /> Notes
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80">
+      <PopoverContent className="w-80 space-y-2">
         <Textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -277,6 +280,19 @@ function NotesPopover({
           rows={5}
           autoFocus
         />
+        <div className="flex justify-end">
+          {/* Closing the popover is what saves; the button just makes that explicit */}
+          <Button
+            size="sm"
+            className="bg-navy hover:bg-navy/90 text-navy-foreground"
+            onClick={() => {
+              if (draft !== (value ?? "")) onSave(draft);
+              setOpen(false);
+            }}
+          >
+            Save
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

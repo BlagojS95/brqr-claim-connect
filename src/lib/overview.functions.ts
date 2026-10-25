@@ -34,6 +34,8 @@ function toClaim(row: Tables<"claims">, clientName: string): AgencyClaim {
     id: row.id,
     claim_number: row.claim_number,
     claim_type: row.claim_type,
+    // ?? null: rows read before the claimant_name migration has been applied
+    claimant_name: row.claimant_name ?? null,
     line_of_business_description: row.line_of_business_description,
     status: row.status,
     carrier: row.carrier,

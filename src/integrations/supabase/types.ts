@@ -99,6 +99,38 @@ export type Database = {
           },
         ]
       }
+      claim_internal_notes: {
+        Row: {
+          body: string
+          claim_id: string
+          updated_at: string
+          updated_by: string | null
+          updated_by_email: string | null
+        }
+        Insert: {
+          body?: string
+          claim_id: string
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_email?: string | null
+        }
+        Update: {
+          body?: string
+          claim_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_internal_notes_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: true
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claims: {
         Row: {
           adjuster_email: string | null
@@ -111,6 +143,7 @@ export type Database = {
           carrier_email: string | null
           claim_number: string | null
           claim_type: string
+          claimant_name: string | null
           client_id: string
           closed_date: string | null
           created_at: string
@@ -140,6 +173,7 @@ export type Database = {
           carrier_email?: string | null
           claim_number?: string | null
           claim_type: string
+          claimant_name?: string | null
           client_id: string
           closed_date?: string | null
           created_at?: string
@@ -151,6 +185,8 @@ export type Database = {
           id?: string
           is_notice_only?: boolean
           last_follow_up?: string | null
+          line_of_business?: string | null
+          line_of_business_description?: string | null
           notes?: string | null
           paid_amount?: number | null
           policy_id?: string | null
@@ -167,6 +203,7 @@ export type Database = {
           carrier_email?: string | null
           claim_number?: string | null
           claim_type?: string
+          claimant_name?: string | null
           client_id?: string
           closed_date?: string | null
           created_at?: string
@@ -178,6 +215,8 @@ export type Database = {
           id?: string
           is_notice_only?: boolean
           last_follow_up?: string | null
+          line_of_business?: string | null
+          line_of_business_description?: string | null
           notes?: string | null
           paid_amount?: number | null
           policy_id?: string | null

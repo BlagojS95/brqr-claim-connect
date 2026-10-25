@@ -12,8 +12,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { notifyNewClaim } from "@/lib/claims.functions";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { sendClaimNotificationEmail } from "@/lib/email.functions";
+import { uploadClaimDocument } from "@/lib/claim-documents";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
+
+// Same labels the CSV import writes, so reported claims group with imported ones.
+const LINE_OF_BUSINESS: Record<string, string> = {
+  GL: "General Liability",
+  WC: "Workers Compensation",
+  Auto: "Business Auto",
+  Property: "Commercial Property",
+};
 
 export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const navigate = useNavigate();
@@ -35,6 +44,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const [selectedLocalClientId, setSelectedLocalClientId] = useState<string>("");
   const [claimType, setClaimType] = useState("GL");
   const [dateOfLoss, setDateOfLoss] = useState("");
+  const [claimantName, setClaimantName] = useState("");
   const [description, setDescription] = useState("");
   const [policyId, setPolicyId] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
@@ -66,6 +76,8 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
           policy_id: policy?.id ?? null,
           policy_number: policy?.policy_number ?? null,
           claim_type: claimType,
+          claimant_name: claimantName.trim() || null,
+          line_of_business_description: LINE_OF_BUSINESS[claimType] ?? null,
           is_notice_only: isNotice,
           date_of_loss: dateOfLoss || null,
           description,
@@ -78,16 +90,11 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
 
       // Upload documents
       for (const file of files) {
-        const path = `${selectedLocalClientId}/${claim.id}/${Date.now()}-${file.name}`;
-        const { error: upErr } = await supabase.storage.from("claim-documents").upload(path, file);
-        if (upErr) { toast.error(`Upload failed: ${file.name}`); continue; }
-        const { data: signed } = await supabase.storage.from("claim-documents").createSignedUrl(path, 60 * 60 * 24 * 365);
-        await supabase.from("documents").insert({
-          claim_id: claim.id,
-          client_id: selectedLocalClientId,
-          file_name: file.name,
-          file_url: signed?.signedUrl ?? path,
-        });
+        try {
+          await uploadClaimDocument(selectedLocalClientId, claim.id, file);
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : `Upload failed: ${file.name}`);
+        }
       }
 
       // Fire webhook
@@ -158,6 +165,16 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
           <Label htmlFor="dol">Date of Loss</Label>
           <Input id="dol" type="date" value={dateOfLoss} onChange={(e) => setDateOfLoss(e.target.value)} required />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="claimant">Claimant Name</Label>
+        <Input
+          id="claimant"
+          value={claimantName}
+          onChange={(e) => setClaimantName(e.target.value)}
+          placeholder="Person or company making the claim"
+        />
       </div>
 
       <div className="space-y-2">

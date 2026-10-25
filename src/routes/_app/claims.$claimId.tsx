@@ -1,11 +1,17 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import { fetchClaimDetail } from "@/lib/overview.functions";
+import { uploadClaimDocument } from "@/lib/claim-documents";
 import { StatusBadge } from "@/components/status-badge";
 import { ClaimContactsTable } from "@/components/claim-contacts-table";
-import { ArrowLeft, FileDown } from "lucide-react";
+import { ClaimInternalNotes } from "@/components/claim-internal-notes";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, FileDown, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_app/claims/$claimId")({
   component: ClaimDetail,
@@ -22,6 +28,9 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 function ClaimDetail() {
   const { claimId } = Route.useParams();
+  const { role } = useAuth();
+  const queryClient = useQueryClient();
+  const [uploading, setUploading] = useState(false);
   const getClaim = useServerFn(fetchClaimDetail);
   const { data, isLoading } = useQuery({
     queryKey: ["claim", claimId],
@@ -42,6 +51,25 @@ function ClaimDetail() {
   const claim = data?.claim;
   if (!claim) return <div>Claim not found.</div>;
 
+  // Admins and the claim's own client can both add documents; storage RLS
+  // checks the client id at the front of the path.
+  async function uploadFiles(files: File[]) {
+    if (!claim || !files.length) return;
+    setUploading(true);
+    let uploaded = 0;
+    for (const file of files) {
+      try {
+        await uploadClaimDocument(claim.client_id, claim.id, file);
+        uploaded++;
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : `Upload failed: ${file.name}`);
+      }
+    }
+    setUploading(false);
+    if (uploaded) toast.success(`Uploaded ${uploaded} document${uploaded === 1 ? "" : "s"}`);
+    queryClient.invalidateQueries({ queryKey: ["claim", claimId] });
+  }
+
   const timeline = [
     { label: "Date of Loss", date: claim.date_of_loss },
     { label: "Reported", date: claim.date_reported },
@@ -49,7 +77,7 @@ function ClaimDetail() {
   ].filter((t) => t.date);
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-7xl">
       <Link
         to="/claims"
         className="inline-flex items-center gap-1 text-sm text-navy hover:text-gold"
@@ -69,6 +97,7 @@ function ClaimDetail() {
       </div>
 
       <section className="rounded-lg border border-border bg-card p-6 grid sm:grid-cols-2 md:grid-cols-3 gap-5">
+        <Field label="Claimant Name" value={claim.claimant_name} />
         <Field label="Carrier" value={claim.carrier} />
         <Field label="Policy #" value={claim.policy_number} />
         <Field label="Line of Business" value={claim.line_of_business_description} />
@@ -106,7 +135,24 @@ function ClaimDetail() {
       </section>
 
       <section className="rounded-lg border border-border bg-card p-6">
-        <h2 className="font-semibold text-navy mb-4">Documents</h2>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="font-semibold text-navy">Documents</h2>
+          <Button asChild variant="outline" size="sm" disabled={uploading}>
+            <label className="cursor-pointer">
+              <Upload className="h-3.5 w-3.5" /> {uploading ? "Uploading…" : "Upload Document"}
+              <input
+                type="file"
+                multiple
+                className="hidden"
+                disabled={uploading}
+                onChange={(e) => {
+                  uploadFiles(Array.from(e.target.files ?? []));
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </Button>
+        </div>
         {data!.docs.length === 0 && (
           <p className="text-sm text-muted-foreground">No documents uploaded.</p>
         )}
@@ -130,9 +176,23 @@ function ClaimDetail() {
         </ul>
       </section>
 
+      {role === "agency_admin" && (
+        <section className="rounded-lg border border-border bg-card p-6">
+          <h2 className="font-semibold text-navy mb-4">Internal Notes</h2>
+          <ClaimInternalNotes claimId={claim.id} />
+        </section>
+      )}
+
       <section className="rounded-lg border border-border bg-card p-6">
         <h2 className="font-semibold text-navy mb-4">Contacts</h2>
-        <ClaimContactsTable claimId={claim.id} claimNumber={claim.claim_number ?? null} />
+        <ClaimContactsTable
+          claimId={claim.id}
+          email={{
+            claimNumber: claim.claim_number,
+            dateOfLoss: claim.date_of_loss,
+            claimantName: claim.claimant_name,
+          }}
+        />
       </section>
     </div>
   );
