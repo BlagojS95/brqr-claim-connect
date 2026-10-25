@@ -6,12 +6,23 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchClaimDetail } from "@/lib/overview.functions";
-import { uploadClaimDocument } from "@/lib/claim-documents";
+import { deleteClaimDocument, uploadClaimDocument } from "@/lib/claim-documents";
 import { StatusBadge } from "@/components/status-badge";
 import { ClaimContactsTable } from "@/components/claim-contacts-table";
 import { ClaimInternalNotes } from "@/components/claim-internal-notes";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileDown, Upload } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, FileDown, Trash2, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_app/claims/$claimId")({
   component: ClaimDetail,
@@ -23,6 +34,38 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
       <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="mt-1 text-sm">{value ?? "—"}</div>
     </div>
+  );
+}
+
+function RemoveDocumentButton({ fileName, onConfirm }: { fileName: string; onConfirm: () => void }) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <button
+          type="button"
+          className="text-muted-foreground hover:text-destructive inline-flex items-center gap-1 text-sm"
+        >
+          <Trash2 className="h-4 w-4" /> Remove
+        </button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove this document?</AlertDialogTitle>
+          <AlertDialogDescription>
+            "{fileName}" will be removed from this claim for everyone. This can't be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={onConfirm}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Remove
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -67,6 +110,16 @@ function ClaimDetail() {
     }
     setUploading(false);
     if (uploaded) toast.success(`Uploaded ${uploaded} document${uploaded === 1 ? "" : "s"}`);
+    queryClient.invalidateQueries({ queryKey: ["claim", claimId] });
+  }
+
+  async function removeDocument(doc: { id: string; file_name: string; file_url: string }) {
+    try {
+      await deleteClaimDocument(doc);
+      toast.success(`Removed ${doc.file_name}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove document");
+    }
     queryClient.invalidateQueries({ queryKey: ["claim", claimId] });
   }
 
@@ -163,14 +216,17 @@ function ClaimDetail() {
               className="flex items-center justify-between p-3 rounded-md border border-border"
             >
               <span className="text-sm">{d.file_name}</span>
-              <a
-                href={d.file_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-navy hover:text-gold inline-flex items-center gap-1 text-sm"
-              >
-                <FileDown className="h-4 w-4" /> Download
-              </a>
+              <div className="flex items-center gap-4">
+                <a
+                  href={d.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-navy hover:text-gold inline-flex items-center gap-1 text-sm"
+                >
+                  <FileDown className="h-4 w-4" /> Download
+                </a>
+                <RemoveDocumentButton fileName={d.file_name} onConfirm={() => removeDocument(d)} />
+              </div>
             </li>
           ))}
         </ul>
