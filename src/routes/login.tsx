@@ -47,7 +47,7 @@ function LoginPage() {
             Report new claims, track status updates, and manage your policies in one secure place.
           </p>
         </div>
-        <div className="text-xs opacity-60">© BRQR Insurance Agency</div>
+        <div />
       </div>
 
       <div className="flex items-center justify-center p-6 md:p-12 bg-background">
@@ -75,7 +75,7 @@ function LoginPage() {
           </Button>
 
           <p className="text-sm text-center text-muted-foreground">
-            Need access? Contact your BRQR representative to have an account set up.
+            Need access? Contact your agent representative to have an account set up.
           </p>
         </form>
       </div>
