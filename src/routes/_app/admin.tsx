@@ -150,7 +150,7 @@ function AdminPage() {
   const openClaims = claims.filter((c) => c.status === "Open");
 
   return (
-    <div className="space-y-8 max-w-7xl">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-navy">Admin</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage all clients and open claims.</p>

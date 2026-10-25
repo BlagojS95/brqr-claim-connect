@@ -116,7 +116,7 @@ function LossRunsPage() {
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-navy">Loss Runs</h1>
         <p className="text-sm text-muted-foreground mt-1">

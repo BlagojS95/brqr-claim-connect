@@ -121,7 +121,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   };
 
   return (
-    <form onSubmit={submit} className="space-y-6 max-w-2xl">
+    <form onSubmit={submit} className="space-y-6 max-w-3xl mx-auto">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-navy">
           {isNotice ? "Report Notice of Claim" : "Report New Claim"}

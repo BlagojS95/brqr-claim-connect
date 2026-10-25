@@ -77,7 +77,7 @@ function ClaimDetail() {
   ].filter((t) => t.date);
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="space-y-6">
       <Link
         to="/claims"
         className="inline-flex items-center gap-1 text-sm text-navy hover:text-gold"
