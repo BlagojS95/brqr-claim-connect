@@ -1,13 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { sendLossRunRequestEmail } from "@/lib/email.functions";
+import { INSURGRID_IFRAME_SRC } from "@/lib/insurgrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, FileText, Send, FolderArchive } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,6 +35,7 @@ const fmt = (n: number) =>
 function LossRunsPage() {
   const { clientId, role } = useAuth();
   const qc = useQueryClient();
+  const notifyAgency = useServerFn(sendLossRunRequestEmail);
 
   const { data: lossRuns = [] } = useQuery({
     queryKey: ["loss-runs"],
@@ -78,13 +83,24 @@ function LossRunsPage() {
       if (!clientId) throw new Error("Missing client profile");
       if (years.length === 0) throw new Error("Select at least one year");
       if (lobs.length === 0) throw new Error("Select at least one line of business");
-      const { error } = await supabase.from("loss_run_requests").insert({
-        client_id: clientId,
-        years,
-        lines_of_business: lobs,
-        notes: notes || null,
-      });
+      const { data: request, error } = await supabase
+        .from("loss_run_requests")
+        .insert({
+          client_id: clientId,
+          years,
+          lines_of_business: lobs,
+          notes: notes || null,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+
+      // The request is already saved; a failed email shouldn't look like a failed request.
+      try {
+        await notifyAgency({ data: { requestId: request.id } });
+      } catch (err) {
+        console.warn("loss run email error", err);
+      }
     },
     onSuccess: () => {
       toast.success("Loss run request submitted");
@@ -153,54 +169,76 @@ function LossRunsPage() {
           <Send className="h-4 w-4 text-gold" />
           <h2 className="font-semibold text-navy">Request a Loss Run</h2>
         </div>
-        <div className="p-5 space-y-5">
-          <div>
-            <Label className="text-sm font-medium text-navy">Years</Label>
-            <div className="flex flex-wrap gap-3 mt-2">
-              {yearChoices.map((y) => (
-                <label key={y} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <Checkbox
-                    checked={years.includes(y)}
-                    onCheckedChange={() => toggle(years, y, setYears)}
-                  />
-                  {y}
-                </label>
-              ))}
+        <Tabs defaultValue={INSURGRID_IFRAME_SRC ? "insurgrid" : "manual"} className="p-5">
+          <TabsList>
+            <TabsTrigger value="insurgrid">Request through InsurGrid</TabsTrigger>
+            <TabsTrigger value="manual">Request Manually</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="insurgrid" className="pt-4">
+            {INSURGRID_IFRAME_SRC ? (
+              <iframe
+                src={INSURGRID_IFRAME_SRC}
+                title="Connect your carrier through InsurGrid"
+                className="w-full h-[640px] rounded-md border border-border"
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Connecting directly to your carrier through InsurGrid is coming soon. Use
+                "Request Manually" in the meantime.
+              </p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="manual" className="pt-4 space-y-5">
+            <div>
+              <Label className="text-sm font-medium text-navy">Years</Label>
+              <div className="flex flex-wrap gap-3 mt-2">
+                {yearChoices.map((y) => (
+                  <label key={y} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={years.includes(y)}
+                      onCheckedChange={() => toggle(years, y, setYears)}
+                    />
+                    {y}
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div>
-            <Label className="text-sm font-medium text-navy">Lines of Business</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-              {LOB_OPTIONS.map((l) => (
-                <label key={l} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <Checkbox checked={lobs.includes(l)} onCheckedChange={() => toggle(lobs, l, setLobs)} />
-                  {l}
-                </label>
-              ))}
+            <div>
+              <Label className="text-sm font-medium text-navy">Lines of Business</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                {LOB_OPTIONS.map((l) => (
+                  <label key={l} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={lobs.includes(l)} onCheckedChange={() => toggle(lobs, l, setLobs)} />
+                    {l}
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div>
-            <Label htmlFor="notes" className="text-sm font-medium text-navy">Notes (optional)</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Anything else we should know…"
-              className="mt-2"
-              rows={3}
-            />
-          </div>
+            <div>
+              <Label htmlFor="notes" className="text-sm font-medium text-navy">Notes (optional)</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Anything else we should know…"
+                className="mt-2"
+                rows={3}
+              />
+            </div>
 
-          <Button
-            onClick={() => submit.mutate()}
-            disabled={submit.isPending}
-            className="bg-navy hover:bg-navy/90 text-navy-foreground"
-          >
-            {submit.isPending ? "Submitting…" : "Submit Request"}
-          </Button>
-        </div>
+            <Button
+              onClick={() => submit.mutate()}
+              disabled={submit.isPending}
+              className="bg-navy hover:bg-navy/90 text-navy-foreground"
+            >
+              {submit.isPending ? "Submitting…" : "Submit Request"}
+            </Button>
+          </TabsContent>
+        </Tabs>
       </section>
 
       {/* Past Requests */}

@@ -35,10 +35,11 @@ function buildEmailHtml(opts: {
   policyNumber: string;
   dateOfLoss: string;
   claimType: string;
+  claimantName: string;
   description: string;
   documents: { file_name: string; file_url: string }[];
 }): string {
-  const { isNotice, customerName, policyNumber, dateOfLoss, claimType, description, documents } = opts;
+  const { isNotice, customerName, policyNumber, dateOfLoss, claimType, claimantName, description, documents } = opts;
   const title = isNotice ? "New Incident Notice" : "New Claim";
 
   const attachmentsHtml = documents.length
@@ -81,6 +82,10 @@ function buildEmailHtml(opts: {
                     <td style="padding:6px 0;color:#0A1628;font-size:14px;">${escapeHtml(claimType || "—")}</td>
                   </tr>
                   <tr>
+                    <td style="padding:6px 0;color:#5C646F;font-size:13px;">Claimant</td>
+                    <td style="padding:6px 0;color:#0A1628;font-size:14px;">${escapeHtml(claimantName || "—")}</td>
+                  </tr>
+                  <tr>
                     <td style="padding:6px 0;color:#5C646F;font-size:13px;">Date of Loss</td>
                     <td style="padding:6px 0;color:#0A1628;font-size:14px;">${escapeHtml(dateOfLoss)}</td>
                   </tr>
@@ -106,6 +111,35 @@ function buildEmailHtml(opts: {
     </table>
   </body>
 </html>`;
+}
+
+// All portal notifications go to the agency's shared service inbox unless the
+// env var says otherwise. The sender must be on a domain verified in Resend;
+// the resend.dev sandbox sender can only deliver to the Resend account owner.
+const DEFAULT_RECIPIENT = "service@brqr.com";
+const DEFAULT_SENDER = "BRQR Claims Portal <onboarding@resend.dev>";
+
+async function sendViaResend(subject: string, html: string) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error("Missing RESEND_API_KEY environment variable");
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: process.env.NOTIFICATION_FROM_EMAIL || DEFAULT_SENDER,
+      to: [process.env.CLAIM_NOTIFICATION_EMAIL || DEFAULT_RECIPIENT],
+      subject,
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Resend request failed: ${res.status} ${await res.text()}`);
+  }
 }
 
 const InputSchema = z.object({ claimId: z.string() });
@@ -141,33 +175,76 @@ export const sendClaimNotificationEmail = createServerFn({ method: "POST" })
       policyNumber,
       dateOfLoss,
       claimType: claim.claim_type,
+      claimantName: claim.claimant_name ?? "",
       description: claim.description ?? "",
       documents: docs ?? [],
     });
 
-    const apiKey = process.env.RESEND_API_KEY;
-    const recipient = process.env.CLAIM_NOTIFICATION_EMAIL;
-    if (!apiKey || !recipient) {
-      throw new Error("Missing RESEND_API_KEY or CLAIM_NOTIFICATION_EMAIL environment variable");
-    }
+    await sendViaResend(subject, html);
+    return { ok: true };
+  });
 
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "BRQR Claims Portal <onboarding@resend.dev>",
-        to: [recipient],
-        subject,
-        html,
-      }),
-    });
+function buildLossRunRequestHtml(opts: {
+  namedInsured: string;
+  years: number[];
+  lines: string[];
+  notes: string;
+}): string {
+  const rows: [string, string][] = [
+    ["Named Insured", opts.namedInsured],
+    ["Years", opts.years.join(", ") || "—"],
+    ["Lines of Business", opts.lines.join(", ") || "—"],
+    ["Notes", opts.notes || "—"],
+  ];
+  return `<!doctype html>
+<html>
+  <body style="margin:0;padding:24px;background-color:#FAFCFE;font-family:${FONT_STACK};">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="margin:0 auto;background-color:#FFFFFF;border-radius:8px;border:1px solid #E0E5EB;">
+      <tr>
+        <td style="padding:32px;">
+          <h1 style="color:${NAVY};font-size:20px;margin:0 0 16px;">Loss Run Request</h1>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            ${rows
+              .map(
+                ([label, value]) =>
+                  `<tr><td style="padding:6px 0;color:#5C646F;font-size:13px;width:160px;vertical-align:top;">${label}</td><td style="padding:6px 0;color:#0A1628;font-size:14px;white-space:pre-wrap;">${escapeHtml(value)}</td></tr>`,
+              )
+              .join("")}
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
 
-    if (!res.ok) {
-      throw new Error(`Resend request failed: ${res.status} ${await res.text()}`);
-    }
+export const sendLossRunRequestEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ requestId: z.string() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: request } = await context.supabase
+      .from("loss_run_requests")
+      .select("*")
+      .eq("id", data.requestId)
+      .maybeSingle();
+    if (!request) throw new Error("Loss run request not found");
 
+    // No FK from loss_run_requests to clients, so this can't be an embedded select.
+    const { data: clientRow } = await context.supabase
+      .from("clients")
+      .select("name, company_name")
+      .eq("id", request.client_id)
+      .maybeSingle();
+    const namedInsured = clientRow?.company_name || clientRow?.name || "Unknown Insured";
+    const years = [...(request.years ?? [])].sort((a, b) => b - a);
+    const lines = request.lines_of_business ?? [];
+    // Format asked for by the agency:
+    // "Regarding: Acme LLC | 2026, 2025 | General Liability, Property Loss Runs"
+    const subject = `Regarding: ${namedInsured} | ${years.join(", ")} | ${lines.join(", ")} Loss Runs`;
+
+    await sendViaResend(
+      subject,
+      buildLossRunRequestHtml({ namedInsured, years, lines, notes: request.notes ?? "" }),
+    );
     return { ok: true };
   });
