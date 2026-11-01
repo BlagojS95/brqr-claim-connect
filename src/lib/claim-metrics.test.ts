@@ -41,7 +41,12 @@ describe("status counts", () => {
   });
 });
 
-const money = (status: string, date_of_loss: string, paid: number | null, reserve: number | null) => ({
+const money = (
+  status: string,
+  date_of_loss: string,
+  paid: number | null,
+  reserve: number | null,
+) => ({
   ...claim(status),
   date_of_loss,
   paid_amount: paid,

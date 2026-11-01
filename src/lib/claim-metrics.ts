@@ -78,7 +78,11 @@ function percentChange(current: number, previous: number): number | null {
 }
 
 /** Keeps claims with a date of loss from Jan 1 of `year` up to today's month and day. */
-function yearToDate<T extends { date_of_loss: string | null }>(claims: T[], year: number, today: string): T[] {
+function yearToDate<T extends { date_of_loss: string | null }>(
+  claims: T[],
+  year: number,
+  today: string,
+): T[] {
   const monthDay = today.slice(5, 10);
   return claims.filter((claim) => {
     const date = claim.date_of_loss;
@@ -94,10 +98,9 @@ export interface YtdComparison {
 }
 
 /** This year to date against the same stretch of last year. `today` is "YYYY-MM-DD". */
-export function compareYtd<T extends ClaimStatusFields & ClaimAmounts & { date_of_loss: string | null }>(
-  claims: T[],
-  today: string,
-): YtdComparison {
+export function compareYtd<
+  T extends ClaimStatusFields & ClaimAmounts & { date_of_loss: string | null },
+>(claims: T[], today: string): YtdComparison {
   const year = Number(today.slice(0, 4));
   const current = yearToDate(claims, year, today);
   const previous = yearToDate(claims, year - 1, today);
