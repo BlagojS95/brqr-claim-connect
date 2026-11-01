@@ -110,9 +110,6 @@ function AdminPage() {
       const { error } = await supabase.from("loss_runs").insert({
         client_id: input.clientId,
         year: input.year,
-        total_claims: input.totalClaims,
-        total_paid: input.totalPaid,
-        total_incurred: input.totalIncurred,
         document_url: path,
       });
       if (error) {
@@ -383,9 +380,6 @@ interface LossRunInput {
   clientId: string;
   year: number;
   file: File;
-  totalClaims: number;
-  totalPaid: number;
-  totalIncurred: number;
 }
 
 function AddLossRunDialog({
@@ -397,9 +391,6 @@ function AddLossRunDialog({
 }) {
   const emptyForm = {
     year: String(new Date().getFullYear()),
-    totalClaims: "",
-    totalPaid: "",
-    totalIncurred: "",
   };
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -421,39 +412,7 @@ function AddLossRunDialog({
             <Label>File</Label>
             <Input type="file" accept=".pdf,.xlsx,.xls,.csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="space-y-1">
-              <Label>Claims</Label>
-              <Input
-                type="number"
-                min={0}
-                value={form.totalClaims}
-                onChange={(e) => setForm({ ...form, totalClaims: e.target.value })}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Paid ($)</Label>
-              <Input
-                type="number"
-                min={0}
-                value={form.totalPaid}
-                onChange={(e) => setForm({ ...form, totalPaid: e.target.value })}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Incurred ($)</Label>
-              <Input
-                type="number"
-                min={0}
-                value={form.totalIncurred}
-                onChange={(e) => setForm({ ...form, totalIncurred: e.target.value })}
-                placeholder="0"
-              />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">Totals are optional. The client sees this file in their Loss Run Library.</p>
+          <p className="text-xs text-muted-foreground">The client sees this file in their Loss Run Library. Totals there come from their claims.</p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -466,9 +425,6 @@ function AddLossRunDialog({
                 clientId: client.id,
                 year: Number(form.year),
                 file,
-                totalClaims: Number(form.totalClaims) || 0,
-                totalPaid: Number(form.totalPaid) || 0,
-                totalIncurred: Number(form.totalIncurred) || 0,
               });
               setForm(emptyForm);
               setFile(null);

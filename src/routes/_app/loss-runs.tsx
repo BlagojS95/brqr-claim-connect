@@ -1,10 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { summarize } from "@/lib/claim-metrics";
+import { calendarYear, formatDate, todayIso } from "@/lib/dates";
 import { sendLossRunRequestEmail } from "@/lib/email.functions";
+import { fetchAgencyOverview } from "@/lib/overview.functions";
+import type { AgencyClaim } from "@/lib/overview.types";
 import { InsurGridLossRuns } from "@/components/insurgrid-loss-runs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +51,44 @@ function LossRunsPage() {
       return data ?? [];
     },
   });
+
+  const getOverview = useServerFn(fetchAgencyOverview);
+  const { data: claims = [] } = useQuery({
+    queryKey: ["loss-run-claims"],
+    queryFn: async () => (await getOverview({ data: { scope: "claims" } })).claims,
+  });
+
+  // Totals come from the claims themselves so they always match the Claims page.
+  // loss_runs rows only supply the attached files for that client and year.
+  const yearCards = useMemo(() => {
+    const cards = new Map<
+      string,
+      { key: string; clientName: string; year: number; rows: AgencyClaim[]; files: string[] }
+    >();
+    const cardFor = (clientId: string, clientName: string, year: number) => {
+      const key = `${clientId}|${year}`;
+      let card = cards.get(key);
+      if (!card) {
+        card = { key, clientName, year, rows: [], files: [] };
+        cards.set(key, card);
+      }
+      return card;
+    };
+    for (const c of claims) {
+      const year = calendarYear(c.date_of_loss);
+      if (year !== null) cardFor(c.client_id, c.client_name, year).rows.push(c);
+    }
+    for (const lr of lossRuns) {
+      const name = lr.clients?.company_name || lr.clients?.name || "";
+      const card = cardFor(lr.client_id, name, lr.year);
+      if (lr.document_url) card.files.push(lr.document_url);
+    }
+    return Array.from(cards.values()).sort(
+      (a, b) => b.year - a.year || a.clientName.localeCompare(b.clientName),
+    );
+  }, [claims, lossRuns]);
+
+  const valued = formatDate(todayIso());
 
   // document_url holds the storage path; sign it at click time so links never go stale
   const download = async (path: string) => {
@@ -131,35 +173,45 @@ function LossRunsPage() {
           <h2 className="font-semibold text-navy">Loss Run Library</h2>
         </div>
         <div className="p-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {lossRuns.length === 0 && (
+          {yearCards.length === 0 && (
             <p className="text-sm text-muted-foreground col-span-full">No loss runs available yet.</p>
           )}
-          {lossRuns.map((lr) => (
-            <div key={lr.id} className="rounded-md border border-border p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="font-semibold text-navy text-lg">{lr.year}</div>
-                {lr.document_url ? (
-                  <button
-                    type="button"
-                    onClick={() => download(lr.document_url!)}
-                    className="inline-flex items-center gap-1 text-xs text-navy hover:text-gold"
-                  >
-                    <Download className="h-3.5 w-3.5" /> Download
-                  </button>
-                ) : (
-                  <span className="text-xs text-muted-foreground">No file</span>
+          {yearCards.map((card) => {
+            const totals = summarize(card.rows);
+            return (
+              <div key={card.key} className="rounded-md border border-border p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="font-semibold text-navy text-lg">{card.year}</div>
+                  {card.files.length > 0 ? (
+                    <div className="flex flex-col items-end gap-1">
+                      {card.files.map((path, i) => (
+                        <button
+                          key={path}
+                          type="button"
+                          onClick={() => download(path)}
+                          className="inline-flex items-center gap-1 text-xs text-navy hover:text-gold"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Download{card.files.length > 1 ? ` ${i + 1}` : ""}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No file</span>
+                  )}
+                </div>
+                {role === "agency_admin" && card.clientName && (
+                  <div className="text-xs text-navy mb-1">{card.clientName}</div>
                 )}
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <div>{totals.claims} claims</div>
+                  <div>Paid: {fmt(totals.paid)}</div>
+                  <div>Incurred: {fmt(totals.incurred)}</div>
+                  <div>Valued as of {valued}</div>
+                </div>
               </div>
-              {role === "agency_admin" && lr.clients && (
-                <div className="text-xs text-navy mb-1">{lr.clients.company_name || lr.clients.name}</div>
-              )}
-              <div className="text-xs text-muted-foreground space-y-0.5">
-                <div>{lr.total_claims ?? 0} claims</div>
-                <div>Paid: {fmt(Number(lr.total_paid ?? 0))}</div>
-                <div>Incurred: {fmt(Number(lr.total_incurred ?? 0))}</div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
