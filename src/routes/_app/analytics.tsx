@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { calendarYear } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { BarChart3, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -36,7 +37,7 @@ function AnalyticsPage() {
   const groups = useMemo(() => {
     const map = new Map<string, { year: number; lob: string; carrier: string; rows: Claim[] }>();
     for (const c of claims) {
-      const year = c.date_of_loss ? new Date(c.date_of_loss).getUTCFullYear() : new Date().getUTCFullYear();
+      const year = calendarYear(c.date_of_loss) ?? new Date().getFullYear();
       const lob = c.line_of_business_description || c.claim_type || "Other";
       const carrier = c.carrier || "—";
       const key = `${year}|${lob}|${carrier}`;

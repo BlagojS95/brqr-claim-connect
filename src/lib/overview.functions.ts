@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Tables } from "@/integrations/supabase/types";
+import { todayIso } from "@/lib/dates";
 import { fetchAll } from "@/lib/fetch-all";
 import type {
   AgencyClaim,
@@ -14,15 +15,12 @@ import type {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// "YYYY-MM-DD" text sorts in date order, and the policy is in force on its expiry day.
 function computePolicyStatus(effectiveDate: string | null, expiryDate: string | null): "Active" | "Non Active" {
-  if (!expiryDate) return "Active";
-  const now = Date.now();
-  const expiry = new Date(expiryDate).getTime();
-  if (effectiveDate) {
-    const effective = new Date(effectiveDate).getTime();
-    if (now < effective) return "Non Active";
-  }
-  return now <= expiry ? "Active" : "Non Active";
+  const today = todayIso();
+  if (effectiveDate && today < effectiveDate.slice(0, 10)) return "Non Active";
+  if (expiryDate && today > expiryDate.slice(0, 10)) return "Non Active";
+  return "Active";
 }
 
 function displayName(client: { name?: string | null; company_name?: string | null } | null | undefined): string {

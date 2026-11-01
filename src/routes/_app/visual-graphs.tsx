@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo } from "react";
+import { calendarYear } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { LineChart as LineIcon } from "lucide-react";
 import {
@@ -71,8 +72,8 @@ function VisualGraphsPage() {
   const byYear = useMemo(() => {
     const m = new Map<number, { year: number; count: number; paid: number }>();
     for (const c of claims) {
-      if (!c.date_of_loss) continue;
-      const y = new Date(c.date_of_loss).getUTCFullYear();
+      const y = calendarYear(c.date_of_loss);
+      if (y === null) continue;
       const r = m.get(y) ?? { year: y, count: 0, paid: 0 };
       r.count += 1;
       r.paid += Number(c.paid_amount ?? 0);
@@ -102,9 +103,7 @@ function VisualGraphsPage() {
     const currentYear = now.getUTCFullYear();
     const lastYear = currentYear - 1;
     const costFor = (year: number) => {
-      const yearClaims = claims.filter(
-        (c) => c.date_of_loss && new Date(c.date_of_loss).getUTCFullYear() === year,
-      );
+      const yearClaims = claims.filter((c) => calendarYear(c.date_of_loss) === year);
       if (!yearClaims.length) return null;
       const total = yearClaims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
       return total / yearClaims.length;
@@ -120,9 +119,7 @@ function VisualGraphsPage() {
     const currentYear = now.getUTCFullYear();
     const lastYear = currentYear - 1;
     const countFor = (year: number) => {
-      return claims.filter(
-        (c) => c.date_of_loss && new Date(c.date_of_loss).getUTCFullYear() === year,
-      ).length;
+      return claims.filter((c) => calendarYear(c.date_of_loss) === year).length;
     };
     const current = countFor(currentYear);
     const previous = countFor(lastYear);

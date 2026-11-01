@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { formatDate } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClient } from "@/lib/overview.types";
 import { createClientAccount, resetClientPassword, deleteClientAccount } from "@/lib/accounts.functions";
@@ -284,7 +285,7 @@ function AdminPage() {
             <tbody>
               {openClaims.map((c) => (
                 <tr key={c.id} className="border-t border-border">
-                  <td className="p-3">{c.date_of_loss ? new Date(c.date_of_loss).toLocaleDateString() : "—"}</td>
+                  <td className="p-3">{formatDate(c.date_of_loss)}</td>
                   <td className="p-3">{c.claim_type}</td>
                   <td className="p-3 font-mono text-xs">
                     <Link to="/claims/$claimId" params={{ claimId: c.id }} className="text-navy hover:text-gold">

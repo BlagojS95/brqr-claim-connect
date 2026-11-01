@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { formatDate } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -102,7 +103,7 @@ function ClaimsList() {
                     className="block"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {c.date_of_loss ? new Date(c.date_of_loss).toLocaleDateString() : "—"}
+                    {formatDate(c.date_of_loss)}
                   </Link>
                 </td>
                 <td className="p-3">{c.claim_type}</td>
@@ -110,7 +111,7 @@ function ClaimsList() {
                 <td className="p-3"><StatusBadge status={c.status} /></td>
                 <td className="p-3 font-mono text-xs">{c.claim_number ?? "—"}</td>
                 <td className="p-3">{c.adjuster_name ?? "—"}</td>
-                <td className="p-3 text-muted-foreground">{c.closed_date ? new Date(c.closed_date).toLocaleDateString() : "—"}</td>
+                <td className="p-3 text-muted-foreground">{formatDate(c.closed_date)}</td>
               </tr>
             ))}
           </tbody>

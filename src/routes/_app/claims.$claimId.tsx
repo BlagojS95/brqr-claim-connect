@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { formatDate } from "@/lib/dates";
 import { fetchClaimDetail } from "@/lib/overview.functions";
 import { deleteClaimDocument, uploadClaimDocument } from "@/lib/claim-documents";
 import { StatusBadge } from "@/components/status-badge";
@@ -154,10 +155,7 @@ function ClaimDetail() {
         <Field label="Carrier" value={claim.carrier} />
         <Field label="Policy #" value={claim.policy_number} />
         <Field label="Line of Business" value={claim.line_of_business_description} />
-        <Field
-          label="Date of Loss"
-          value={claim.date_of_loss ? new Date(claim.date_of_loss).toLocaleDateString() : null}
-        />
+        <Field label="Date of Loss" value={formatDate(claim.date_of_loss)} />
         <Field label="Adjuster" value={claim.adjuster_name} />
         <Field
           label="Paid"
@@ -181,7 +179,7 @@ function ClaimDetail() {
             <li key={t.label} className="flex items-center gap-3 text-sm">
               <span className="h-2 w-2 rounded-full bg-gold" />
               <span className="font-medium w-36">{t.label}</span>
-              <span className="text-muted-foreground">{new Date(t.date!).toLocaleString()}</span>
+              <span className="text-muted-foreground">{formatDate(t.date)}</span>
             </li>
           ))}
         </ol>

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { formatDate } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
@@ -36,7 +37,7 @@ function Dashboard() {
     { label: "Open Claims", value: openClaims, icon: ClipboardList },
     { label: "Total Paid", value: fmtCurrency(totalPaid), icon: DollarSign },
     { label: "Active Policies", value: activePolicies, icon: FileText },
-    { label: "Last Claim", value: lastLoss ? new Date(lastLoss).toLocaleDateString() : "—", icon: Calendar },
+    { label: "Last Claim", value: formatDate(lastLoss), icon: Calendar },
   ];
 
   return (
@@ -103,7 +104,7 @@ function Dashboard() {
               )}
               {claims.slice(0, 8).map((c) => (
                 <tr key={c.id} className="border-t border-border hover:bg-muted/30">
-                  <td className="p-3">{c.date_of_loss ? new Date(c.date_of_loss).toLocaleDateString() : "—"}</td>
+                  <td className="p-3">{formatDate(c.date_of_loss)}</td>
                   <td className="p-3">{c.claim_type}</td>
                   <td className="p-3"><StatusBadge status={c.status} /></td>
                   <td className="p-3">{c.carrier ?? "—"}</td>

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { formatDate } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { Shield, Calendar, Building2, Search, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -139,9 +140,9 @@ function PolicyCard({ p }: { p: PolicyRow }) {
         <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar className="h-3.5 w-3.5" />
           <span>
-            {p.effective_date ? new Date(p.effective_date).toLocaleDateString() : "—"}
+            {formatDate(p.effective_date)}
             {" → "}
-            {p.expiry_date ? new Date(p.expiry_date).toLocaleDateString() : "—"}
+            {formatDate(p.expiry_date)}
           </span>
         </div>
         {p.premium != null && (
