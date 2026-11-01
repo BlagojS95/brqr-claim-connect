@@ -29,6 +29,7 @@ export interface AgencyClaim {
   claimant_name: string | null;
   line_of_business_description: string | null;
   status: string;
+  is_notice_only: boolean;
   carrier: string | null;
   date_of_loss: string | null;
   closed_date: string | null;

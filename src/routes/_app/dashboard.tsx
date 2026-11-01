@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { STATUS_BUCKETS, countByStatus } from "@/lib/claim-metrics";
 import { formatDate } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
+import type { AgencyClaim } from "@/lib/overview.types";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +30,7 @@ function Dashboard() {
 
   const claims = data?.claims ?? [];
   const policies = data?.policies ?? [];
-  const openClaims = claims.filter((c) => c.status === "Open").length;
+  const openClaims = countByStatus(claims).Open;
   const totalPaid = claims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
   const lastLoss = claims[0]?.date_of_loss ?? null;
   const activePolicies = policies.filter((p) => p.status === "Active").length;
@@ -124,19 +126,10 @@ function Dashboard() {
   );
 }
 
-interface ClaimRow {
-  status: string;
-  claim_type: string;
-  paid_amount: number | string | null;
-}
-
-function ClaimsSummary({ claims }: { claims: ClaimRow[] }) {
+function ClaimsSummary({ claims }: { claims: AgencyClaim[] }) {
   const total = claims.length;
-  const byStatus = claims.reduce<Record<string, number>>((acc, c) => {
-    if (c.status === "Under Review") return acc;
-    acc[c.status] = (acc[c.status] ?? 0) + 1;
-    return acc;
-  }, {});
+  const counts = countByStatus(claims);
+  const byStatus = STATUS_BUCKETS.filter((s) => counts[s] > 0).map((s) => [s, counts[s]] as const);
   const byType = claims.reduce<Record<string, number>>((acc, c) => {
     acc[c.claim_type] = (acc[c.claim_type] ?? 0) + 1;
     return acc;
@@ -147,7 +140,6 @@ function ClaimsSummary({ claims }: { claims: ClaimRow[] }) {
     Open: "bg-emerald-500",
     Pending: "bg-amber-500",
     Closed: "bg-slate-400",
-    "Notice Only": "bg-blue-500",
   };
 
   const topTypes = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -163,10 +155,10 @@ function ClaimsSummary({ claims }: { claims: ClaimRow[] }) {
         <div>
           <div className="text-xs uppercase tracking-wide text-muted-foreground mb-3">By Status</div>
           <div className="space-y-2">
-            {Object.entries(byStatus).length === 0 && (
+            {byStatus.length === 0 && (
               <p className="text-sm text-muted-foreground">No claims yet.</p>
             )}
-            {Object.entries(byStatus).map(([s, n]) => {
+            {byStatus.map(([s, n]) => {
               const pct = total ? (n / total) * 100 : 0;
               return (
                 <div key={s}>

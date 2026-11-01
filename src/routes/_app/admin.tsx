@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { isOpen } from "@/lib/claim-metrics";
 import { formatDate } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClient } from "@/lib/overview.types";
@@ -148,7 +149,7 @@ function AdminPage() {
 
   const clients = data?.clients ?? [];
   const claims = data?.claims ?? [];
-  const openClaims = claims.filter((c) => c.status === "Open");
+  const openClaims = claims.filter(isOpen);
 
   return (
     <div className="space-y-8">

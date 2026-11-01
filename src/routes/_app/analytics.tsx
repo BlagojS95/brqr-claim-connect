@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { STATUS_BUCKETS, countByStatus, statusBucket } from "@/lib/claim-metrics";
 import { calendarYear } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
+import type { AgencyClaim } from "@/lib/overview.types";
 import { BarChart3, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -14,28 +16,17 @@ export const Route = createFileRoute("/_app/analytics")({
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
-type Claim = {
-  id: string;
-  claim_number: string | null;
-  claim_type: string;
-  line_of_business_description: string | null;
-  status: string;
-  carrier: string | null;
-  date_of_loss: string | null;
-  paid_amount: number | null;
-};
-
 function AnalyticsPage() {
   const [search, setSearch] = useState("");
   const getOverview = useServerFn(fetchAgencyOverview);
 
   const { data: claims = [], isLoading } = useQuery({
     queryKey: ["analytics-claims"],
-    queryFn: async () => (await getOverview({ data: { scope: "claims" } })).claims as Claim[],
+    queryFn: async () => (await getOverview({ data: { scope: "claims" } })).claims,
   });
 
   const groups = useMemo(() => {
-    const map = new Map<string, { year: number; lob: string; carrier: string; rows: Claim[] }>();
+    const map = new Map<string, { year: number; lob: string; carrier: string; rows: AgencyClaim[] }>();
     for (const c of claims) {
       const year = calendarYear(c.date_of_loss) ?? new Date().getFullYear();
       const lob = c.line_of_business_description || c.claim_type || "Other";
@@ -89,8 +80,7 @@ function AnalyticsPage() {
       <div className="space-y-6">
         {groups.map((g) => {
           const totalClaims = g.rows.length;
-          const open = g.rows.filter((r) => r.status?.toLowerCase() !== "closed").length;
-          const closed = totalClaims - open;
+          const counts = countByStatus(g.rows);
           const paid = g.rows.reduce((s, r) => s + Number(r.paid_amount ?? 0), 0);
           return (
             <section key={`${g.year}-${g.lob}-${g.carrier}`} className="rounded-lg border border-border bg-card overflow-hidden">
@@ -105,27 +95,27 @@ function AnalyticsPage() {
                   <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="text-left p-3">Claim #</th>
-                      <th className="text-center p-3">Open</th>
-                      <th className="text-center p-3">Closed</th>
+                      {STATUS_BUCKETS.map((s) => (
+                        <th key={s} className="text-center p-3">{s}</th>
+                      ))}
                       <th className="text-right p-3">Paid</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {g.rows.map((r) => {
-                      const isClosed = r.status?.toLowerCase() === "closed";
-                      return (
-                        <tr key={r.id} className="border-t border-border">
-                          <td className="p-3 font-mono text-xs">{r.claim_number ?? "—"}</td>
-                          <td className="p-3 text-center">{isClosed ? 0 : 1}</td>
-                          <td className="p-3 text-center">{isClosed ? 1 : 0}</td>
-                          <td className="p-3 text-right">{fmt(Number(r.paid_amount ?? 0))}</td>
-                        </tr>
-                      );
-                    })}
+                    {g.rows.map((r) => (
+                      <tr key={r.id} className="border-t border-border">
+                        <td className="p-3 font-mono text-xs">{r.claim_number ?? "—"}</td>
+                        {STATUS_BUCKETS.map((s) => (
+                          <td key={s} className="p-3 text-center">{statusBucket(r) === s ? 1 : 0}</td>
+                        ))}
+                        <td className="p-3 text-right">{fmt(Number(r.paid_amount ?? 0))}</td>
+                      </tr>
+                    ))}
                     <tr className="border-t-2 border-border bg-muted/20 font-semibold text-navy">
                       <td className="p-3">Total ({totalClaims})</td>
-                      <td className="p-3 text-center">{open}</td>
-                      <td className="p-3 text-center">{closed}</td>
+                      {STATUS_BUCKETS.map((s) => (
+                        <td key={s} className="p-3 text-center">{counts[s]}</td>
+                      ))}
                       <td className="p-3 text-right">{fmt(paid)}</td>
                     </tr>
                   </tbody>

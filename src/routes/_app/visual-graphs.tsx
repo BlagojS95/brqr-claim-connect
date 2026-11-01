@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo } from "react";
+import { STATUS_BUCKETS, countByStatus } from "@/lib/claim-metrics";
 import { calendarYear } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { LineChart as LineIcon } from "lucide-react";
@@ -25,16 +26,6 @@ export const Route = createFileRoute("/_app/visual-graphs")({
   component: VisualGraphsPage,
 });
 
-type Claim = {
-  id: string;
-  claim_type: string;
-  line_of_business_description: string | null;
-  status: string;
-  carrier: string | null;
-  date_of_loss: string | null;
-  paid_amount: number | null;
-};
-
 const COLORS = ["#0c2340", "#c9a84c", "#2d8a9e", "#c44569", "#5a8a5c", "#8b6f5e", "#4f46e5", "#e85d3a"];
 
 const fmt = (n: number) =>
@@ -45,7 +36,7 @@ function VisualGraphsPage() {
 
   const { data: claims = [], isLoading } = useQuery({
     queryKey: ["visual-graphs-claims"],
-    queryFn: async () => (await getOverview({ data: { scope: "claims" } })).claims as Claim[],
+    queryFn: async () => (await getOverview({ data: { scope: "claims" } })).claims,
   });
 
   const byLob = useMemo(() => {
@@ -61,12 +52,8 @@ function VisualGraphsPage() {
   }, [claims]);
 
   const byStatus = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const c of claims) {
-      const k = (c.status || "unknown").replace(/_/g, " ");
-      m.set(k, (m.get(k) ?? 0) + 1);
-    }
-    return Array.from(m.entries()).map(([name, value]) => ({ name, value }));
+    const counts = countByStatus(claims);
+    return STATUS_BUCKETS.filter((name) => counts[name] > 0).map((name) => ({ name, value: counts[name] }));
   }, [claims]);
 
   const byYear = useMemo(() => {
@@ -93,7 +80,7 @@ function VisualGraphsPage() {
 
   const totals = useMemo(() => {
     const paid = claims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
-    const open = claims.filter((c) => c.status?.toLowerCase() !== "closed").length;
+    const open = countByStatus(claims).Open;
     const avgCost = claims.length ? paid / claims.length : 0;
     return { paid, open, total: claims.length, avgCost };
   }, [claims]);

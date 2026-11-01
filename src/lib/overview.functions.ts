@@ -36,6 +36,7 @@ function toClaim(row: Tables<"claims">, clientName: string): AgencyClaim {
     claimant_name: row.claimant_name ?? null,
     line_of_business_description: row.line_of_business_description,
     status: row.status,
+    is_notice_only: row.is_notice_only,
     carrier: row.carrier,
     date_of_loss: row.date_of_loss,
     closed_date: row.closed_date,

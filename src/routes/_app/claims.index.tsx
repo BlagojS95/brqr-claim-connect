@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { STATUS_BUCKETS, statusBucket } from "@/lib/claim-metrics";
 import { formatDate } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { StatusBadge } from "@/components/status-badge";
@@ -25,7 +26,7 @@ function ClaimsList() {
 
   const q = search.trim().toLowerCase();
   const filtered = claims.filter((c) => {
-    if (filter !== "All" && c.status !== filter) return false;
+    if (filter !== "All" && statusBucket(c) !== filter) return false;
     if (!q) return true;
     return [
       c.claim_number,
@@ -47,7 +48,7 @@ function ClaimsList() {
           <p className="text-sm text-muted-foreground mt-1">All reported claims.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {["All", "Open", "Pending", "Closed"].map((s) => (
+          {["All", ...STATUS_BUCKETS].map((s) => (
             <Button
               key={s}
               size="sm"
