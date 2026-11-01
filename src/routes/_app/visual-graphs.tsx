@@ -2,8 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo } from "react";
-import { STATUS_BUCKETS, countByStatus } from "@/lib/claim-metrics";
-import { calendarYear } from "@/lib/dates";
+import {
+  STATUS_BUCKETS,
+  avgClosedCost,
+  compareYtd,
+  countByStatus,
+  totalIncurred,
+  totalPaid,
+} from "@/lib/claim-metrics";
+import { calendarYear, todayIso } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { LineChart as LineIcon } from "lucide-react";
 import {
@@ -79,41 +86,20 @@ function VisualGraphsPage() {
   }, [claims]);
 
   const totals = useMemo(() => {
-    const paid = claims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
-    const open = countByStatus(claims).Open;
-    const avgCost = claims.length ? paid / claims.length : 0;
-    return { paid, open, total: claims.length, avgCost };
+    return {
+      paid: totalPaid(claims),
+      incurred: totalIncurred(claims),
+      open: countByStatus(claims).Open,
+      total: claims.length,
+      avgClosed: avgClosedCost(claims),
+      ytd: compareYtd(claims, todayIso()),
+    };
   }, [claims]);
 
-  const avgCostYoY = useMemo(() => {
-    const now = new Date();
-    const currentYear = now.getUTCFullYear();
-    const lastYear = currentYear - 1;
-    const costFor = (year: number) => {
-      const yearClaims = claims.filter((c) => calendarYear(c.date_of_loss) === year);
-      if (!yearClaims.length) return null;
-      const total = yearClaims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
-      return total / yearClaims.length;
-    };
-    const current = costFor(currentYear);
-    const previous = costFor(lastYear);
-    if (current === null || previous === null || previous === 0) return null;
-    return { pct: ((current - previous) / previous) * 100, currentYear, lastYear };
-  }, [claims]);
-
-  const totalClaimsYoY = useMemo(() => {
-    const now = new Date();
-    const currentYear = now.getUTCFullYear();
-    const lastYear = currentYear - 1;
-    const countFor = (year: number) => {
-      return claims.filter((c) => calendarYear(c.date_of_loss) === year).length;
-    };
-    const current = countFor(currentYear);
-    const previous = countFor(lastYear);
-    if (previous === 1 && current === 0) return null;
-    if (previous === 0) return null;
-    return { pct: ((current - previous) / previous) * 100, currentYear, lastYear };
-  }, [claims]);
+  const period = `YTD vs same period ${totals.ytd.previousYear}`;
+  const change = (pct: number | null) =>
+    pct === null ? `No data for same period ${totals.ytd.previousYear}` : `${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct).toFixed(1)}% ${period}`;
+  const tone = (pct: number | null) => (pct === null ? "neutral" : pct >= 0 ? "up" : "down");
 
   return (
     <div className="space-y-6">
@@ -126,28 +112,22 @@ function VisualGraphsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <Stat label="Total Claims" value={String(totals.total)} sub="All time" />
         <Stat
-          label="Total Claims"
-          value={String(totals.total)}
-          sub={
-            totalClaimsYoY
-              ? `${totalClaimsYoY.pct >= 0 ? "▲" : "▼"} ${Math.abs(totalClaimsYoY.pct).toFixed(1)}% vs ${totalClaimsYoY.lastYear}`
-              : "No prior-year data"
-          }
-          subTone={totalClaimsYoY ? (totalClaimsYoY.pct >= 0 ? "up" : "down") : "neutral"}
+          label="Claims Year to Date"
+          value={String(totals.ytd.currentYtd)}
+          sub={change(totals.ytd.countChange)}
+          subTone={tone(totals.ytd.countChange)}
         />
         <Stat label="Open Claims" value={String(totals.open)} />
-        <Stat label="Total Paid" value={fmt(totals.paid)} />
+        <Stat label="Total Paid" value={fmt(totals.paid)} sub="All time" />
+        <Stat label="Total Incurred" value={fmt(totals.incurred)} sub="All time, paid + reserve" />
         <Stat
-          label="Avg Cost / Claim"
-          value={fmt(totals.avgCost)}
-          sub={
-            avgCostYoY
-              ? `${avgCostYoY.pct >= 0 ? "▲" : "▼"} ${Math.abs(avgCostYoY.pct).toFixed(1)}% vs ${avgCostYoY.lastYear}`
-              : "No prior-year data"
-          }
-          subTone={avgCostYoY ? (avgCostYoY.pct >= 0 ? "up" : "down") : "neutral"}
+          label="Avg Cost per Closed Claim"
+          value={totals.avgClosed === null ? "—" : fmt(totals.avgClosed)}
+          sub={`${change(totals.ytd.avgClosedChange)}. Open claims still developing.`}
+          subTone={tone(totals.ytd.avgClosedChange)}
         />
       </div>
 
