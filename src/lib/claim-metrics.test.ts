@@ -85,6 +85,7 @@ describe("KPI comparisons", () => {
     ];
     const result = compareYtd(rows, "2026-06-15");
     expect(result.currentYtd).toBe(2);
+    expect(result.avgClosedYtd).toBe(200);
     expect(result.previousYear).toBe(2025);
     expect(result.countChange).toBe(100);
     expect(result.avgClosedChange).toBe(100);

@@ -10,6 +10,7 @@ CREATE TABLE public.lines_of_business (
 );
 
 ALTER TABLE public.lines_of_business ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON public.lines_of_business TO authenticated;
 
 CREATE POLICY "signed-in users read lines of business" ON public.lines_of_business
   FOR SELECT TO authenticated USING (true);
@@ -37,7 +38,8 @@ CREATE INDEX claims_line_of_business_id_idx ON public.claims(line_of_business_id
 CREATE INDEX policies_line_of_business_id_idx ON public.policies(line_of_business_id);
 
 -- Rolled-up policies can read "General Liability / Umbrella(C)". They take the
--- first line named; policy_type keeps the full text for display.
+-- first line named; policy_type keeps the full text for display. A trailing
+-- "(C)" is how the agency's system marks commercial lines, so it is dropped.
 CREATE FUNCTION public.resolve_line_of_business(raw text)
 RETURNS uuid
 LANGUAGE sql
@@ -45,16 +47,16 @@ STABLE
 SET search_path = public
 AS $$
   WITH cleaned AS (
-    SELECT lower(trim(split_part(raw, ' / ', 1))) AS t
+    SELECT lower(trim(regexp_replace(split_part(raw, ' / ', 1), '\s*\(c\)\s*$', '', 'i'))) AS t
   )
   SELECT l.id
   FROM cleaned
   JOIN public.lines_of_business l ON l.code = CASE
-    WHEN t = 'gl' OR t LIKE 'general liab%' THEN 'GL'
-    WHEN t LIKE 'auto%' OR t LIKE '%business auto%' OR t LIKE '%commercial auto%' THEN 'AUTO'
-    WHEN t = 'wc' OR t LIKE 'worker%comp%' THEN 'WC'
-    WHEN t IN ('property', 'prop', 'commercial property') THEN 'PROP'
-    WHEN t LIKE 'umbrella%' THEN 'UMB'
+    WHEN t IN ('gl', 'cgl') OR t LIKE '%general liab%' THEN 'GL'
+    WHEN t LIKE '%auto%' THEN 'AUTO'
+    WHEN t = 'wc' OR t LIKE 'work%comp%' THEN 'WC'
+    WHEN t IN ('property', 'prop') OR t LIKE 'commercial property%' THEN 'PROP'
+    WHEN t LIKE '%umbrella%' THEN 'UMB'
     WHEN t LIKE 'professional%' THEN 'PROF'
     WHEN t LIKE '%cyber%' THEN 'CYBER'
     ELSE 'OTHER'

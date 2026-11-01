@@ -4,7 +4,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo } from "react";
 import {
   STATUS_BUCKETS,
-  avgClosedCost,
   compareYtd,
   countByStatus,
   totalIncurred,
@@ -91,15 +90,17 @@ function VisualGraphsPage() {
       incurred: totalIncurred(claims),
       open: countByStatus(claims).Open,
       total: claims.length,
-      avgClosed: avgClosedCost(claims),
       ytd: compareYtd(claims, todayIso()),
     };
   }, [claims]);
 
   const period = `YTD vs same period ${totals.ytd.previousYear}`;
-  const change = (pct: number | null) =>
-    pct === null ? `No data for same period ${totals.ytd.previousYear}` : `${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct).toFixed(1)}% ${period}`;
-  const tone = (pct: number | null) => (pct === null ? "neutral" : pct >= 0 ? "up" : "down");
+  const change = (pct: number | null) => {
+    if (pct === null) return `No comparison for ${period}`;
+    if (pct === 0) return `No change ${period}`;
+    return `${pct > 0 ? "▲" : "▼"} ${Math.abs(pct).toFixed(1)}% ${period}`;
+  };
+  const tone = (pct: number | null) => (!pct ? "neutral" : pct > 0 ? "up" : "down");
 
   return (
     <div className="space-y-6">
@@ -124,8 +125,8 @@ function VisualGraphsPage() {
         <Stat label="Total Paid" value={fmt(totals.paid)} sub="All time" />
         <Stat label="Total Incurred" value={fmt(totals.incurred)} sub="All time, paid + reserve" />
         <Stat
-          label="Avg Cost per Closed Claim"
-          value={totals.avgClosed === null ? "—" : fmt(totals.avgClosed)}
+          label="Avg Cost per Closed Claim, YTD"
+          value={totals.ytd.avgClosedYtd === null ? "—" : fmt(totals.ytd.avgClosedYtd)}
           sub={`${change(totals.ytd.avgClosedChange)}. Open claims still developing.`}
           subTone={tone(totals.ytd.avgClosedChange)}
         />

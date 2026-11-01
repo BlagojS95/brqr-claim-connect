@@ -1,7 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { fetchAll } from "@/lib/fetch-all";
-import { isExcludedClient, parseMoney, type ImportKind } from "@/lib/import-mapping";
+import {
+  isExcludedClient,
+  normalizeClaimType,
+  parseMoney,
+  type ImportKind,
+} from "@/lib/import-mapping";
 
 type Db = SupabaseClient<Database>;
 type Row = Record<string, unknown>;
@@ -322,7 +327,6 @@ function claimsIncoming(rows: CsvRow[], resolveClient: ClientResolver, skipped: 
     const values: Row = { client_id: clientId };
     for (const column of [
       "claim_number",
-      "claim_type",
       "line_of_business_description",
       "status",
       "carrier",
@@ -334,6 +338,7 @@ function claimsIncoming(rows: CsvRow[], resolveClient: ClientResolver, skipped: 
     ]) {
       setIfPresent(values, column, csv[column]);
     }
+    setIfPresent(values, "claim_type", normalizeClaimType(csv.claim_type));
     setIfPresent(values, "date_of_loss", parseDate(csv.date_of_loss));
     setIfPresent(values, "date_reported", parseDate(csv.date_reported));
     setIfPresent(values, "closed_date", parseDate(csv.closed_date));

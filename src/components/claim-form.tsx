@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { notifyNewClaim } from "@/lib/claims.functions";
+import { todayIso } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { sendClaimNotificationEmail } from "@/lib/email.functions";
 import { uploadClaimDocument } from "@/lib/claim-documents";
@@ -29,7 +30,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
     queryFn: () => getOverview({ data: { scope: "policies" } }),
   });
 
-  const { data: lines = [] } = useQuery({
+  const { data: lines = [], isError: linesFailed } = useQuery({
     queryKey: ["lines-of-business"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -72,7 +73,11 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
     }
     const line = lines.find((l) => l.id === lineId);
     if (!line) {
-      toast.error("Select a line of business");
+      toast.error(
+        linesFailed
+          ? "Lines of business could not be loaded. Refresh the page and try again."
+          : "Select a line of business",
+      );
       return;
     }
     setBusy(true);
@@ -90,6 +95,8 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
           line_of_business_description: line.name,
           is_notice_only: isNotice,
           date_of_loss: dateOfLoss || null,
+          // The column default is CURRENT_DATE in UTC, a day ahead on US evenings.
+          date_reported: todayIso(),
           description,
           carrier: policy?.carrier ?? null,
           status: isNotice ? "Pending" : "Open",
@@ -165,7 +172,9 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
         <div className="space-y-2">
           <Label>Line of Business</Label>
           <Select value={lineId} onValueChange={setLineId}>
-            <SelectTrigger><SelectValue placeholder="Select line" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder={linesFailed ? "Could not load lines" : "Select line"} />
+            </SelectTrigger>
             <SelectContent>
               {lines.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
             </SelectContent>

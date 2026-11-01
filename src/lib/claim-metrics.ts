@@ -92,6 +92,7 @@ function yearToDate<T extends { date_of_loss: string | null }>(
 
 export interface YtdComparison {
   currentYtd: number;
+  avgClosedYtd: number | null;
   previousYear: number;
   countChange: number | null;
   avgClosedChange: number | null;
@@ -108,6 +109,7 @@ export function compareYtd<
   const previousAvg = avgClosedCost(previous);
   return {
     currentYtd: current.length,
+    avgClosedYtd: currentAvg,
     previousYear: year - 1,
     countChange: percentChange(current.length, previous.length),
     avgClosedChange:

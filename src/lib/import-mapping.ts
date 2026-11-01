@@ -85,9 +85,22 @@ export function parseMoney(value: string | undefined): number | null | undefined
   const negative = /^\(.*\)$/.test(value) || value.startsWith("-");
   const digits = value.replace(/[^0-9.]/g, "");
   const n = Number(digits);
-  // "N/A" has no digits, and Number("") would read that as a real $0.
-  if (!digits || Number.isNaN(n)) return null;
+  // "N/A" has no digits. Treating it like a blank cell keeps the importer from
+  // overwriting a stored amount with nothing.
+  if (!digits || Number.isNaN(n)) return undefined;
   return negative ? -n : n;
+}
+
+const CLAIM_TYPE_NAMES: Record<string, string> = {
+  gl: "General Liability",
+  wc: "Workers Compensation",
+  auto: "Business Auto",
+  property: "Commercial Property",
+};
+
+/** Full names only, so short codes from a CSV never reach a screen or the match key. */
+export function normalizeClaimType(value: string | undefined): string | undefined {
+  return (value && CLAIM_TYPE_NAMES[value.trim().toLowerCase()]) || value;
 }
 
 export interface HeaderMapping {

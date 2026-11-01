@@ -11,7 +11,7 @@ import {
   totalIncurred,
   totalPaid,
 } from "@/lib/claim-metrics";
-import { calendarYear } from "@/lib/dates";
+import { calendarYear, formatDate, todayIso } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { BarChart3, Search } from "lucide-react";
@@ -50,13 +50,13 @@ function AnalyticsPage() {
     if (!term) return arr;
     return arr.filter(
       (g) =>
-        String(g.year).includes(term) ||
+        (g.year ? String(g.year) : "no date").includes(term) ||
         g.lob.toLowerCase().includes(term) ||
         g.carrier.toLowerCase().includes(term)
     );
   }, [claims, search]);
 
-  const valued = new Date().toLocaleDateString();
+  const valued = formatDate(todayIso());
 
   return (
     <div className="space-y-6">

@@ -53,7 +53,11 @@ function LossRunsPage() {
   });
 
   const getOverview = useServerFn(fetchAgencyOverview);
-  const { data: claims = [] } = useQuery({
+  const {
+    data: claims = [],
+    isLoading: claimsLoading,
+    isError: claimsFailed,
+  } = useQuery({
     queryKey: ["loss-run-claims"],
     queryFn: async () => (await getOverview({ data: { scope: "claims" } })).claims,
   });
@@ -75,8 +79,8 @@ function LossRunsPage() {
       return card;
     };
     for (const c of claims) {
-      const year = calendarYear(c.date_of_loss);
-      if (year !== null) cardFor(c.client_id, c.client_name, year).rows.push(c);
+      // Year 0 is the "No date" card, so every claim is counted somewhere.
+      cardFor(c.client_id, c.client_name, calendarYear(c.date_of_loss) ?? 0).rows.push(c);
     }
     for (const lr of lossRuns) {
       const name = lr.clients?.company_name || lr.clients?.name || "";
@@ -181,7 +185,7 @@ function LossRunsPage() {
             return (
               <div key={card.key} className="rounded-md border border-border p-4">
                 <div className="flex items-start justify-between gap-3 mb-2">
-                  <div className="font-semibold text-navy text-lg">{card.year}</div>
+                  <div className="font-semibold text-navy text-lg">{card.year || "No date"}</div>
                   {card.files.length > 0 ? (
                     <div className="flex flex-col items-end gap-1">
                       {card.files.map((path, i) => (
@@ -204,10 +208,20 @@ function LossRunsPage() {
                   <div className="text-xs text-navy mb-1">{card.clientName}</div>
                 )}
                 <div className="text-xs text-muted-foreground space-y-0.5">
-                  <div>{totals.claims} claims</div>
-                  <div>Paid: {fmt(totals.paid)}</div>
-                  <div>Incurred: {fmt(totals.incurred)}</div>
-                  <div>Valued as of {valued}</div>
+                  {claimsLoading ? (
+                    <div>Loading totals…</div>
+                  ) : claimsFailed ? (
+                    <div>Totals could not be loaded.</div>
+                  ) : totals.claims === 0 ? (
+                    <div>See the attached file. No claims on file in the portal for this year.</div>
+                  ) : (
+                    <>
+                      <div>{totals.claims} claims</div>
+                      <div>Paid: {fmt(totals.paid)}</div>
+                      <div>Incurred: {fmt(totals.incurred)}</div>
+                      <div>Valued as of {valued}</div>
+                    </>
+                  )}
                 </div>
               </div>
             );
