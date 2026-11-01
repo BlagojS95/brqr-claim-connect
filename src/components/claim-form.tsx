@@ -16,14 +16,6 @@ import { uploadClaimDocument } from "@/lib/claim-documents";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 
-// Same labels the CSV import writes, so reported claims group with imported ones.
-const LINE_OF_BUSINESS: Record<string, string> = {
-  GL: "General Liability",
-  WC: "Workers Compensation",
-  Auto: "Business Auto",
-  Property: "Commercial Property",
-};
-
 export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const navigate = useNavigate();
   const { clientId, role } = useAuth();
@@ -37,12 +29,24 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
     queryFn: () => getOverview({ data: { scope: "policies" } }),
   });
 
+  const { data: lines = [] } = useQuery({
+    queryKey: ["lines-of-business"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lines_of_business")
+        .select("id, name")
+        .order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const selectableClients = isAdmin
     ? (overview?.clients ?? []).map((c) => ({ id: c.id, name: c.company_name || c.name }))
     : [];
 
   const [selectedLocalClientId, setSelectedLocalClientId] = useState<string>("");
-  const [claimType, setClaimType] = useState("GL");
+  const [lineId, setLineId] = useState("");
   const [dateOfLoss, setDateOfLoss] = useState("");
   const [claimantName, setClaimantName] = useState("");
   const [description, setDescription] = useState("");
@@ -66,6 +70,11 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
       toast.error("No client selected");
       return;
     }
+    const line = lines.find((l) => l.id === lineId);
+    if (!line) {
+      toast.error("Select a line of business");
+      return;
+    }
     setBusy(true);
     try {
       const policy = policies.find((p) => p.id === policyId);
@@ -75,9 +84,10 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
           client_id: selectedLocalClientId,
           policy_id: policy?.id ?? null,
           policy_number: policy?.policy_number ?? null,
-          claim_type: claimType,
+          claim_type: line.name,
           claimant_name: claimantName.trim() || null,
-          line_of_business_description: LINE_OF_BUSINESS[claimType] ?? null,
+          line_of_business_id: line.id,
+          line_of_business_description: line.name,
           is_notice_only: isNotice,
           date_of_loss: dateOfLoss || null,
           description,
@@ -153,11 +163,11 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
 
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Claim Type</Label>
-          <Select value={claimType} onValueChange={setClaimType}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+          <Label>Line of Business</Label>
+          <Select value={lineId} onValueChange={setLineId}>
+            <SelectTrigger><SelectValue placeholder="Select line" /></SelectTrigger>
             <SelectContent>
-              {["GL", "WC", "Auto", "Property", "Other"].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              {lines.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

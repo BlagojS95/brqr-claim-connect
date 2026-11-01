@@ -27,14 +27,16 @@ function displayName(client: { name?: string | null; company_name?: string | nul
   return client?.company_name || client?.name || "";
 }
 
-function toClaim(row: Tables<"claims">, clientName: string): AgencyClaim {
+type ClaimRow = Tables<"claims"> & { lines_of_business: { name: string } | null };
+
+function toClaim(row: ClaimRow, clientName: string): AgencyClaim {
   return {
     id: row.id,
     claim_number: row.claim_number,
     claim_type: row.claim_type,
     // ?? null: rows read before the claimant_name migration has been applied
     claimant_name: row.claimant_name ?? null,
-    line_of_business_description: row.line_of_business_description,
+    line_of_business: row.lines_of_business?.name ?? "Other",
     status: row.status,
     is_notice_only: row.is_notice_only,
     carrier: row.carrier,
@@ -64,10 +66,10 @@ async function getScopedOverview(supabase: SupabaseClient<Database>, scope: Over
         ),
     scope === "policies"
       ? Promise.resolve([])
-      : fetchAll<Tables<"claims">>((from, to) =>
+      : fetchAll<ClaimRow>((from, to) =>
           supabase
             .from("claims")
-            .select("*")
+            .select("*, lines_of_business(name)")
             .order("date_of_loss", { ascending: false, nullsFirst: false })
             .order("id")
             .range(from, to),
@@ -126,7 +128,7 @@ export const fetchClaimDetail = createServerFn({ method: "GET" })
 
     const { data: claim } = await context.supabase
       .from("claims")
-      .select("*, clients(name, company_name)")
+      .select("*, clients(name, company_name), lines_of_business(name)")
       .eq("id", data.claimId)
       .maybeSingle();
     if (!claim) return null;

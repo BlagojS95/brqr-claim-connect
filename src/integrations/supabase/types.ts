@@ -204,6 +204,7 @@ export type Database = {
           last_follow_up: string | null
           line_of_business: string | null
           line_of_business_description: string | null
+          line_of_business_id: string | null
           notes: string | null
           paid_amount: number | null
           policy_id: string | null
@@ -220,6 +221,7 @@ export type Database = {
           carrier_email?: string | null
           claim_number?: string | null
           claim_type: string
+          line_of_business_id?: string | null
           claimant_name?: string | null
           client_id: string
           closed_date?: string | null
@@ -250,6 +252,7 @@ export type Database = {
           carrier_email?: string | null
           claim_number?: string | null
           claim_type?: string
+          line_of_business_id?: string | null
           claimant_name?: string | null
           client_id?: string
           closed_date?: string | null
@@ -277,6 +280,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claims_line_of_business_id_fkey"
+            columns: ["line_of_business_id"]
+            isOneToOne: false
+            referencedRelation: "lines_of_business"
             referencedColumns: ["id"]
           },
           {
@@ -402,6 +412,27 @@ export type Database = {
         }
         Relationships: []
       }
+      lines_of_business: {
+        Row: {
+          code: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          id?: string
+          name: string
+          sort_order: number
+        }
+        Update: {
+          code?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       loss_runs: {
         Row: {
           client_id: string
@@ -462,6 +493,7 @@ export type Database = {
           effective_date: string | null
           expiration_date: string | null
           id: string
+          line_of_business_id: string | null
           policy_number: string
           policy_type: string | null
           premium: number | null
@@ -474,6 +506,7 @@ export type Database = {
           effective_date?: string | null
           expiration_date?: string | null
           id?: string
+          line_of_business_id?: string | null
           policy_number: string
           policy_type?: string | null
           premium?: number | null
@@ -486,6 +519,7 @@ export type Database = {
           effective_date?: string | null
           expiration_date?: string | null
           id?: string
+          line_of_business_id?: string | null
           policy_number?: string
           policy_type?: string | null
           premium?: number | null
@@ -496,6 +530,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_line_of_business_id_fkey"
+            columns: ["line_of_business_id"]
+            isOneToOne: false
+            referencedRelation: "lines_of_business"
             referencedColumns: ["id"]
           },
         ]

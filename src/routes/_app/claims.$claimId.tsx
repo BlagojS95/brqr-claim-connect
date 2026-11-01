@@ -154,7 +154,7 @@ function ClaimDetail() {
         <Field label="Claimant Name" value={claim.claimant_name} />
         <Field label="Carrier" value={claim.carrier} />
         <Field label="Policy #" value={claim.policy_number} />
-        <Field label="Line of Business" value={claim.line_of_business_description} />
+        <Field label="Line of Business" value={claim.line_of_business} />
         <Field label="Date of Loss" value={formatDate(claim.date_of_loss)} />
         <Field label="Adjuster" value={claim.adjuster_name} />
         <Field

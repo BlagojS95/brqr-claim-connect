@@ -29,7 +29,7 @@ function AnalyticsPage() {
     const map = new Map<string, { year: number; lob: string; carrier: string; rows: AgencyClaim[] }>();
     for (const c of claims) {
       const year = calendarYear(c.date_of_loss) ?? new Date().getFullYear();
-      const lob = c.line_of_business_description || c.claim_type || "Other";
+      const lob = c.line_of_business;
       const carrier = c.carrier || "—";
       const key = `${year}|${lob}|${carrier}`;
       if (!map.has(key)) map.set(key, { year, lob, carrier, rows: [] });

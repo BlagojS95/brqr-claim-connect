@@ -42,7 +42,7 @@ function VisualGraphsPage() {
   const byLob = useMemo(() => {
     const m = new Map<string, { lob: string; count: number; paid: number }>();
     for (const c of claims) {
-      const k = c.line_of_business_description || c.claim_type || "Other";
+      const k = c.line_of_business;
       const r = m.get(k) ?? { lob: k, count: 0, paid: 0 };
       r.count += 1;
       r.paid += Number(c.paid_amount ?? 0);
