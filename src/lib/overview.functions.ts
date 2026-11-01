@@ -44,6 +44,7 @@ function toClaim(row: ClaimRow, clientName: string): AgencyClaim {
     closed_date: row.closed_date,
     date_reported: row.date_reported,
     paid_amount: row.paid_amount,
+    reserve_amount: row.reserve_amount,
     adjuster_name: row.adjuster_name,
     policy_number: row.policy_number,
     description: row.description,

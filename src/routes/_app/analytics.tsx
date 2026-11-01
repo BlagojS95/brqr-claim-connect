@@ -2,7 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { STATUS_BUCKETS, countByStatus, statusBucket } from "@/lib/claim-metrics";
+import {
+  STATUS_BUCKETS,
+  countByStatus,
+  incurredAmount,
+  paidAmount,
+  statusBucket,
+  totalIncurred,
+  totalPaid,
+} from "@/lib/claim-metrics";
 import { calendarYear } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClaim } from "@/lib/overview.types";
@@ -28,7 +36,7 @@ function AnalyticsPage() {
   const groups = useMemo(() => {
     const map = new Map<string, { year: number; lob: string; carrier: string; rows: AgencyClaim[] }>();
     for (const c of claims) {
-      const year = calendarYear(c.date_of_loss) ?? new Date().getFullYear();
+      const year = calendarYear(c.date_of_loss) ?? 0;
       const lob = c.line_of_business;
       const carrier = c.carrier || "—";
       const key = `${year}|${lob}|${carrier}`;
@@ -81,12 +89,13 @@ function AnalyticsPage() {
         {groups.map((g) => {
           const totalClaims = g.rows.length;
           const counts = countByStatus(g.rows);
-          const paid = g.rows.reduce((s, r) => s + Number(r.paid_amount ?? 0), 0);
+          const paid = totalPaid(g.rows);
+          const incurred = totalIncurred(g.rows);
           return (
             <section key={`${g.year}-${g.lob}-${g.carrier}`} className="rounded-lg border border-border bg-card overflow-hidden">
               <div className="px-5 py-3 border-b border-border bg-muted/30 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
                 <div><span className="text-muted-foreground">LOB:</span> <span className="font-semibold text-navy">{g.lob}</span></div>
-                <div><span className="text-muted-foreground">Year:</span> <span className="font-semibold text-navy">{g.year}</span></div>
+                <div><span className="text-muted-foreground">Year:</span> <span className="font-semibold text-navy">{g.year || "No date"}</span></div>
                 <div><span className="text-muted-foreground">Carrier:</span> <span className="font-semibold text-navy">{g.carrier}</span></div>
                 <div className="ml-auto text-xs text-muted-foreground">Valued {valued}</div>
               </div>
@@ -99,6 +108,7 @@ function AnalyticsPage() {
                         <th key={s} className="text-center p-3">{s}</th>
                       ))}
                       <th className="text-right p-3">Paid</th>
+                      <th className="text-right p-3">Incurred</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -108,7 +118,8 @@ function AnalyticsPage() {
                         {STATUS_BUCKETS.map((s) => (
                           <td key={s} className="p-3 text-center">{statusBucket(r) === s ? 1 : 0}</td>
                         ))}
-                        <td className="p-3 text-right">{fmt(Number(r.paid_amount ?? 0))}</td>
+                        <td className="p-3 text-right">{fmt(paidAmount(r))}</td>
+                        <td className="p-3 text-right">{fmt(incurredAmount(r))}</td>
                       </tr>
                     ))}
                     <tr className="border-t-2 border-border bg-muted/20 font-semibold text-navy">
@@ -117,6 +128,7 @@ function AnalyticsPage() {
                         <td key={s} className="p-3 text-center">{counts[s]}</td>
                       ))}
                       <td className="p-3 text-right">{fmt(paid)}</td>
+                      <td className="p-3 text-right">{fmt(incurred)}</td>
                     </tr>
                   </tbody>
                 </table>

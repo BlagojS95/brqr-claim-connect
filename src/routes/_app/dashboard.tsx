@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { STATUS_BUCKETS, countByStatus } from "@/lib/claim-metrics";
+import { STATUS_BUCKETS, countByStatus, totalIncurred, totalPaid } from "@/lib/claim-metrics";
 import { formatDate } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClaim } from "@/lib/overview.types";
@@ -31,13 +31,13 @@ function Dashboard() {
   const claims = data?.claims ?? [];
   const policies = data?.policies ?? [];
   const openClaims = countByStatus(claims).Open;
-  const totalPaid = claims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
+  const paidToDate = totalPaid(claims);
   const lastLoss = claims[0]?.date_of_loss ?? null;
   const activePolicies = policies.filter((p) => p.status === "Active").length;
 
   const cards = [
     { label: "Open Claims", value: openClaims, icon: ClipboardList },
-    { label: "Total Paid", value: fmtCurrency(totalPaid), icon: DollarSign },
+    { label: "Total Paid", value: fmtCurrency(paidToDate), icon: DollarSign },
     { label: "Active Policies", value: activePolicies, icon: FileText },
     { label: "Last Claim", value: formatDate(lastLoss), icon: Calendar },
   ];
@@ -134,7 +134,8 @@ function ClaimsSummary({ claims }: { claims: AgencyClaim[] }) {
     acc[c.claim_type] = (acc[c.claim_type] ?? 0) + 1;
     return acc;
   }, {});
-  const paid = claims.reduce((s, c) => s + Number(c.paid_amount ?? 0), 0);
+  const paid = totalPaid(claims);
+  const incurred = totalIncurred(claims);
 
   const statusTones: Record<string, string> = {
     Open: "bg-emerald-500",
@@ -202,6 +203,14 @@ function ClaimsSummary({ claims }: { claims: AgencyClaim[] }) {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Paid</span>
               <span className="font-semibold text-navy">{fmtCurrency(paid)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Reserve</span>
+              <span className="font-semibold text-navy">{fmtCurrency(incurred - paid)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Incurred</span>
+              <span className="font-semibold text-navy">{fmtCurrency(incurred)}</span>
             </div>
           </div>
         </div>

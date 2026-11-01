@@ -5,12 +5,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { incurredAmount, paidAmount, reserveAmount } from "@/lib/claim-metrics";
 import { formatDate } from "@/lib/dates";
 import { fetchClaimDetail } from "@/lib/overview.functions";
 import { deleteClaimDocument, uploadClaimDocument } from "@/lib/claim-documents";
 import { StatusBadge } from "@/components/status-badge";
 import { ClaimContactsTable } from "@/components/claim-contacts-table";
 import { ClaimInternalNotes } from "@/components/claim-internal-notes";
+import { ClaimReserveEditor } from "@/components/claim-reserve-editor";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -157,12 +159,22 @@ function ClaimDetail() {
         <Field label="Line of Business" value={claim.line_of_business} />
         <Field label="Date of Loss" value={formatDate(claim.date_of_loss)} />
         <Field label="Adjuster" value={claim.adjuster_name} />
+        <Field label="Paid" value={`$${paidAmount(claim).toLocaleString()}`} />
         <Field
-          label="Paid"
+          label="Reserve"
           value={
-            claim.paid_amount != null ? `$${Number(claim.paid_amount).toLocaleString()}` : null
+            role === "agency_admin" ? (
+              <ClaimReserveEditor
+                key={reserveAmount(claim)}
+                claimId={claim.id}
+                reserve={reserveAmount(claim)}
+              />
+            ) : (
+              `$${reserveAmount(claim).toLocaleString()}`
+            )
           }
         />
+        <Field label="Incurred" value={`$${incurredAmount(claim).toLocaleString()}`} />
       </section>
 
       {claim.description && (

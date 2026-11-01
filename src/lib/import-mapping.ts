@@ -83,8 +83,10 @@ export function isExcludedClient(name: string | undefined): boolean {
 export function parseMoney(value: string | undefined): number | null | undefined {
   if (!value) return undefined;
   const negative = /^\(.*\)$/.test(value) || value.startsWith("-");
-  const n = Number(value.replace(/[^0-9.]/g, ""));
-  if (Number.isNaN(n)) return null;
+  const digits = value.replace(/[^0-9.]/g, "");
+  const n = Number(digits);
+  // "N/A" has no digits, and Number("") would read that as a real $0.
+  if (!digits || Number.isNaN(n)) return null;
   return negative ? -n : n;
 }
 

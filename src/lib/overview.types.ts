@@ -35,6 +35,7 @@ export interface AgencyClaim {
   closed_date: string | null;
   date_reported: string | null;
   paid_amount: number | null;
+  reserve_amount: number | null;
   adjuster_name: string | null;
   policy_number: string | null;
   description: string | null;
