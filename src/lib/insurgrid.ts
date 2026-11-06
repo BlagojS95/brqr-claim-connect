@@ -4,7 +4,7 @@ import { loadDevVars } from "@/lib/load-dev-vars.server";
 
 // InsurGrid's loss-runs embed (https://dashboard.insurgrid.com/embed.js) needs a
 // short-lived session token minted server-side with the agency's API key.
-// See https://docs.insurgrid.com/intake-forms/builder-sessions.md
+// See https://docs.insurgrid.com/guides/embed-loss-runs.md
 const DEFAULT_API_URL = "https://phoenix.insurgrid.com/api/v1";
 
 export const insurGridConfigured = createServerFn({ method: "GET" })
@@ -28,7 +28,9 @@ export const createInsurGridSession = createServerFn({ method: "POST" })
         "Content-Type": "application/json",
       },
       // One token per portal user; good for 15 minutes, embed.js refreshes it.
-      body: JSON.stringify({ externalUserId: context.userId }),
+      // Without `product` the token is for the forms embed, which the loss-runs
+      // embed rejects as "Your session expired". Note the underscore.
+      body: JSON.stringify({ externalUserId: context.userId, product: "loss_runs" }),
     });
     if (!res.ok) {
       throw new Error(`InsurGrid embed session failed: ${res.status} ${await res.text()}`);
