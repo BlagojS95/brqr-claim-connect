@@ -45,7 +45,7 @@ export const submitClaim = createServerFn({ method: "POST" })
       async getLine(id) {
         const { data: line } = await supabase
           .from("lines_of_business")
-          .select("id, name")
+          .select("id, name, code")
           .eq("id", id)
           .maybeSingle();
         return line;

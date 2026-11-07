@@ -135,5 +135,24 @@ export const fetchClaimDetail = createServerFn({ method: "GET" })
     if (!claim) return null;
 
     const { clients: clientRow, ...row } = claim;
-    return toClaim(row, displayName(clientRow));
+    return {
+      ...toClaim(row, displayName(clientRow)),
+      // ?? null: rows read before the claim_form_fields migration has been applied
+      loss_details: {
+        time_of_loss: row.time_of_loss ?? null,
+        loss_location: row.loss_location ?? null,
+        reporter_name: row.reporter_name ?? null,
+        reporter_phone: row.reporter_phone ?? null,
+        reporter_email: row.reporter_email ?? null,
+        injuries: row.injuries ?? null,
+        vehicles_involved: row.vehicles_involved ?? null,
+        driver_name: row.driver_name ?? null,
+        police_report_number: row.police_report_number ?? null,
+        employee_name: row.employee_name ?? null,
+        employee_job_title: row.employee_job_title ?? null,
+        injured_body_part: row.injured_body_part ?? null,
+        date_reported_to_employer: row.date_reported_to_employer ?? null,
+        third_party_contact: row.third_party_contact ?? null,
+      },
+    };
   });

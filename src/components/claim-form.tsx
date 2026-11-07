@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -12,12 +12,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { processClaimNotifications, submitClaim } from "@/lib/claim-submission.functions";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { uploadClaimFile } from "@/lib/claim-documents";
+import { LINE_OF_BUSINESS } from "@/lib/line-of-business";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 
+function TextField({
+  id,
+  label,
+  value,
+  onChange,
+  ...rest
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+} & Omit<React.ComponentProps<typeof Input>, "id" | "value" | "onChange">) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} {...rest} />
+    </div>
+  );
+}
+
 export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const navigate = useNavigate();
-  const { clientId, role } = useAuth();
+  const { clientId, role, user } = useAuth();
   const isAdmin = role === "agency_admin";
   const getOverview = useServerFn(fetchAgencyOverview);
   const submitClaimFn = useServerFn(submitClaim);
@@ -33,7 +54,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lines_of_business")
-        .select("id, name")
+        .select("id, name, code")
         .order("sort_order");
       if (error) throw error;
       return data;
@@ -47,9 +68,23 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const [selectedLocalClientId, setSelectedLocalClientId] = useState<string>("");
   const [lineId, setLineId] = useState("");
   const [dateOfLoss, setDateOfLoss] = useState("");
+  const [timeOfLoss, setTimeOfLoss] = useState("");
+  const [lossLocation, setLossLocation] = useState("");
   const [claimantName, setClaimantName] = useState("");
   const [description, setDescription] = useState("");
   const [policyId, setPolicyId] = useState<string>("");
+  const [reporterName, setReporterName] = useState("");
+  const [reporterPhone, setReporterPhone] = useState("");
+  const [reporterEmail, setReporterEmail] = useState("");
+  const [injuries, setInjuries] = useState<"" | "yes" | "no">("");
+  const [vehiclesInvolved, setVehiclesInvolved] = useState("");
+  const [driverName, setDriverName] = useState("");
+  const [policeReportNumber, setPoliceReportNumber] = useState("");
+  const [employeeName, setEmployeeName] = useState("");
+  const [employeeJobTitle, setEmployeeJobTitle] = useState("");
+  const [injuredBodyPart, setInjuredBodyPart] = useState("");
+  const [dateReportedToEmployer, setDateReportedToEmployer] = useState("");
+  const [thirdPartyContact, setThirdPartyContact] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -58,6 +93,28 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
       setSelectedLocalClientId(clientId);
     }
   }, [isAdmin, clientId]);
+
+  // Reporter defaults to the signed-in user (and, for a client, their client
+  // record) until they edit any reporter field themselves.
+  const reporterEdited = useRef(false);
+  const ownClient = isAdmin ? undefined : overview?.clients.find((c) => c.id === clientId);
+  useEffect(() => {
+    if (!user || reporterEdited.current) return;
+    const meta = user.user_metadata ?? {};
+    setReporterEmail(user.email ?? "");
+    setReporterName(meta.full_name || meta.name || ownClient?.name || "");
+    setReporterPhone(user.phone || meta.phone || ownClient?.phone || "");
+  }, [user, ownClient]);
+  const editReporter = (set: (value: string) => void) => (value: string) => {
+    reporterEdited.current = true;
+    set(value);
+  };
+
+  const line = lines.find((l) => l.id === lineId);
+  const lineCode = line?.code ?? null;
+  const isAuto = lineCode === LINE_OF_BUSINESS.auto;
+  const isWc = lineCode === LINE_OF_BUSINESS.workersComp;
+  const isGl = lineCode === LINE_OF_BUSINESS.generalLiability;
 
   const policies = isAdmin
     ? (overview?.policies ?? []).filter((p) => p.client_id === selectedLocalClientId)
@@ -69,7 +126,6 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
       toast.error("No client selected");
       return;
     }
-    const line = lines.find((l) => l.id === lineId);
     if (!line) {
       toast.error(
         linesFailed
@@ -92,6 +148,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
         }
       }
 
+      const text = (v: string) => v.trim() || null;
       const saved = await submitClaimFn({
         data: {
           claimId,
@@ -100,8 +157,27 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
           policyId: policyId || null,
           isNotice,
           dateOfLoss,
-          claimantName: claimantName.trim() || null,
+          claimantName: text(claimantName),
           description,
+          timeOfLoss: timeOfLoss || null,
+          lossLocation: text(lossLocation),
+          reporterName: text(reporterName),
+          reporterPhone: text(reporterPhone),
+          reporterEmail: text(reporterEmail),
+          injuries: injuries ? injuries === "yes" : null,
+          // Only the current line's fields; the server drops any others too.
+          ...(isAuto && {
+            vehiclesInvolved: text(vehiclesInvolved),
+            driverName: text(driverName),
+            policeReportNumber: text(policeReportNumber),
+          }),
+          ...(isWc && {
+            employeeName: text(employeeName),
+            employeeJobTitle: text(employeeJobTitle),
+            injuredBodyPart: text(injuredBodyPart),
+            dateReportedToEmployer: dateReportedToEmployer || null,
+          }),
+          ...(isGl && { thirdPartyContact: text(thirdPartyContact) }),
           documents,
         },
       });
@@ -168,17 +244,114 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
           <Label htmlFor="dol">Date of Loss</Label>
           <Input id="dol" type="date" value={dateOfLoss} onChange={(e) => setDateOfLoss(e.target.value)} required />
         </div>
+        <TextField id="tol" label="Time of Loss" type="time" value={timeOfLoss} onChange={setTimeOfLoss} />
+        <div className="space-y-2">
+          <Label>Any Injuries?</Label>
+          <Select value={injuries} onValueChange={(v) => setInjuries(v as "yes" | "no")}>
+            <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="yes">Yes</SelectItem>
+              <SelectItem value="no">No</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="claimant">Claimant Name</Label>
-        <Input
+      <TextField
+        id="location"
+        label="Loss Location"
+        value={lossLocation}
+        onChange={setLossLocation}
+        placeholder="Address or description of where it happened"
+        maxLength={500}
+      />
+
+      {!isGl && (
+        <TextField
           id="claimant"
+          label="Claimant Name"
           value={claimantName}
-          onChange={(e) => setClaimantName(e.target.value)}
+          onChange={setClaimantName}
           placeholder="Person or company making the claim"
+          maxLength={200}
         />
-      </div>
+      )}
+
+      {isAuto && (
+        <div className="rounded-md border border-border p-4 space-y-4">
+          <h2 className="font-semibold text-navy">Auto Details</h2>
+          <div className="space-y-2">
+            <Label htmlFor="vehicles">Vehicles Involved</Label>
+            <Textarea
+              id="vehicles"
+              rows={3}
+              value={vehiclesInvolved}
+              onChange={(e) => setVehiclesInvolved(e.target.value)}
+              placeholder="Year, make, model and plate of each vehicle"
+              maxLength={2000}
+            />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <TextField id="driver" label="Driver" value={driverName} onChange={setDriverName} maxLength={200} />
+            <TextField
+              id="police"
+              label="Police Report Number"
+              value={policeReportNumber}
+              onChange={setPoliceReportNumber}
+              maxLength={100}
+            />
+          </div>
+        </div>
+      )}
+
+      {isWc && (
+        <div className="rounded-md border border-border p-4 space-y-4">
+          <h2 className="font-semibold text-navy">Injured Employee</h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <TextField id="employee" label="Employee Name" value={employeeName} onChange={setEmployeeName} maxLength={200} />
+            <TextField id="job" label="Job Title" value={employeeJobTitle} onChange={setEmployeeJobTitle} maxLength={200} />
+            <TextField
+              id="body-part"
+              label="Body Part Injured"
+              value={injuredBodyPart}
+              onChange={setInjuredBodyPart}
+              maxLength={200}
+            />
+            <TextField
+              id="reported-employer"
+              label="Date Reported to Employer"
+              type="date"
+              value={dateReportedToEmployer}
+              onChange={setDateReportedToEmployer}
+              min={dateOfLoss || undefined}
+            />
+          </div>
+        </div>
+      )}
+
+      {isGl && (
+        <div className="rounded-md border border-border p-4 space-y-4">
+          <h2 className="font-semibold text-navy">Third Party</h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <TextField
+              id="claimant"
+              label="Third-Party Name"
+              value={claimantName}
+              onChange={setClaimantName}
+              placeholder="Person or company making the claim"
+              maxLength={200}
+            />
+            <TextField
+              id="third-party-contact"
+              label="Third-Party Contact"
+              value={thirdPartyContact}
+              onChange={setThirdPartyContact}
+              placeholder="Phone, email or address"
+              maxLength={500}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label>Policy</Label>
@@ -199,6 +372,38 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
       <div className="space-y-2">
         <Label htmlFor="desc">Description</Label>
         <Textarea id="desc" rows={5} value={description} onChange={(e) => setDescription(e.target.value)} required />
+      </div>
+
+      <div className="rounded-md border border-border p-4 space-y-4">
+        <h2 className="font-semibold text-navy">Reported By</h2>
+        <div className="grid sm:grid-cols-3 gap-4">
+          <TextField
+            id="reporter-name"
+            label="Name"
+            value={reporterName}
+            onChange={editReporter(setReporterName)}
+            autoComplete="name"
+            maxLength={200}
+          />
+          <TextField
+            id="reporter-phone"
+            label="Phone"
+            type="tel"
+            value={reporterPhone}
+            onChange={editReporter(setReporterPhone)}
+            autoComplete="tel"
+            maxLength={50}
+          />
+          <TextField
+            id="reporter-email"
+            label="Email"
+            type="email"
+            value={reporterEmail}
+            onChange={editReporter(setReporterEmail)}
+            autoComplete="email"
+            maxLength={254}
+          />
+        </div>
       </div>
 
       <div className="space-y-2">

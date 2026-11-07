@@ -3,6 +3,7 @@
 // claim-submission.functions.ts wire these up to the database and senders.
 import { z } from "zod";
 import { CLAIM_STATUS, type ClaimStatus } from "@/lib/claim-status";
+import { LINE_OF_BUSINESS } from "@/lib/line-of-business";
 
 export const NOTIFICATION_KINDS = ["email", "webhook"] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -16,6 +17,7 @@ export function backoffMs(attempt: number): number {
 }
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use a YYYY-MM-DD date");
+const optionalText = (max: number) => z.string().trim().max(max).nullish();
 
 export const SubmitClaimSchema = z.object({
   // Generated in the browser so files can be uploaded under
@@ -28,6 +30,25 @@ export const SubmitClaimSchema = z.object({
   dateOfLoss: isoDate,
   claimantName: z.string().trim().max(200).nullable(),
   description: z.string().trim().min(1, "Description is required").max(10000),
+  // Loss details. Which of the line-specific ones are kept depends on the line
+  // of business; see lossDetailsFor.
+  timeOfLoss: z
+    .string()
+    .regex(/^\d{2}:\d{2}(:\d{2})?$/, "Use an HH:MM time")
+    .nullish(),
+  lossLocation: optionalText(500),
+  reporterName: optionalText(200),
+  reporterPhone: optionalText(50),
+  reporterEmail: z.string().trim().max(254).email("Enter a valid reporter email").nullish(),
+  injuries: z.boolean().nullish(),
+  vehiclesInvolved: optionalText(2000),
+  driverName: optionalText(200),
+  policeReportNumber: optionalText(100),
+  employeeName: optionalText(200),
+  employeeJobTitle: optionalText(200),
+  injuredBodyPart: optionalText(200),
+  dateReportedToEmployer: isoDate.nullish(),
+  thirdPartyContact: optionalText(500),
   documents: z
     .array(
       z.object({
@@ -39,7 +60,69 @@ export const SubmitClaimSchema = z.object({
 });
 export type SubmitClaimInput = z.infer<typeof SubmitClaimSchema>;
 
-export interface ClaimInsert {
+export interface LossDetails {
+  time_of_loss: string | null;
+  loss_location: string | null;
+  reporter_name: string | null;
+  reporter_phone: string | null;
+  reporter_email: string | null;
+  injuries: boolean | null;
+  vehicles_involved: string | null;
+  driver_name: string | null;
+  police_report_number: string | null;
+  employee_name: string | null;
+  employee_job_title: string | null;
+  injured_body_part: string | null;
+  date_reported_to_employer: string | null;
+  third_party_contact: string | null;
+}
+
+// The shared loss details plus only the fields that belong to this line, so
+// values left over from switching lines in the form are never saved.
+export function lossDetailsFor(input: SubmitClaimInput, lineCode: string | null): LossDetails {
+  const text = (v: string | null | undefined) => v?.trim() || null;
+  const isAuto = lineCode === LINE_OF_BUSINESS.auto;
+  const isWc = lineCode === LINE_OF_BUSINESS.workersComp;
+  const isGl = lineCode === LINE_OF_BUSINESS.generalLiability;
+  return {
+    time_of_loss: input.timeOfLoss || null,
+    loss_location: text(input.lossLocation),
+    reporter_name: text(input.reporterName),
+    reporter_phone: text(input.reporterPhone),
+    reporter_email: text(input.reporterEmail),
+    injuries: input.injuries ?? null,
+    vehicles_involved: isAuto ? text(input.vehiclesInvolved) : null,
+    driver_name: isAuto ? text(input.driverName) : null,
+    police_report_number: isAuto ? text(input.policeReportNumber) : null,
+    employee_name: isWc ? text(input.employeeName) : null,
+    employee_job_title: isWc ? text(input.employeeJobTitle) : null,
+    injured_body_part: isWc ? text(input.injuredBodyPart) : null,
+    date_reported_to_employer: isWc ? input.dateReportedToEmployer || null : null,
+    third_party_contact: isGl ? text(input.thirdPartyContact) : null,
+  };
+}
+
+/**
+ * The form's date and line rules, checked again on the server. Returns the
+ * first problem as a message for the user, or null when the claim is valid.
+ * Dates are "YYYY-MM-DD" text, which compares in calendar order.
+ */
+export function claimRuleError(
+  input: SubmitClaimInput,
+  ctx: { lineCode: string | null; today: string },
+): string | null {
+  if (ctx.lineCode === LINE_OF_BUSINESS.workersComp && input.dateReportedToEmployer) {
+    if (input.dateReportedToEmployer > ctx.today) {
+      return "Date reported to employer can't be in the future";
+    }
+    if (input.dateReportedToEmployer < input.dateOfLoss) {
+      return "Date reported to employer can't be before the date of loss";
+    }
+  }
+  return null;
+}
+
+export interface ClaimInsert extends LossDetails {
   id: string;
   client_id: string;
   policy_id: string | null;
@@ -68,7 +151,7 @@ export interface SubmitClaimDeps {
   today(): string;
   // Throws unless the caller is an agency admin or the login linked to clientId.
   assertCanSubmitFor(clientId: string): Promise<void>;
-  getLine(id: string): Promise<{ id: string; name: string } | null>;
+  getLine(id: string): Promise<{ id: string; name: string; code: string } | null>;
   getPolicy(
     id: string,
     clientId: string,
@@ -86,6 +169,10 @@ export async function submitClaimCore(input: SubmitClaimInput, deps: SubmitClaim
 
   const line = await deps.getLine(input.lineOfBusinessId);
   if (!line) throw new Error("Unknown line of business");
+
+  const today = deps.today();
+  const ruleError = claimRuleError(input, { lineCode: line.code, today });
+  if (ruleError) throw new Error(ruleError);
 
   const policy = input.policyId ? await deps.getPolicy(input.policyId, input.clientId) : null;
   if (input.policyId && !policy) throw new Error("That policy doesn't belong to this client");
@@ -109,10 +196,11 @@ export async function submitClaimCore(input: SubmitClaimInput, deps: SubmitClaim
     line_of_business_description: line.name,
     is_notice_only: input.isNotice,
     date_of_loss: input.dateOfLoss,
-    date_reported: deps.today(),
+    date_reported: today,
     description: input.description,
     carrier: policy?.carrier ?? null,
     status: input.isNotice ? CLAIM_STATUS.notice : CLAIM_STATUS.submitted,
+    ...lossDetailsFor(input, line.code),
   });
 
   try {

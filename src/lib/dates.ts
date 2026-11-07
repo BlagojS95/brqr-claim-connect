@@ -28,6 +28,15 @@ export function calendarYear(value: string | null | undefined): number | null {
   return parseCalendarDate(value)?.year ?? null;
 }
 
+/** A time-of-day column ("14:05" or "14:05:00") -> "2:05 PM". No time zone involved. */
+export function formatTime(value: string | null | undefined, empty = "—"): string {
+  const match = value?.match(/^(\d{2}):(\d{2})/);
+  if (!match) return empty;
+  const hours = Number(match[1]);
+  const suffix = hours < 12 ? "AM" : "PM";
+  return `${hours % 12 || 12}:${match[2]} ${suffix}`;
+}
+
 /** Today as "YYYY-MM-DD" on the agency's calendar, the same on server and browser. */
 export function todayIso(now: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", {

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { LINE_OF_BUSINESS } from "@/lib/line-of-business";
 import {
   backoffMs,
+  claimRuleError,
   deliverPendingRows,
+  lossDetailsFor,
+  SubmitClaimSchema,
   MAX_NOTIFICATION_ATTEMPTS,
   submitClaimCore,
   type ClaimInsert,
@@ -17,6 +21,14 @@ const OTHER_CLIENT = "22222222-2222-4222-8222-222222222222";
 const CLAIM = "33333333-3333-4333-8333-333333333333";
 const LINE = "44444444-4444-4444-8444-444444444444";
 const POLICY = "55555555-5555-4555-8555-555555555555";
+const WC_LINE = "66666666-6666-4666-8666-666666666666";
+const AUTO_LINE = "77777777-7777-4777-8777-777777777777";
+
+const LINES: Record<string, { id: string; name: string; code: string }> = {
+  [LINE]: { id: LINE, name: "General Liability", code: "GL" },
+  [WC_LINE]: { id: WC_LINE, name: "Workers Compensation", code: "WC" },
+  [AUTO_LINE]: { id: AUTO_LINE, name: "Business Auto", code: "AUTO" },
+};
 
 // In-memory stand-in for the claims, documents and notification_outbox tables.
 function fakeDb(ownClientId = CLIENT) {
@@ -29,7 +41,7 @@ function fakeDb(ownClientId = CLIENT) {
       if (clientId !== ownClientId)
         throw new Error("You can only report claims for your own account");
     },
-    getLine: async (id) => (id === LINE ? { id, name: "General Liability" } : null),
+    getLine: async (id) => LINES[id] ?? null,
     getPolicy: async (id, clientId) =>
       id === POLICY && clientId === CLIENT
         ? { id, policy_number: "GL-100", carrier: "Acme" }
@@ -185,5 +197,103 @@ describe("submitClaimCore", () => {
 
   it("uses the agreed backoff schedule", () => {
     expect([1, 2, 3, 4].map(backoffMs)).toEqual([500, 1000, 2000, 4000]);
+  });
+});
+
+describe("loss details by line of business", () => {
+  const wc = (overrides: Partial<SubmitClaimInput> = {}) =>
+    input({
+      lineOfBusinessId: WC_LINE,
+      policyId: null,
+      documents: [],
+      employeeName: "Sam Worker",
+      employeeJobTitle: "Forklift operator",
+      injuredBodyPart: "Lower back",
+      dateReportedToEmployer: "2026-11-02",
+      ...overrides,
+    });
+
+  it("saves the shared and Workers Compensation fields", async () => {
+    const db = fakeDb();
+    await submitClaimCore(
+      wc({
+        timeOfLoss: "14:30",
+        lossLocation: " Warehouse 3 ",
+        reporterName: "Pat Manager",
+        reporterEmail: "pat@example.com",
+        injuries: true,
+      }),
+      db.deps,
+    );
+    expect(db.claims[0]).toMatchObject({
+      time_of_loss: "14:30",
+      loss_location: "Warehouse 3",
+      reporter_name: "Pat Manager",
+      reporter_email: "pat@example.com",
+      reporter_phone: null,
+      injuries: true,
+      employee_name: "Sam Worker",
+      employee_job_title: "Forklift operator",
+      injured_body_part: "Lower back",
+      date_reported_to_employer: "2026-11-02",
+      vehicles_involved: null,
+      third_party_contact: null,
+    });
+  });
+
+  it("drops fields that belong to a different line", () => {
+    const details = lossDetailsFor(
+      wc({ driverName: "Left over", thirdPartyContact: "555-0100" }),
+      LINE_OF_BUSINESS.auto,
+    );
+    expect(details).toMatchObject({
+      driver_name: "Left over",
+      employee_name: null,
+      date_reported_to_employer: null,
+      third_party_contact: null,
+    });
+  });
+
+  it("rejects a date reported to employer before the date of loss", async () => {
+    const db = fakeDb();
+    await expect(
+      submitClaimCore(
+        wc({ dateOfLoss: "2026-11-03", dateReportedToEmployer: "2026-11-02" }),
+        db.deps,
+      ),
+    ).rejects.toThrow("before the date of loss");
+    expect(db.claims).toHaveLength(0);
+  });
+
+  it("rejects a date reported to employer in the future", async () => {
+    const db = fakeDb();
+    await expect(
+      submitClaimCore(wc({ dateReportedToEmployer: "2026-11-08" }), db.deps),
+    ).rejects.toThrow("can't be in the future");
+  });
+
+  it("accepts a same-day report to the employer, and ignores the date on other lines", () => {
+    const today = "2026-11-07";
+    expect(
+      claimRuleError(wc({ dateOfLoss: today, dateReportedToEmployer: today }), {
+        lineCode: LINE_OF_BUSINESS.workersComp,
+        today,
+      }),
+    ).toBeNull();
+    expect(
+      claimRuleError(wc({ dateReportedToEmployer: "2026-10-01" }), {
+        lineCode: LINE_OF_BUSINESS.auto,
+        today,
+      }),
+    ).toBeNull();
+  });
+
+  it("validates the reporter email and time format", () => {
+    const base = { ...input(), documents: [] };
+    expect(SubmitClaimSchema.safeParse({ ...base, reporterEmail: "not-an-email" }).success).toBe(
+      false,
+    );
+    expect(SubmitClaimSchema.safeParse({ ...base, timeOfLoss: "2pm" }).success).toBe(false);
+    expect(SubmitClaimSchema.safeParse({ ...base, timeOfLoss: "14:05" }).success).toBe(true);
   });
 });

@@ -229,6 +229,20 @@ export type Database = {
           policy_number: string | null
           reserve_amount: number | null
           status: Database["public"]["Enums"]["claim_status"]
+          date_reported_to_employer: string | null
+          driver_name: string | null
+          employee_job_title: string | null
+          employee_name: string | null
+          injured_body_part: string | null
+          injuries: boolean | null
+          loss_location: string | null
+          police_report_number: string | null
+          reporter_email: string | null
+          reporter_name: string | null
+          reporter_phone: string | null
+          third_party_contact: string | null
+          time_of_loss: string | null
+          vehicles_involved: string | null
         }
         Insert: {
           adjuster_email?: string | null
@@ -260,6 +274,20 @@ export type Database = {
           policy_number?: string | null
           reserve_amount?: number | null
           status?: Database["public"]["Enums"]["claim_status"]
+          date_reported_to_employer?: string | null
+          driver_name?: string | null
+          employee_job_title?: string | null
+          employee_name?: string | null
+          injured_body_part?: string | null
+          injuries?: boolean | null
+          loss_location?: string | null
+          police_report_number?: string | null
+          reporter_email?: string | null
+          reporter_name?: string | null
+          reporter_phone?: string | null
+          third_party_contact?: string | null
+          time_of_loss?: string | null
+          vehicles_involved?: string | null
         }
         Update: {
           adjuster_email?: string | null
@@ -291,6 +319,20 @@ export type Database = {
           policy_number?: string | null
           reserve_amount?: number | null
           status?: Database["public"]["Enums"]["claim_status"]
+          date_reported_to_employer?: string | null
+          driver_name?: string | null
+          employee_job_title?: string | null
+          employee_name?: string | null
+          injured_body_part?: string | null
+          injuries?: boolean | null
+          loss_location?: string | null
+          police_report_number?: string | null
+          reporter_email?: string | null
+          reporter_name?: string | null
+          reporter_phone?: string | null
+          third_party_contact?: string | null
+          time_of_loss?: string | null
+          vehicles_involved?: string | null
         }
         Relationships: [
           {

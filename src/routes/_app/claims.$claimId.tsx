@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { incurredAmount, paidAmount, reserveAmount } from "@/lib/claim-metrics";
-import { formatDate } from "@/lib/dates";
+import { formatDate, formatTime } from "@/lib/dates";
 import { fetchClaimDetail } from "@/lib/overview.functions";
 import { deleteClaimDocument, uploadClaimDocument } from "@/lib/claim-documents";
 import { StatusBadge } from "@/components/status-badge";
@@ -126,6 +126,30 @@ function ClaimDetail() {
     queryClient.invalidateQueries({ queryKey: ["claim", claimId] });
   }
 
+  // Loss details from the claim form; imported claims usually have none.
+  const loss = claim.loss_details;
+  const lossFields = loss
+    ? [
+        { label: "Time of Loss", value: loss.time_of_loss && formatTime(loss.time_of_loss) },
+        { label: "Loss Location", value: loss.loss_location },
+        { label: "Injuries", value: loss.injuries == null ? null : loss.injuries ? "Yes" : "No" },
+        { label: "Reported By", value: loss.reporter_name },
+        { label: "Reporter Phone", value: loss.reporter_phone },
+        { label: "Reporter Email", value: loss.reporter_email },
+        { label: "Vehicles Involved", value: loss.vehicles_involved },
+        { label: "Driver", value: loss.driver_name },
+        { label: "Police Report #", value: loss.police_report_number },
+        { label: "Employee", value: loss.employee_name },
+        { label: "Job Title", value: loss.employee_job_title },
+        { label: "Body Part", value: loss.injured_body_part },
+        {
+          label: "Reported to Employer",
+          value: loss.date_reported_to_employer && formatDate(loss.date_reported_to_employer),
+        },
+        { label: "Third-Party Contact", value: loss.third_party_contact },
+      ].filter((f) => f.value)
+    : [];
+
   const timeline = [
     { label: "Date of Loss", date: claim.date_of_loss },
     { label: "Reported", date: claim.date_reported },
@@ -181,6 +205,17 @@ function ClaimDetail() {
         <section className="rounded-lg border border-border bg-card p-6">
           <h2 className="font-semibold text-navy mb-2">Description</h2>
           <p className="text-sm whitespace-pre-wrap text-foreground/90">{claim.description}</p>
+        </section>
+      )}
+
+      {lossFields.length > 0 && (
+        <section className="rounded-lg border border-border bg-card p-6">
+          <h2 className="font-semibold text-navy mb-4">Loss Details</h2>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-5">
+            {lossFields.map((f) => (
+              <Field key={f.label} label={f.label} value={f.value} />
+            ))}
+          </div>
         </section>
       )}
 

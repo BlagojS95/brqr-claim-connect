@@ -1,4 +1,5 @@
 import type { ClaimStatus } from "@/lib/claim-status";
+import type { LossDetails } from "@/lib/claim-submission";
 
 export interface AgencyClient {
   id: string;
@@ -43,6 +44,8 @@ export interface AgencyClaim {
   description: string | null;
   client_id: string;
   client_name: string;
+  // Only filled by fetchClaimDetail; the list views don't need it.
+  loss_details?: LossDetails;
 }
 
 export interface AgencyOverview {

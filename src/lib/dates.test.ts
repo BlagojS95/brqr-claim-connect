@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { calendarYear, formatDate, parseCalendarDate, todayIso } from "@/lib/dates";
+import { calendarYear, formatDate, formatTime, parseCalendarDate, todayIso } from "@/lib/dates";
+
+describe("formatTime", () => {
+  it("shows a time column on a 12-hour clock", () => {
+    expect(formatTime("14:05:00")).toBe("2:05 PM");
+    expect(formatTime("00:30")).toBe("12:30 AM");
+    expect(formatTime("12:00")).toBe("12:00 PM");
+    expect(formatTime(null)).toBe("—");
+  });
+});
 
 // Run under TZ=America/New_York and TZ=America/Los_Angeles as well as the default.
 describe("calendar dates", () => {
