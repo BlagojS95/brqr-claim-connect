@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { parseInput } from "@/lib/http-errors.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Tables } from "@/integrations/supabase/types";
 import { todayIso } from "@/lib/dates";
@@ -119,14 +120,14 @@ const ScopeSchema = z.object({ scope: z.enum(["all", "claims", "policies"]).opti
 
 export const fetchAgencyOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => ScopeSchema.parse(input ?? {}))
+  .inputValidator((input) => parseInput(ScopeSchema)(input ?? {}))
   .handler(async ({ data, context }) => {
     return getScopedOverview(context.supabase, data.scope ?? "all");
   });
 
 export const fetchClaimDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ claimId: z.string() }).parse(input))
+  .inputValidator(parseInput(z.object({ claimId: z.string() })))
   .handler(async ({ data, context }) => {
     if (!UUID_RE.test(data.claimId)) return null;
 

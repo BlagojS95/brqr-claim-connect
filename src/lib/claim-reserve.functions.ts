@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { parseInput } from "@/lib/http-errors.server";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
 
 const ReserveSchema = z.object({
@@ -9,7 +10,7 @@ const ReserveSchema = z.object({
 
 export const updateClaimReserve = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
-  .inputValidator((input) => ReserveSchema.parse(input))
+  .inputValidator(parseInput(ReserveSchema))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("claims")

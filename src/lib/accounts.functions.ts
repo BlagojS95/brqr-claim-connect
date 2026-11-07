@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { parseInput } from "@/lib/http-errors.server";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
@@ -19,7 +20,7 @@ const CreateAccountSchema = z.object({
 
 export const createClientAccount = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
-  .inputValidator((input) => CreateAccountSchema.parse(input))
+  .inputValidator(parseInput(CreateAccountSchema))
   .handler(async ({ data, context }) => {
     await loadDevVars();
     const { data: client } = await context.supabase
@@ -64,7 +65,7 @@ const ResetPasswordSchema = z.object({
 
 export const resetClientPassword = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
-  .inputValidator((input) => ResetPasswordSchema.parse(input))
+  .inputValidator(parseInput(ResetPasswordSchema))
   .handler(async ({ data }) => {
     await loadDevVars();
     await requireClientLogin(data.userId);
@@ -79,7 +80,7 @@ const DeleteAccountSchema = z.object({ userId: z.string().uuid() });
 // (clients.user_id is ON DELETE SET NULL), so a new login can be created later.
 export const deleteClientAccount = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
-  .inputValidator((input) => DeleteAccountSchema.parse(input))
+  .inputValidator(parseInput(DeleteAccountSchema))
   .handler(async ({ data }) => {
     await loadDevVars();
     await requireClientLogin(data.userId);

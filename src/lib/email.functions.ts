@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { parseInput } from "@/lib/http-errors.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { escapeHtml, FONT_STACK, NAVY, sendViaResend } from "@/lib/claim-notifications.server";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
@@ -43,7 +44,7 @@ function buildLossRunRequestHtml(opts: {
 
 export const sendLossRunRequestEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ requestId: z.string() }).parse(input))
+  .inputValidator(parseInput(z.object({ requestId: z.string() })))
   .handler(async ({ data, context }) => {
     await loadDevVars();
     const { data: request } = await context.supabase

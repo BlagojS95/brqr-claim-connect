@@ -1,5 +1,6 @@
 import { createMiddleware } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "./auth-middleware";
+import { forbidden } from "@/lib/http-errors.server";
 
 export const requireAgencyAdmin = createMiddleware({ type: "function" })
   .middleware([requireSupabaseAuth])
@@ -11,9 +12,8 @@ export const requireAgencyAdmin = createMiddleware({ type: "function" })
       .eq("role", "agency_admin")
       .maybeSingle();
 
-    if (!data) {
-      throw new Error("Unauthorized: agency_admin role required");
-    }
+    // Signed in but not an admin: 403. Same message the toasts showed before.
+    if (!data) forbidden("Unauthorized: agency_admin role required");
 
     return next();
   });

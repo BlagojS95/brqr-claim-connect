@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { parseInput } from "@/lib/http-errors.server";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
 import { runImport, type ImportResult } from "@/lib/import-core";
 
@@ -16,7 +17,7 @@ const ImportSchema = z.object({
 // "admin manages ..." RLS policies are what authorize it.
 export const importRows = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
-  .inputValidator((input) => ImportSchema.parse(input))
+  .inputValidator(parseInput(ImportSchema))
   .handler(async ({ data, context }): Promise<ImportResult> => {
     return runImport(context.supabase, data);
   });

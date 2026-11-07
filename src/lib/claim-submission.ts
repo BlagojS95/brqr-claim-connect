@@ -4,6 +4,7 @@
 import { z } from "zod";
 import { CLAIM_STATUS, type ClaimStatus } from "@/lib/claim-status";
 import { formatDate } from "@/lib/dates";
+import { unprocessableError } from "@/lib/http-errors";
 import { LINE_OF_BUSINESS } from "@/lib/line-of-business";
 import { policyCoversLoss, type PolicyTerm } from "@/lib/policy-match";
 
@@ -187,19 +188,21 @@ export async function submitClaimCore(input: SubmitClaimInput, deps: SubmitClaim
   await deps.assertCanSubmitFor(input.clientId);
 
   const line = await deps.getLine(input.lineOfBusinessId);
-  if (!line) throw new Error("Unknown line of business");
+  if (!line) throw unprocessableError("Unknown line of business");
 
   const today = deps.today();
   const ruleError = claimRuleError(input, { lineCode: line.code, today });
-  if (ruleError) throw new Error(ruleError);
+  if (ruleError) throw unprocessableError(ruleError);
 
   const policy = input.policyId ? await deps.getPolicy(input.policyId, input.clientId) : null;
-  if (input.policyId && !policy) throw new Error("That policy doesn't belong to this client");
+  if (input.policyId && !policy) {
+    throw unprocessableError("That policy doesn't belong to this client");
+  }
   if (
     policy &&
     !policyCoversLoss(policy, { dateOfLoss: input.dateOfLoss, lineOfBusinessId: line.id })
   ) {
-    throw new Error(
+    throw unprocessableError(
       `Policy ${policy.policy_number} doesn't cover a ${line.name} loss on ${formatDate(input.dateOfLoss)}`,
     );
   }
@@ -208,7 +211,7 @@ export async function submitClaimCore(input: SubmitClaimInput, deps: SubmitClaim
   const prefix = `${input.clientId}/${input.claimId}/`;
   for (const doc of input.documents) {
     if (!doc.path.startsWith(prefix) || doc.path.includes("..")) {
-      throw new Error(`Invalid document path for ${doc.fileName}`);
+      throw unprocessableError(`Invalid document path for ${doc.fileName}`);
     }
   }
 

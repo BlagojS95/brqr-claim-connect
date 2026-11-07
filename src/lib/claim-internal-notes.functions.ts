@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { parseInput } from "@/lib/http-errors.server";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
 
 const SaveNoteSchema = z.object({
@@ -11,7 +12,7 @@ const SaveNoteSchema = z.object({
 // the verified token, not from the browser.
 export const saveClaimInternalNote = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
-  .inputValidator((input) => SaveNoteSchema.parse(input))
+  .inputValidator(parseInput(SaveNoteSchema))
   .handler(async ({ data, context }) => {
     const email = typeof context.claims.email === "string" ? context.claims.email : null;
     const { error } = await context.supabase.from("claim_internal_notes").upsert({

@@ -1,6 +1,7 @@
 import { createStart, createMiddleware } from "@tanstack/react-start";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { renderErrorPage } from "./lib/error-page";
+import { httpErrorStatus } from "./lib/http-error-status";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -19,5 +20,6 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [errorMiddleware],
-  functionMiddleware: [attachSupabaseAuth],
+  // httpErrorStatus gives server-function errors a real status (401/403/422/500).
+  functionMiddleware: [attachSupabaseAuth, httpErrorStatus],
 }));

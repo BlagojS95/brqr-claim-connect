@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { forbidden, parseInput } from "@/lib/http-errors.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -23,7 +24,7 @@ import { loadDevVars } from "@/lib/load-dev-vars.server";
 // webhook outage never loses the claim.
 export const submitClaim = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => SubmitClaimSchema.parse(input))
+  .inputValidator(parseInput(SubmitClaimSchema))
   .handler(async ({ data, context }) => {
     await loadDevVars();
     const { supabase, userId } = context;
@@ -44,7 +45,7 @@ export const submitClaim = createServerFn({ method: "POST" })
           .eq("id", clientId)
           .eq("user_id", userId)
           .maybeSingle();
-        if (!own) throw new Error("You can only report claims for your own account");
+        if (!own) forbidden("You can only report claims for your own account");
       },
       async getLine(id) {
         const { data: line } = await supabase
@@ -99,7 +100,7 @@ export const submitClaim = createServerFn({ method: "POST" })
 // The claim form calls this after submitClaim returns, without waiting on it.
 export const processClaimNotifications = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ claimId: z.string().uuid() }).parse(input))
+  .inputValidator(parseInput(z.object({ claimId: z.string().uuid() })))
   .handler(async ({ data, context }) => {
     await loadDevVars();
     // RLS decides whether the caller may see this claim at all.
@@ -117,7 +118,7 @@ export const processClaimNotifications = createServerFn({ method: "POST" })
 // Admin "Retry" on a failed notification: back to pending, then send again.
 export const retryClaimNotification = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
-  .inputValidator((input) => z.object({ outboxId: z.string().uuid() }).parse(input))
+  .inputValidator(parseInput(z.object({ outboxId: z.string().uuid() })))
   .handler(async ({ data }) => {
     await loadDevVars();
     const { data: row, error } = await supabaseAdmin

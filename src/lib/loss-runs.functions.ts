@@ -1,6 +1,7 @@
 import { LOSS_RUN_REQUEST_STATUS } from "@/lib/loss-run-request-status";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { parseInput, unprocessable } from "@/lib/http-errors.server";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
 import { isLossRunPathFor, lossRunPath } from "@/lib/loss-run-files";
 
@@ -24,7 +25,7 @@ const RequestIdSchema = z.object({ requestId: z.string().uuid() });
 // folder in this bucket, so the path must not come from the browser.
 export const createLossRunUpload = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
-  .inputValidator((input) => UploadSchema.parse(input))
+  .inputValidator(parseInput(UploadSchema))
   .handler(async ({ data, context }) => {
     const { data: client, error: clientError } = await context.supabase
       .from("clients")
@@ -46,10 +47,10 @@ export const createLossRunUpload = createServerFn({ method: "POST" })
 // fails the uploaded file is removed again.
 export const attachLossRun = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
-  .inputValidator((input) => AttachSchema.parse(input))
+  .inputValidator(parseInput(AttachSchema))
   .handler(async ({ data, context }) => {
     if (!isLossRunPathFor(data.clientId, data.path)) {
-      throw new Error("Invalid loss run file path");
+      unprocessable("Invalid loss run file path");
     }
     const { error } = await context.supabase.from("loss_runs").insert({
       client_id: data.clientId,
@@ -66,7 +67,7 @@ export const attachLossRun = createServerFn({ method: "POST" })
 // "Mark fulfilled" on the admin Loss Run Requests table.
 export const fulfillLossRunRequest = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
-  .inputValidator((input) => RequestIdSchema.parse(input))
+  .inputValidator(parseInput(RequestIdSchema))
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("loss_run_requests")

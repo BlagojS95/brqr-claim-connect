@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { parseInput } from "@/lib/http-errors.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
@@ -14,7 +15,7 @@ const InputSchema = z.object({ claimId: z.string().uuid() });
 // other read or write the browser makes directly against these tables).
 export const ensureClaimContacts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => InputSchema.parse(input))
+  .inputValidator(parseInput(InputSchema))
   .handler(async ({ data, context }) => {
     await loadDevVars();
     const { data: claim } = await context.supabase

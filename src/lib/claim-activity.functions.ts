@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { parseInput } from "@/lib/http-errors.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveActivityAuthors } from "@/lib/claim-activity.server";
 import {
@@ -26,7 +27,7 @@ const AddNoteSchema = z.object({
 // names are resolved with the service role.
 export const fetchClaimActivity = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => ClaimIdSchema.parse(input))
+  .inputValidator(parseInput(ClaimIdSchema))
   .handler(async ({ data, context }): Promise<ClaimActivityEntry[]> => {
     await loadDevVars();
     const { supabase, userId } = context;
@@ -63,7 +64,7 @@ export const fetchClaimActivity = createServerFn({ method: "POST" })
 // client add only a note, as themselves, on their own claim; admins on any.
 export const addClaimNote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => AddNoteSchema.parse(input))
+  .inputValidator(parseInput(AddNoteSchema))
   .handler(async ({ data, context }) => {
     await loadDevVars();
     const { error } = await context.supabase.from("claim_activity").insert({
