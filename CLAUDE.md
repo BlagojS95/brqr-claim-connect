@@ -31,6 +31,12 @@ Client claims portal for BRQR Insurance Agency (claimsqr.com). Originally scaffo
 - Work on a branch per phase (`fix/phase-N`), one commit per numbered fix.
 - Before finishing: run `npm run typecheck`, `npm run lint`, `npm run build` and `npm test`; report what you verified and anything you couldn't.
 
+## End-to-end testing
+- Test end to end in the browser (Claude in Chrome) on desktop and phone width (375-390 px), not just with unit tests.
+- Whenever a test sends, receives or uploads anything (claim submit, document upload, emails, notes, imports, sign-in), check the network requests (DevTools Network tab / `read_network_requests`) and the console: where each request goes, what it carries, and its status code.
+- Requests should only go to this app (localhost or claimsqr.com), the Supabase project, Resend, InsurGrid and known CDNs. Anything else is suspicious: a request to an unknown host, secrets or tokens in a URL or the browser bundle, another client's data in a response, or a write that succeeds when it should be refused. Tell Ilija straight away and start working on a fix.
+- Test data you create gets marked "TEST" and is deleted afterwards (with Ilija's OK).
+
 ## Deploying
 - **A git push does not deploy.** claimsqr.com is the `brqr-claim-connect` project on the Vercel team `brqr`, a Hobby team owned by the Ox Family account. Commits from ika-com are not on that team, so Vercel marks every pushed commit "Blocked" and never builds it. Empty commits, Redeploy, and changing the commit message or co-author lines do not help, so don't try them. Running the CLI from this folder is blocked too; use the git-free copy below.
 - Ilija stays logged out of this Vercel account between deploys. Before every deploy, run `npx vercel whoami`. If it doesn't say `oxfamily`, stop and ask Ilija to run `! npx vercel logout` and then `! npx vercel login` and sign in as Ox Family. Never enter the password or approve the login yourself. When the deploy is finished, remind him he can log out again.
