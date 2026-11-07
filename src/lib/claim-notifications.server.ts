@@ -3,6 +3,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { formatDate } from "@/lib/dates";
 import type { DeliveryDeps, OutboxPatch } from "@/lib/claim-submission";
+import { CLAIM_ACTIVITY_KIND, notificationActivityBody } from "@/lib/claim-activity";
 
 export const NAVY = "#0A2342";
 const GOLD = "#C9A84C";
@@ -122,6 +123,10 @@ function buildEmailHtml(opts: {
 const DEFAULT_RECIPIENT = "service@brqr.com";
 const DEFAULT_SENDER = "BRQR Claims Portal <onboarding@resend.dev>";
 
+export function notificationRecipient(): string {
+  return process.env.CLAIM_NOTIFICATION_EMAIL || DEFAULT_RECIPIENT;
+}
+
 export async function sendViaResend(subject: string, html: string) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error("Missing RESEND_API_KEY environment variable");
@@ -134,7 +139,7 @@ export async function sendViaResend(subject: string, html: string) {
     },
     body: JSON.stringify({
       from: process.env.NOTIFICATION_FROM_EMAIL || DEFAULT_SENDER,
-      to: [process.env.CLAIM_NOTIFICATION_EMAIL || DEFAULT_RECIPIENT],
+      to: [notificationRecipient()],
       subject,
       html,
     }),
@@ -212,8 +217,28 @@ export async function sendClaimWebhook(claimId: string) {
 }
 
 async function updateOutbox(id: string, patch: OutboxPatch) {
-  const { error } = await supabaseAdmin.from("notification_outbox").update(patch).eq("id", id);
+  const { data: row, error } = await supabaseAdmin
+    .from("notification_outbox")
+    .update(patch)
+    .eq("id", id)
+    .select("claim_id, kind")
+    .maybeSingle();
   if (error) console.error("notification_outbox update failed", id, error.message);
+  if (row && (patch.status === "sent" || patch.status === "failed")) {
+    await logNotificationActivity(row.claim_id, row.kind, patch.status);
+  }
+}
+
+// One entry in the claim's activity log when a send finishes either way.
+// Logging must never fail the delivery itself, so errors are only reported.
+async function logNotificationActivity(claimId: string, kind: string, status: "sent" | "failed") {
+  const { error } = await supabaseAdmin.from("claim_activity").insert({
+    claim_id: claimId,
+    actor_id: null,
+    kind: CLAIM_ACTIVITY_KIND.email,
+    body: notificationActivityBody(kind, status, notificationRecipient()),
+  });
+  if (error) console.error("claim_activity insert failed", claimId, error.message);
 }
 
 export const outboxDeliveryDeps: DeliveryDeps = {

@@ -10,6 +10,7 @@ import { formatDate, formatTime } from "@/lib/dates";
 import { fetchClaimDetail } from "@/lib/overview.functions";
 import { deleteClaimDocument, uploadClaimDocument } from "@/lib/claim-documents";
 import { StatusBadge } from "@/components/status-badge";
+import { ClaimActivityLog } from "@/components/claim-activity-log";
 import { ClaimContactsTable } from "@/components/claim-contacts-table";
 import { ClaimInternalNotes } from "@/components/claim-internal-notes";
 import { ClaimReserveEditor } from "@/components/claim-reserve-editor";
@@ -294,6 +295,11 @@ function ClaimDetail() {
             claimantName: claim.claimant_name,
           }}
         />
+      </section>
+
+      <section className="rounded-lg border border-border bg-card p-6">
+        <h2 className="font-semibold text-navy mb-4">Activity</h2>
+        <ClaimActivityLog claimId={claim.id} />
       </section>
     </div>
   );

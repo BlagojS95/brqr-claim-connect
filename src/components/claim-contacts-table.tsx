@@ -83,6 +83,9 @@ export function ClaimContactsTable({
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
+  // The DB trigger on claim_contact_emails adds an entry to the claim's activity log.
+  const invalidateActivity = () =>
+    queryClient.invalidateQueries({ queryKey: ["claim", claimId, "activity"] });
 
   async function saveField(
     contact: Contact,
@@ -123,6 +126,7 @@ export function ClaimContactsTable({
     }
     toast.success("Logged email sent");
     invalidate();
+    invalidateActivity();
   }
 
   async function markReplied(email: ContactEmail) {
@@ -136,6 +140,7 @@ export function ClaimContactsTable({
     }
     toast.success("Marked as replied");
     invalidate();
+    invalidateActivity();
   }
 
   if (isLoading) return <div className="text-sm text-muted-foreground">Loading contacts…</div>;

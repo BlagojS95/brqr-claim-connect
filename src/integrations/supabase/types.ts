@@ -32,6 +32,41 @@ export type Database = {
         }
         Relationships: []
       }
+      claim_activity: {
+        Row: {
+          actor_id: string | null
+          body: string
+          claim_id: string
+          created_at: string
+          id: string
+          kind: string
+        }
+        Insert: {
+          actor_id?: string | null
+          body: string
+          claim_id: string
+          created_at?: string
+          id?: string
+          kind: string
+        }
+        Update: {
+          actor_id?: string | null
+          body?: string
+          claim_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_activity_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claim_contact_emails: {
         Row: {
           claim_contact_id: string
