@@ -4,8 +4,6 @@ import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
 
-await loadDevVars();
-
 // Reset/delete take a raw auth user id, so make sure it really is a client's
 // login before touching it — otherwise an admin could hit another admin's account.
 async function requireClientLogin(userId: string) {
@@ -23,6 +21,7 @@ export const createClientAccount = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
   .inputValidator((input) => CreateAccountSchema.parse(input))
   .handler(async ({ data, context }) => {
+    await loadDevVars();
     const { data: client } = await context.supabase
       .from("clients")
       .select("id, user_id, name")
@@ -67,6 +66,7 @@ export const resetClientPassword = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
   .inputValidator((input) => ResetPasswordSchema.parse(input))
   .handler(async ({ data }) => {
+    await loadDevVars();
     await requireClientLogin(data.userId);
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password: data.password });
     if (error) throw new Error(error.message);
@@ -81,6 +81,7 @@ export const deleteClientAccount = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
   .inputValidator((input) => DeleteAccountSchema.parse(input))
   .handler(async ({ data }) => {
+    await loadDevVars();
     await requireClientLogin(data.userId);
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);

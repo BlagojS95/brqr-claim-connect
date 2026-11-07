@@ -10,8 +10,6 @@ import {
 } from "@/lib/claim-activity";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
 
-await loadDevVars();
-
 const ClaimIdSchema = z.object({ claimId: z.string().uuid() });
 
 const AddNoteSchema = z.object({
@@ -30,6 +28,7 @@ export const fetchClaimActivity = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => ClaimIdSchema.parse(input))
   .handler(async ({ data, context }): Promise<ClaimActivityEntry[]> => {
+    await loadDevVars();
     const { supabase, userId } = context;
     const [{ data: rows, error }, { data: adminRole }] = await Promise.all([
       supabase
@@ -66,6 +65,7 @@ export const addClaimNote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => AddNoteSchema.parse(input))
   .handler(async ({ data, context }) => {
+    await loadDevVars();
     const { error } = await context.supabase.from("claim_activity").insert({
       claim_id: data.claimId,
       actor_id: context.userId,

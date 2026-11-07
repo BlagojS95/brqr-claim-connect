@@ -18,8 +18,6 @@ import {
 import { todayIso } from "@/lib/dates";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
 
-await loadDevVars();
-
 // Saves a reported claim, its document rows and its notification outbox rows.
 // Notifications are sent afterwards by processClaimNotifications, so a mail or
 // webhook outage never loses the claim.
@@ -27,6 +25,7 @@ export const submitClaim = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => SubmitClaimSchema.parse(input))
   .handler(async ({ data, context }) => {
+    await loadDevVars();
     const { supabase, userId } = context;
 
     return submitClaimCore(data, {
@@ -102,6 +101,7 @@ export const processClaimNotifications = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ claimId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
+    await loadDevVars();
     // RLS decides whether the caller may see this claim at all.
     const { data: claim } = await context.supabase
       .from("claims")
@@ -119,6 +119,7 @@ export const retryClaimNotification = createServerFn({ method: "POST" })
   .middleware([requireAgencyAdmin])
   .inputValidator((input) => z.object({ outboxId: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
+    await loadDevVars();
     const { data: row, error } = await supabaseAdmin
       .from("notification_outbox")
       .update({ status: OUTBOX_STATUS.pending, attempts: 0 })

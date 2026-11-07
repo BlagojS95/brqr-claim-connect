@@ -5,8 +5,6 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
 import { CONTACT_ROW_KEYS, applyContactDefaults } from "@/lib/claim-contacts";
 
-await loadDevVars();
-
 const InputSchema = z.object({ claimId: z.string().uuid() });
 
 // The ownership check is the RLS-scoped read of the claim itself: an admin can
@@ -18,6 +16,7 @@ export const ensureClaimContacts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => InputSchema.parse(input))
   .handler(async ({ data, context }) => {
+    await loadDevVars();
     const { data: claim } = await context.supabase
       .from("claims")
       .select("id, client_id, adjuster_name, adjuster_email, adjuster_phone")

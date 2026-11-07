@@ -4,8 +4,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { escapeHtml, FONT_STACK, NAVY, sendViaResend } from "@/lib/claim-notifications.server";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
 
-await loadDevVars();
-
 // The new-claim email is sent through the notification outbox
 // (claim-submission.functions.ts), not from here.
 
@@ -47,6 +45,7 @@ export const sendLossRunRequestEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ requestId: z.string() }).parse(input))
   .handler(async ({ data, context }) => {
+    await loadDevVars();
     const { data: request } = await context.supabase
       .from("loss_run_requests")
       .select("*")
