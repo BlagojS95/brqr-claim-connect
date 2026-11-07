@@ -8,6 +8,7 @@ import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClient } from "@/lib/overview.types";
 import { createClientAccount, resetClientPassword, deleteClientAccount } from "@/lib/accounts.functions";
 import { retryClaimNotification } from "@/lib/claim-submission.functions";
+import { attachLossRun, createLossRunUpload, fulfillLossRunRequest } from "@/lib/loss-runs.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
@@ -42,6 +43,9 @@ function AdminPage() {
   const resetPassword = useServerFn(resetClientPassword);
   const deleteAccount = useServerFn(deleteClientAccount);
   const retryNotification = useServerFn(retryClaimNotification);
+  const startLossRunUpload = useServerFn(createLossRunUpload);
+  const attachUploadedLossRun = useServerFn(attachLossRun);
+  const fulfillRequest = useServerFn(fulfillLossRunRequest);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-overview"],
@@ -128,21 +132,17 @@ function AdminPage() {
   });
 
   const addLossRunMutation = useMutation({
+    // The server picks the path and signs the upload, then records the row;
+    // both server functions require agency_admin.
     mutationFn: async (input: LossRunInput) => {
-      const safeName = input.file.name.replace(/[^\w.-]+/g, "_");
-      const path = `${input.clientId}/loss-runs/${Date.now()}-${safeName}`;
-      const bucket = supabase.storage.from("claim-documents");
-      const { error: upErr } = await bucket.upload(path, input.file);
-      if (upErr) throw upErr;
-      const { error } = await supabase.from("loss_runs").insert({
-        client_id: input.clientId,
-        year: input.year,
-        document_url: path,
+      const { path, token } = await startLossRunUpload({
+        data: { clientId: input.clientId, fileName: input.file.name },
       });
-      if (error) {
-        await bucket.remove([path]);
-        throw error;
-      }
+      const { error: upErr } = await supabase.storage
+        .from("claim-documents")
+        .uploadToSignedUrl(path, token, input.file);
+      if (upErr) throw upErr;
+      await attachUploadedLossRun({ data: { clientId: input.clientId, year: input.year, path } });
     },
     onSuccess: () => {
       toast.success("Loss run attached");
@@ -152,13 +152,7 @@ function AdminPage() {
   });
 
   const fulfillRequestMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("loss_run_requests")
-        .update({ status: "Fulfilled", fulfilled_at: new Date().toISOString() })
-        .eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (requestId: string) => fulfillRequest({ data: { requestId } }),
     onSuccess: () => {
       toast.success("Request marked fulfilled");
       qc.invalidateQueries({ queryKey: ["admin-loss-run-requests"] });

@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
+import { saveClaimInternalNote } from "@/lib/claim-internal-notes.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 // One running note per claim for agency staff. RLS on claim_internal_notes
-// only lets agency_admin read or write it, so clients never see this.
+// only lets agency_admin read or write it, so clients never see this. Saving
+// goes through an admin-only server function.
 export function ClaimInternalNotes({ claimId }: { claimId: string }) {
-  const { user } = useAuth();
+  const saveNote = useServerFn(saveClaimInternalNote);
   const queryClient = useQueryClient();
   const queryKey = ["claim-internal-notes", claimId];
 
@@ -36,17 +38,13 @@ export function ClaimInternalNotes({ claimId }: { claimId: string }) {
 
   async function save() {
     setSaving(true);
-    const { error } = await supabase.from("claim_internal_notes").upsert({
-      claim_id: claimId,
-      body: draft,
-      updated_by: user?.id ?? null,
-      updated_by_email: user?.email ?? null,
-      updated_at: new Date().toISOString(),
-    });
-    setSaving(false);
-    if (error) {
+    try {
+      await saveNote({ data: { claimId, body: draft } });
+    } catch {
       toast.error("Failed to save internal notes");
       return;
+    } finally {
+      setSaving(false);
     }
     toast.success("Internal notes saved");
     queryClient.invalidateQueries({ queryKey });
