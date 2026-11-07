@@ -112,7 +112,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
         console.warn("notification processing error", err),
       );
 
-      toast.success(isNotice ? "Notice of claim submitted" : "Claim reported");
+      toast.success(isNotice ? "Incident notice submitted" : "Claim reported");
       navigate({ to: "/claims/$claimId", params: { claimId: saved.claimId } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to submit");
