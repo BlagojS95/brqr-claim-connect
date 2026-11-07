@@ -1,4 +1,5 @@
 import type { ClaimStatus } from "@/lib/claim-status";
+import type { PolicyStatus } from "@/lib/policy-status";
 import type { LossDetails } from "@/lib/claim-submission";
 
 export interface AgencyClient {
@@ -23,7 +24,7 @@ export interface AgencyPolicy {
   effective_date: string | null;
   expiry_date: string | null;
   premium: number | null;
-  status: "Active" | "Non Active";
+  status: PolicyStatus;
 }
 
 export interface AgencyClaim {

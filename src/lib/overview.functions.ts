@@ -4,6 +4,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Tables } from "@/integrations/supabase/types";
 import { todayIso } from "@/lib/dates";
+import { LINE_OF_BUSINESS_NAMES } from "@/lib/line-of-business";
+import { POLICY_STATUS, type PolicyStatus } from "@/lib/policy-status";
 import { fetchAll } from "@/lib/fetch-all";
 import type {
   AgencyClaim,
@@ -16,11 +18,11 @@ import type {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // "YYYY-MM-DD" text sorts in date order, and the policy is in force on its expiry day.
-function computePolicyStatus(effectiveDate: string | null, expiryDate: string | null): "Active" | "Non Active" {
+function computePolicyStatus(effectiveDate: string | null, expiryDate: string | null): PolicyStatus {
   const today = todayIso();
-  if (effectiveDate && today < effectiveDate.slice(0, 10)) return "Non Active";
-  if (expiryDate && today > expiryDate.slice(0, 10)) return "Non Active";
-  return "Active";
+  if (effectiveDate && today < effectiveDate.slice(0, 10)) return POLICY_STATUS.inactive;
+  if (expiryDate && today > expiryDate.slice(0, 10)) return POLICY_STATUS.inactive;
+  return POLICY_STATUS.active;
 }
 
 function displayName(client: { name?: string | null; company_name?: string | null } | null | undefined): string {
@@ -36,7 +38,7 @@ function toClaim(row: ClaimRow, clientName: string): AgencyClaim {
     claim_type: row.claim_type,
     // ?? null: rows read before the claimant_name migration has been applied
     claimant_name: row.claimant_name ?? null,
-    line_of_business: row.lines_of_business?.name ?? "Other",
+    line_of_business: row.lines_of_business?.name ?? LINE_OF_BUSINESS_NAMES.OTHER,
     status: row.status,
     is_notice_only: row.is_notice_only,
     carrier: row.carrier,

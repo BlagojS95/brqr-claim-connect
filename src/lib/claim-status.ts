@@ -44,11 +44,12 @@ export function parseClaimStatus(
     .toLowerCase()
     .replace(/[\s_-]+/g, " ");
   if (!text) return undefined;
-  if (/^re ?open/.test(text)) return "reopened";
-  if (/^clos/.test(text)) return "closed";
-  if (/^notice/.test(text)) return "notice";
-  if (text === "submitted") return "submitted";
-  if (text === "pending") return claimNumber?.trim() ? "open" : "submitted";
+  if (/^re ?open/.test(text)) return CLAIM_STATUS.reopened;
+  if (/^clos/.test(text)) return CLAIM_STATUS.closed;
+  if (/^notice/.test(text)) return CLAIM_STATUS.notice;
+  if (text === "submitted") return CLAIM_STATUS.submitted;
+  // "Pending" here is CSV text from the old system, not a status we store.
+  if (text === "pending") return claimNumber?.trim() ? CLAIM_STATUS.open : CLAIM_STATUS.submitted;
   // "Open", "Under Review", "Active" and anything else still in progress.
-  return "open";
+  return CLAIM_STATUS.open;
 }

@@ -4,11 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { isOpen } from "@/lib/claim-metrics";
 import { formatDate } from "@/lib/dates";
+import { LOSS_RUN_REQUEST_STATUS } from "@/lib/loss-run-request-status";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClient } from "@/lib/overview.types";
 import { createClientAccount, resetClientPassword, deleteClientAccount } from "@/lib/accounts.functions";
 import { retryClaimNotification } from "@/lib/claim-submission.functions";
 import { attachLossRun, createLossRunUpload, fulfillLossRunRequest } from "@/lib/loss-runs.functions";
+import { OUTBOX_STATUS } from "@/lib/claim-submission";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
@@ -84,7 +86,7 @@ function AdminPage() {
       const { data } = await supabase
         .from("loss_run_requests")
         .select("*")
-        .eq("status", "Pending")
+        .eq("status", LOSS_RUN_REQUEST_STATUS.pending)
         .order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -98,7 +100,7 @@ function AdminPage() {
       const { data, error } = await supabase
         .from("notification_outbox")
         .select("id, claim_id, kind, attempts, last_error, created_at")
-        .eq("status", "failed")
+        .eq("status", OUTBOX_STATUS.failed)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -108,7 +110,7 @@ function AdminPage() {
   const retryNotificationMutation = useMutation({
     mutationFn: (outboxId: string) => retryNotification({ data: { outboxId } }),
     onSuccess: (res) => {
-      if (res.status === "sent") toast.success("Notification sent");
+      if (res.status === OUTBOX_STATUS.sent) toast.success("Notification sent");
       else toast.error("Notification failed again");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Retry failed"),

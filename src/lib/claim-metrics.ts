@@ -1,7 +1,7 @@
 // The one definition of how claims are counted. Pages must not filter on
 // claim.status themselves, or their numbers drift apart again.
 
-import { CLAIM_STATUSES, type ClaimStatus } from "@/lib/claim-status";
+import { CLAIM_STATUS, CLAIM_STATUSES, type ClaimStatus } from "@/lib/claim-status";
 import { calendarYear } from "@/lib/dates";
 
 export type StatusBucket = ClaimStatus;
@@ -22,7 +22,7 @@ export function statusBucket(claim: ClaimStatusFields): StatusBucket {
 /** Open means the carrier has it and it is still being worked: open or reopened. */
 export function isOpen(claim: ClaimStatusFields): boolean {
   const status = statusBucket(claim);
-  return status === "open" || status === "reopened";
+  return status === CLAIM_STATUS.open || status === CLAIM_STATUS.reopened;
 }
 
 export function countByStatus(claims: ClaimStatusFields[]): Record<StatusBucket, number> {
@@ -77,7 +77,7 @@ export function summarize(claims: ClaimAmounts[]): YearSummary {
 
 // Open claims are still developing, so only closed claims give a real average.
 export function avgClosedCost(claims: (ClaimStatusFields & ClaimAmounts)[]): number | null {
-  const closed = claims.filter((claim) => statusBucket(claim) === "closed");
+  const closed = claims.filter((claim) => statusBucket(claim) === CLAIM_STATUS.closed);
   return closed.length ? totalIncurred(closed) / closed.length : null;
 }
 

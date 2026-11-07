@@ -11,6 +11,7 @@ import {
 import {
   deliverOutboxRow,
   deliverPendingRows,
+  OUTBOX_STATUS,
   submitClaimCore,
   SubmitClaimSchema,
 } from "@/lib/claim-submission";
@@ -120,9 +121,9 @@ export const retryClaimNotification = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: row, error } = await supabaseAdmin
       .from("notification_outbox")
-      .update({ status: "pending", attempts: 0 })
+      .update({ status: OUTBOX_STATUS.pending, attempts: 0 })
       .eq("id", data.outboxId)
-      .eq("status", "failed")
+      .eq("status", OUTBOX_STATUS.failed)
       .select("id, claim_id, kind, status, attempts")
       .maybeSingle();
     if (error) throw new Error(error.message);

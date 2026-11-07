@@ -11,6 +11,7 @@ import {
 } from "@/lib/claim-metrics";
 import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
 import { formatDate } from "@/lib/dates";
+import { POLICY_STATUS } from "@/lib/policy-status";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { useAuth } from "@/hooks/use-auth";
@@ -41,7 +42,7 @@ function Dashboard() {
   const openClaims = openCount(claims);
   const paidToDate = totalPaid(claims);
   const lastLoss = claims[0]?.date_of_loss ?? null;
-  const activePolicies = policies.filter((p) => p.status === "Active").length;
+  const activePolicies = policies.filter((p) => p.status === POLICY_STATUS.active).length;
 
   const cards = [
     { label: "Open Claims", value: openClaims, icon: ClipboardList },
@@ -120,6 +121,7 @@ function Dashboard() {
                   <td className="p-3">{c.carrier ?? "—"}</td>
                   <td className="p-3 font-mono text-xs">
                     <Link to="/claims/$claimId" params={{ claimId: c.id }} className="text-navy hover:text-gold">
+                      {/* Display copy for a missing claim number, not a claim status. */}
                       {c.claim_number ?? "Pending"}
                     </Link>
                   </td>

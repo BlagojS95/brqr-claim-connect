@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { CLAIM_STATUS, parseClaimStatus } from "@/lib/claim-status";
 import { fetchAll } from "@/lib/fetch-all";
+import { LINE_OF_BUSINESS_NAMES } from "@/lib/line-of-business";
 import {
   isExcludedClient,
   normalizeClaimType,
@@ -55,7 +56,7 @@ const BLANK = {
   claims: {
     client_id: null,
     claim_number: null,
-    claim_type: "Other",
+    claim_type: LINE_OF_BUSINESS_NAMES.OTHER,
     line_of_business_description: null,
     status: CLAIM_STATUS.open,
     carrier: null,
@@ -120,7 +121,7 @@ function claimKeys(c: Row): string[] {
   if (c.claim_number) return [`${c.client_id}|#${String(c.claim_number).toLowerCase()}`];
   // No claim number to go on: treat same client + loss date + type + policy as the same claim.
   return [
-    `${c.client_id}|${String(c.date_of_loss ?? "").slice(0, 10)}|${c.claim_type ?? "Other"}|${c.policy_number ?? ""}`,
+    `${c.client_id}|${String(c.date_of_loss ?? "").slice(0, 10)}|${c.claim_type ?? LINE_OF_BUSINESS_NAMES.OTHER}|${c.policy_number ?? ""}`,
   ];
 }
 

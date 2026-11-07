@@ -9,7 +9,14 @@ import { policyCoversLoss, type PolicyTerm } from "@/lib/policy-match";
 
 export const NOTIFICATION_KINDS = ["email", "webhook"] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
-export type OutboxStatus = "pending" | "sent" | "failed";
+export const OUTBOX_STATUSES = ["pending", "sent", "failed"] as const;
+export type OutboxStatus = (typeof OUTBOX_STATUSES)[number];
+/** notification_outbox.status values (CHECK constraint in the notification_outbox migration). */
+export const OUTBOX_STATUS = {
+  pending: "pending",
+  sent: "sent",
+  failed: "failed",
+} as const satisfies Record<OutboxStatus, OutboxStatus>;
 
 export const MAX_NOTIFICATION_ATTEMPTS = 5;
 
@@ -281,42 +288,42 @@ export async function deliverOutboxRow(row: OutboxRow, deps: DeliveryDeps): Prom
   const sleep = deps.sleep ?? defaultSleep;
   if (!send) {
     await deps.updateOutbox(row.id, {
-      status: "failed",
+      status: OUTBOX_STATUS.failed,
       attempts: row.attempts,
       last_error: `Unknown notification kind: ${row.kind}`,
     });
-    return "failed";
+    return OUTBOX_STATUS.failed;
   }
 
   for (let attempt = row.attempts + 1; attempt <= MAX_NOTIFICATION_ATTEMPTS; attempt++) {
     try {
       await send(row.claim_id);
-      await deps.updateOutbox(row.id, { status: "sent", attempts: attempt, last_error: null });
-      return "sent";
+      await deps.updateOutbox(row.id, { status: OUTBOX_STATUS.sent, attempts: attempt, last_error: null });
+      return OUTBOX_STATUS.sent;
     } catch (err) {
       const last = attempt >= MAX_NOTIFICATION_ATTEMPTS;
       await deps.updateOutbox(row.id, {
-        status: last ? "failed" : "pending",
+        status: last ? OUTBOX_STATUS.failed : OUTBOX_STATUS.pending,
         attempts: attempt,
         last_error: errorMessage(err),
       });
-      if (last) return "failed";
+      if (last) return OUTBOX_STATUS.failed;
       await sleep(backoffMs(attempt));
     }
   }
 
   // Row already used up its attempts before this run.
   await deps.updateOutbox(row.id, {
-    status: "failed",
+    status: OUTBOX_STATUS.failed,
     attempts: row.attempts,
     last_error: "Retry limit reached",
   });
-  return "failed";
+  return OUTBOX_STATUS.failed;
 }
 
 // Email and webhook are independent, so send them side by side.
 export async function deliverPendingRows(rows: OutboxRow[], deps: DeliveryDeps) {
-  const pending = rows.filter((r) => r.status === "pending");
+  const pending = rows.filter((r) => r.status === OUTBOX_STATUS.pending);
   const results = await Promise.all(pending.map((r) => deliverOutboxRow(r, deps)));
   return pending.map((r, i) => ({ id: r.id, kind: r.kind, status: results[i] }));
 }

@@ -151,6 +151,7 @@ function ClaimDetail() {
       ].filter((f) => f.value)
     : [];
 
+  // Timeline step labels (display copy), not claim status values.
   const timeline = [
     { label: "Date of Loss", date: claim.date_of_loss },
     { label: "Reported", date: claim.date_reported },

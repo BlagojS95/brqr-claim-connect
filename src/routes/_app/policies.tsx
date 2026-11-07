@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { formatDate } from "@/lib/dates";
+import { POLICY_STATUS, type PolicyStatus } from "@/lib/policy-status";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { Shield, Calendar, Building2, Search, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ function PoliciesPage() {
 
   const term = search.trim().toLowerCase();
   const filtered = policies.filter((p) => {
-    if (p.status !== (view === "active" ? "Active" : "Non Active")) return false;
+    if (p.status !== (view === "active" ? POLICY_STATUS.active : POLICY_STATUS.inactive)) return false;
     if (!term) return true;
     return (
       (p.policy_type?.toLowerCase() ?? "").includes(term) ||
@@ -36,10 +37,10 @@ function PoliciesPage() {
     );
   });
 
-  const activeCount = policies.filter((p) => p.status === "Active").length;
+  const activeCount = policies.filter((p) => p.status === POLICY_STATUS.active).length;
   const nonActiveCount = policies.length - activeCount;
   const activePremium = policies
-    .filter((p) => p.status === "Active")
+    .filter((p) => p.status === POLICY_STATUS.active)
     .reduce((sum, p) => sum + Number(p.premium ?? 0), 0);
 
   return (
@@ -106,17 +107,17 @@ type PolicyRow = {
   effective_date: string | null;
   expiry_date: string | null;
   premium: number | null;
-  status: "Active" | "Non Active";
+  status: PolicyStatus;
 };
 
 function PolicyCard({ p }: { p: PolicyRow }) {
   const tone =
-    p.status === "Active"
+    p.status === POLICY_STATUS.active
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
       : "bg-slate-100 text-slate-600 border-slate-200";
 
   return (
-    <div className={`rounded-lg border border-border bg-card p-5 space-y-3 ${p.status === "Non Active" ? "opacity-80" : ""}`}>
+    <div className={`rounded-lg border border-border bg-card p-5 space-y-3 ${p.status === POLICY_STATUS.inactive ? "opacity-80" : ""}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="h-9 w-9 rounded-md bg-navy/5 flex items-center justify-center">

@@ -19,6 +19,7 @@ export function claimEmailSubject({
   dateOfLoss,
   claimantName,
 }: ClaimEmailInfo): string {
+  // "pending" is subject-line copy for a missing claim number, not a claim status.
   const parts = [`RE: Claim # ${claimNumber ?? "pending"}`];
   if (dateOfLoss) parts.push(`DOL ${usDate(dateOfLoss)}`);
   if (claimantName) parts.push(claimantName);

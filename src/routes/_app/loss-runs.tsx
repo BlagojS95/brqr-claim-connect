@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { summarize } from "@/lib/claim-metrics";
 import { calendarYear, formatDate, todayIso } from "@/lib/dates";
 import { sendLossRunRequestEmail } from "@/lib/email.functions";
+import { LINE_OF_BUSINESS, lineOfBusinessName } from "@/lib/line-of-business";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { InsurGridLossRuns } from "@/components/insurgrid-loss-runs";
@@ -23,15 +24,17 @@ export const Route = createFileRoute("/_app/loss-runs")({
   component: LossRunsPage,
 });
 
+// Names from the lines_of_business table, so a request names lines the same
+// way claims and policies do. "Other" is left off, as before.
 const LOB_OPTIONS = [
-  "General Liability",
-  "Workers Compensation",
-  "Commercial Auto",
-  "Property",
-  "Umbrella",
-  "Professional Liability",
-  "Cyber",
-];
+  LINE_OF_BUSINESS.generalLiability,
+  LINE_OF_BUSINESS.workersComp,
+  LINE_OF_BUSINESS.auto,
+  LINE_OF_BUSINESS.property,
+  LINE_OF_BUSINESS.umbrella,
+  LINE_OF_BUSINESS.professional,
+  LINE_OF_BUSINESS.cyber,
+].map(lineOfBusinessName);
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);

@@ -2,6 +2,8 @@
 // Column headers are matched loosely: case, spaces and punctuation are ignored,
 // so "Client Number", "client_number" and "ClientNumber" are all the same column.
 
+import { LINE_OF_BUSINESS_NAMES } from "@/lib/line-of-business";
+
 export type ImportKind = "clients" | "policies" | "claims";
 
 export const IMPORT_KINDS: { kind: ImportKind; label: string }[] = [
@@ -92,10 +94,10 @@ export function parseMoney(value: string | undefined): number | null | undefined
 }
 
 const CLAIM_TYPE_NAMES: Record<string, string> = {
-  gl: "General Liability",
-  wc: "Workers Compensation",
-  auto: "Business Auto",
-  property: "Commercial Property",
+  gl: LINE_OF_BUSINESS_NAMES.GL,
+  wc: LINE_OF_BUSINESS_NAMES.WC,
+  auto: LINE_OF_BUSINESS_NAMES.AUTO,
+  property: LINE_OF_BUSINESS_NAMES.PROP,
 };
 
 /** Full names only, so short codes from a CSV never reach a screen or the match key. */

@@ -1,3 +1,4 @@
+import { LOSS_RUN_REQUEST_STATUS } from "@/lib/loss-run-request-status";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
@@ -69,7 +70,7 @@ export const fulfillLossRunRequest = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("loss_run_requests")
-      .update({ status: "Fulfilled", fulfilled_at: new Date().toISOString() })
+      .update({ status: LOSS_RUN_REQUEST_STATUS.fulfilled, fulfilled_at: new Date().toISOString() })
       .eq("id", data.requestId)
       .select("id");
     if (error) throw new Error(error.message);
