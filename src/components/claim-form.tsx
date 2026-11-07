@@ -156,6 +156,10 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
       toast.error("Date of loss can't be in the future");
       return;
     }
+    if (isGl && (!claimantName.trim() || !thirdPartyContact.trim())) {
+      toast.error("Enter the third party's name and contact for a General Liability claim");
+      return;
+    }
     setBusy(true);
     try {
       // Files go to storage first, under the id the claim will get, so the
@@ -370,6 +374,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
               onChange={setClaimantName}
               placeholder="Person or company making the claim"
               maxLength={200}
+              required
             />
             <TextField
               id="third-party-contact"
@@ -378,6 +383,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
               onChange={setThirdPartyContact}
               placeholder="Phone, email or address"
               maxLength={500}
+              required
             />
           </div>
         </div>

@@ -114,6 +114,12 @@ export function claimRuleError(
   ctx: { lineCode: string | null; today: string },
 ): string | null {
   if (input.dateOfLoss > ctx.today) return "Date of loss can't be in the future";
+  if (ctx.lineCode === LINE_OF_BUSINESS.generalLiability) {
+    if (!input.claimantName?.trim()) return "Third-party name is required for General Liability";
+    if (!input.thirdPartyContact?.trim()) {
+      return "Third-party contact is required for General Liability";
+    }
+  }
   if (ctx.lineCode === LINE_OF_BUSINESS.workersComp && input.dateReportedToEmployer) {
     if (input.dateReportedToEmployer > ctx.today) {
       return "Date reported to employer can't be in the future";

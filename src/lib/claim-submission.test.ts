@@ -91,6 +91,7 @@ const input = (overrides: Partial<SubmitClaimInput> = {}): SubmitClaimInput => (
   isNotice: false,
   dateOfLoss: "2026-11-01",
   claimantName: "Jane Doe",
+  thirdPartyContact: "jane@example.com",
   description: "Slip and fall in the lobby",
   documents: [{ path: `${CLIENT}/${CLAIM}/1-photo.jpg`, fileName: "photo.jpg" }],
   ...overrides,
@@ -314,6 +315,32 @@ describe("loss details by line of business", () => {
       submitClaimCore(input({ dateOfLoss: "2025-12-31", documents: [] }), db.deps),
     ).rejects.toThrow("doesn't cover");
     expect(db.claims).toHaveLength(0);
+  });
+
+  it("requires the third party's name and contact on General Liability", async () => {
+    const db = fakeDb();
+    await expect(
+      submitClaimCore(input({ claimantName: "  ", documents: [] }), db.deps),
+    ).rejects.toThrow("Third-party name is required");
+    await expect(
+      submitClaimCore(input({ thirdPartyContact: null, documents: [] }), db.deps),
+    ).rejects.toThrow("Third-party contact is required");
+    expect(db.claims).toHaveLength(0);
+
+    await submitClaimCore(input({ documents: [] }), db.deps);
+    expect(db.claims[0]).toMatchObject({
+      claimant_name: "Jane Doe",
+      third_party_contact: "jane@example.com",
+    });
+  });
+
+  it("doesn't require a third party on other lines", () => {
+    expect(
+      claimRuleError(input({ claimantName: null, thirdPartyContact: null }), {
+        lineCode: LINE_OF_BUSINESS.auto,
+        today: "2026-11-07",
+      }),
+    ).toBeNull();
   });
 
   it("validates the reporter email and time format", () => {
