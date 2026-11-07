@@ -484,6 +484,44 @@ export type Database = {
           },
         ]
       }
+      notification_outbox: {
+        Row: {
+          attempts: number
+          claim_id: string
+          created_at: string
+          id: string
+          kind: string
+          last_error: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          claim_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          last_error?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          claim_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_outbox_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       policies: {
         Row: {
           broker_name: string | null

@@ -33,10 +33,17 @@ export async function deleteClaimDocument(doc: { id: string; file_url: string })
 
 // The first path segment must be the client id: the storage RLS policies
 // check it to decide who may read and upload the file.
-export async function uploadClaimDocument(clientId: string, claimId: string, file: File) {
+// Stores the file only; the new-claim form passes the path to submitClaim,
+// which creates the documents row with the claim.
+export async function uploadClaimFile(clientId: string, claimId: string, file: File) {
   const path = `${clientId}/${claimId}/${Date.now()}-${safeKeyName(file.name)}`;
   const { error: upErr } = await supabase.storage.from("claim-documents").upload(path, file);
   if (upErr) throw new Error(`Upload failed for ${file.name}: ${upErr.message}`);
+  return { path, fileName: file.name };
+}
+
+export async function uploadClaimDocument(clientId: string, claimId: string, file: File) {
+  const { path } = await uploadClaimFile(clientId, claimId, file);
 
   const { data: signed } = await supabase.storage
     .from("claim-documents")

@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClient } from "@/lib/overview.types";
 import { createClientAccount, resetClientPassword, deleteClientAccount } from "@/lib/accounts.functions";
+import { retryClaimNotification } from "@/lib/claim-submission.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
@@ -40,6 +41,7 @@ function AdminPage() {
   const createAccount = useServerFn(createClientAccount);
   const resetPassword = useServerFn(resetClientPassword);
   const deleteAccount = useServerFn(deleteClientAccount);
+  const retryNotification = useServerFn(retryClaimNotification);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-overview"],
@@ -82,6 +84,31 @@ function AdminPage() {
         .order("created_at", { ascending: false });
       return data ?? [];
     },
+  });
+
+  // Outbox rows whose email/webhook gave up after all retries (RLS: admins only).
+  const { data: failedNotifications = [] } = useQuery({
+    queryKey: ["admin-failed-notifications"],
+    enabled: role === "agency_admin",
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notification_outbox")
+        .select("id, claim_id, kind, attempts, last_error, created_at")
+        .eq("status", "failed")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const retryNotificationMutation = useMutation({
+    mutationFn: (outboxId: string) => retryNotification({ data: { outboxId } }),
+    onSuccess: (res) => {
+      if (res.status === "sent") toast.success("Notification sent");
+      else toast.error("Notification failed again");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Retry failed"),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["admin-failed-notifications"] }),
   });
 
   // Newest active signature per client, for the Signature column.
@@ -147,6 +174,13 @@ function AdminPage() {
   const clients = data?.clients ?? [];
   const claims = data?.claims ?? [];
   const openClaims = claims.filter(isOpen);
+  const claimsById = new Map(claims.map((c) => [c.id, c]));
+  const failedByClaim = new Map<string, typeof failedNotifications>();
+  for (const n of failedNotifications) {
+    failedByClaim.set(n.claim_id, [...(failedByClaim.get(n.claim_id) ?? []), n]);
+  }
+  const failureErrors = (claimId: string) =>
+    (failedByClaim.get(claimId) ?? []).map((n) => `${n.kind}: ${n.last_error ?? "unknown error"}`);
 
   return (
     <div className="space-y-8">
@@ -264,6 +298,63 @@ function AdminPage() {
         </div>
       </section>
 
+      {failedByClaim.size > 0 && (
+        <section className="rounded-lg border border-border bg-card">
+          <div className="p-5 border-b border-border">
+            <h2 className="font-semibold text-navy">Failed Notifications ({failedByClaim.size})</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              These claims were saved, but the agency email or webhook could not be sent after 5 attempts.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="text-left p-3">Reported</th>
+                  <th className="text-left p-3">Client</th>
+                  <th className="text-left p-3">Type</th>
+                  <th className="text-left p-3">Claim</th>
+                  <th className="text-left p-3">Notification</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...failedByClaim.entries()].map(([claimId, failed]) => {
+                  const c = claimsById.get(claimId);
+                  return (
+                    <tr key={claimId} className="border-t border-border">
+                      <td className="p-3">{formatDate(c?.date_reported ?? null)}</td>
+                      <td className="p-3">{c?.client_name ?? "—"}</td>
+                      <td className="p-3">{c?.claim_type ?? "—"}</td>
+                      <td className="p-3 font-mono text-xs">
+                        <Link to="/claims/$claimId" params={{ claimId }} className="text-navy hover:text-gold">
+                          {c?.claim_number ?? "View"}
+                        </Link>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <NotificationFailedBadge errors={failureErrors(claimId)} />
+                          {failed.map((n) => (
+                            <Button
+                              key={n.id}
+                              size="sm"
+                              variant="outline"
+                              disabled={retryNotificationMutation.isPending}
+                              onClick={() => retryNotificationMutation.mutate(n.id)}
+                            >
+                              {failed.length > 1 ? `Retry ${n.kind}` : "Retry"}
+                            </Button>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       <section className="rounded-lg border border-border bg-card">
         <div className="p-5 border-b border-border flex items-center justify-between">
           <h2 className="font-semibold text-navy">Open Claims ({openClaims.length})</h2>
@@ -292,7 +383,12 @@ function AdminPage() {
                   </td>
                   <td className="p-3">{c.adjuster_name ?? "—"}</td>
                   <td className="p-3">${Number(c.paid_amount ?? 0).toLocaleString()}</td>
-                  <td className="p-3"><StatusBadge status={c.status} /></td>
+                  <td className="p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge status={c.status} />
+                      {failedByClaim.has(c.id) && <NotificationFailedBadge errors={failureErrors(c.id)} />}
+                    </div>
+                  </td>
                 </tr>
               ))}
               {openClaims.length === 0 && !isLoading && (
@@ -303,6 +399,17 @@ function AdminPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function NotificationFailedBadge({ errors }: { errors: string[] }) {
+  return (
+    <span
+      title={errors.join("\n")}
+      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-destructive/10 text-destructive border-destructive/30"
+    >
+      Notification failed
+    </span>
   );
 }
 

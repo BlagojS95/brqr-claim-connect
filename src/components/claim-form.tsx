@@ -9,11 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { notifyNewClaim } from "@/lib/claims.functions";
-import { todayIso } from "@/lib/dates";
+import { processClaimNotifications, submitClaim } from "@/lib/claim-submission.functions";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
-import { sendClaimNotificationEmail } from "@/lib/email.functions";
-import { uploadClaimDocument } from "@/lib/claim-documents";
+import { uploadClaimFile } from "@/lib/claim-documents";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 
@@ -21,9 +19,9 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const navigate = useNavigate();
   const { clientId, role } = useAuth();
   const isAdmin = role === "agency_admin";
-  const notify = useServerFn(notifyNewClaim);
   const getOverview = useServerFn(fetchAgencyOverview);
-  const sendEmail = useServerFn(sendClaimNotificationEmail);
+  const submitClaimFn = useServerFn(submitClaim);
+  const processNotifications = useServerFn(processClaimNotifications);
 
   const { data: overview } = useQuery({
     queryKey: ["claim-form-policies"],
@@ -82,54 +80,40 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
     }
     setBusy(true);
     try {
-      const policy = policies.find((p) => p.id === policyId);
-      const { data: claim, error } = await supabase
-        .from("claims")
-        .insert({
-          client_id: selectedLocalClientId,
-          policy_id: policy?.id ?? null,
-          policy_number: policy?.policy_number ?? null,
-          claim_type: line.name,
-          claimant_name: claimantName.trim() || null,
-          line_of_business_id: line.id,
-          line_of_business_description: line.name,
-          is_notice_only: isNotice,
-          date_of_loss: dateOfLoss || null,
-          // The column default is CURRENT_DATE in UTC, a day ahead on US evenings.
-          date_reported: todayIso(),
-          description,
-          carrier: policy?.carrier ?? null,
-          status: isNotice ? "Pending" : "Open",
-        })
-        .select()
-        .single();
-      if (error) throw error;
-
-      // Upload documents
+      // Files go to storage first, under the id the claim will get, so the
+      // server can save the claim and its document rows together.
+      const claimId = crypto.randomUUID();
+      const documents: { path: string; fileName: string }[] = [];
       for (const file of files) {
         try {
-          await uploadClaimDocument(selectedLocalClientId, claim.id, file);
+          documents.push(await uploadClaimFile(selectedLocalClientId, claimId, file));
         } catch (err) {
           toast.error(err instanceof Error ? err.message : `Upload failed: ${file.name}`);
         }
       }
 
-      // Fire webhook
-      try {
-        await notify({ data: { claim_id: claim.id, client_id: selectedLocalClientId } });
-      } catch (err) {
-        console.warn("webhook error", err);
-      }
+      const saved = await submitClaimFn({
+        data: {
+          claimId,
+          clientId: selectedLocalClientId,
+          lineOfBusinessId: line.id,
+          policyId: policyId || null,
+          isNotice,
+          dateOfLoss,
+          claimantName: claimantName.trim() || null,
+          description,
+          documents,
+        },
+      });
 
-      // Send branded notification email
-      try {
-        await sendEmail({ data: { claimId: claim.id } });
-      } catch (err) {
-        console.warn("email error", err);
-      }
+      // The claim is saved; the email and webhook are sent (and retried) from
+      // the outbox in the background. Failures show up on /admin.
+      processNotifications({ data: { claimId: saved.claimId } }).catch((err) =>
+        console.warn("notification processing error", err),
+      );
 
       toast.success(isNotice ? "Notice of claim submitted" : "Claim reported");
-      navigate({ to: "/claims/$claimId", params: { claimId: claim.id } });
+      navigate({ to: "/claims/$claimId", params: { claimId: saved.claimId } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to submit");
     } finally {
