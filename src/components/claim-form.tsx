@@ -125,7 +125,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
     <form onSubmit={submit} className="space-y-6 max-w-3xl mx-auto">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-navy">
-          {isNotice ? "Report Notice of Claim" : "Report New Claim"}
+          {isNotice ? "Incident Notice Only" : "Report New Claim"}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           {isNotice

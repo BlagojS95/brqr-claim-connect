@@ -69,7 +69,7 @@ function Dashboard() {
           </Link>
           <Link to="/claims/notice">
             <Button variant="outline" className="border-gold text-navy gap-2">
-              <Bell className="h-4 w-4" /> For Notice
+              <Bell className="h-4 w-4" /> Incident Notice Only
             </Button>
           </Link>
         </div>
