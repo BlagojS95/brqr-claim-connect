@@ -2,7 +2,7 @@
 // role, so callers must have checked access to the claim first.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { formatDate } from "@/lib/dates";
-import type { DeliveryDeps, OutboxPatch } from "@/lib/claim-submission";
+import type { DeliveryDeps, NotificationKind, OutboxPatch } from "@/lib/claim-submission";
 import { CLAIM_ACTIVITY_KIND, notificationActivityBody } from "@/lib/claim-activity";
 
 export const NAVY = "#0A2342";
@@ -192,9 +192,20 @@ export async function sendClaimEmail(claimId: string) {
   await sendViaResend(subject, html);
 }
 
-const NEW_CLAIM_WEBHOOK_URL = "https://n8n.brqr.com/webhook/new-claim";
+// The new-claim webhook (an n8n workflow) only runs when CLAIM_WEBHOOK_URL is
+// set. The old hard-coded https://n8n.brqr.com/webhook/new-claim doesn't
+// resolve, so every claim would otherwise show "Notification failed" on /admin.
+function claimWebhookUrl() {
+  return process.env.CLAIM_WEBHOOK_URL?.trim() || null;
+}
+
+export function enabledNotificationKinds(): NotificationKind[] {
+  return claimWebhookUrl() ? ["email", "webhook"] : ["email"];
+}
 
 export async function sendClaimWebhook(claimId: string) {
+  const url = claimWebhookUrl();
+  if (!url) throw new Error("CLAIM_WEBHOOK_URL is not set");
   const { claim, docs, customerName } = await loadClaimWithDocuments(claimId);
   const payload = {
     claim_id: claim.id,
@@ -208,7 +219,7 @@ export async function sendClaimWebhook(claimId: string) {
     documents: docs,
   };
 
-  const res = await fetch(NEW_CLAIM_WEBHOOK_URL, {
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

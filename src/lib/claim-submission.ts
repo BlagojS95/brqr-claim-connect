@@ -169,6 +169,9 @@ export interface SubmitClaimDeps {
   insertClaim(row: ClaimInsert): Promise<{ id: string }>;
   insertDocuments(rows: DocumentInsert[]): Promise<void>;
   insertOutbox(rows: { claim_id: string; kind: NotificationKind }[]): Promise<void>;
+  // Which notifications to queue. Defaults to all; the webhook is left out
+  // while no CLAIM_WEBHOOK_URL is configured.
+  notificationKinds?(): readonly NotificationKind[];
   // Used to undo a half-saved claim (documents and outbox rows cascade).
   deleteClaim(id: string): Promise<void>;
 }
@@ -233,7 +236,8 @@ export async function submitClaimCore(input: SubmitClaimInput, deps: SubmitClaim
       }
       await deps.insertDocuments(rows);
     }
-    await deps.insertOutbox(NOTIFICATION_KINDS.map((kind) => ({ claim_id: claim.id, kind })));
+    const kinds = deps.notificationKinds?.() ?? NOTIFICATION_KINDS;
+    await deps.insertOutbox(kinds.map((kind) => ({ claim_id: claim.id, kind })));
   } catch (err) {
     // Without its outbox rows nobody would hear about the claim, so don't keep it.
     await deps.deleteClaim(claim.id).catch(() => undefined);

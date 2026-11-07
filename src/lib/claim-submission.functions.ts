@@ -3,7 +3,11 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { loadOutboxRows, outboxDeliveryDeps } from "@/lib/claim-notifications.server";
+import {
+  enabledNotificationKinds,
+  loadOutboxRows,
+  outboxDeliveryDeps,
+} from "@/lib/claim-notifications.server";
 import {
   deliverOutboxRow,
   deliverPendingRows,
@@ -84,6 +88,7 @@ export const submitClaim = createServerFn({ method: "POST" })
         const { error } = await supabaseAdmin.from("notification_outbox").insert(rows);
         if (error) throw new Error(`Couldn't queue notifications: ${error.message}`);
       },
+      notificationKinds: enabledNotificationKinds,
       async deleteClaim(id) {
         await supabaseAdmin.from("claims").delete().eq("id", id);
       },

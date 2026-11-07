@@ -153,6 +153,13 @@ describe("submitClaimCore", () => {
     expect(sleeps).toEqual([500, 1000, 2000, 4000]);
   });
 
+  it("queues only the email when the webhook is turned off", async () => {
+    const db = fakeDb();
+    db.deps.notificationKinds = () => ["email"];
+    await submitClaimCore(input({ documents: [] }), db.deps);
+    expect(db.outbox.map((r) => r.kind)).toEqual(["email"]);
+  });
+
   it("records a success after a transient failure", async () => {
     const db = fakeDb();
     await submitClaimCore(input({ documents: [] }), db.deps);
