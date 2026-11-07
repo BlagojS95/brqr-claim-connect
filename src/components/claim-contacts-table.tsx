@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { ensureClaimContacts } from "@/lib/claim-contacts.functions";
+import { CONTACT_ROW_LABELS as ROW_LABELS } from "@/lib/claim-contacts";
 import { claimEmailSubject, followUpEmailBody, type ClaimEmailInfo } from "@/lib/claim-email";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,14 +20,9 @@ import {
 } from "@/components/ui/dialog";
 import { Mail, StickyNote } from "lucide-react";
 
-const ROW_LABELS: Record<string, string> = {
-  broker_claims_contact: "Broker Claims Contact",
-  adjuster: "Adjuster:",
-  attorney: "Attorney",
-  other_1: "Other",
-  other_2: "Other",
-};
-const ROW_ORDER = ["broker_claims_contact", "adjuster", "attorney", "other_1", "other_2"];
+// The broker row's email is the agency's shared claims inbox (agency_settings),
+// filled in by ensureClaimContacts, so it is shown read-only.
+const isBrokerRow = (contact: Contact) => contact.row_key === "broker_claims_contact";
 
 interface ContactEmail {
   id: string;
@@ -79,12 +75,10 @@ export function ClaimContactsTable({
     queryKey,
     retry: 1,
     queryFn: async () => {
-      // This server fn verifies claim ownership and makes sure the 5 contact
-      // rows exist before returning them.
-      const rows = (await ensureContacts({ data: { claimId } })) as unknown as Contact[];
-      return ROW_ORDER.map((key) => rows.find((r) => r.row_key === key)).filter(
-        Boolean,
-      ) as Contact[];
+      // This server fn verifies claim ownership, makes sure the contact rows
+      // exist, and returns them in display order with the adjuster and broker
+      // defaults filled in.
+      return (await ensureContacts({ data: { claimId } })) as unknown as Contact[];
     },
   });
 
@@ -154,98 +148,155 @@ export function ClaimContactsTable({
   }
   if (!contacts?.length) return null;
 
+  // Shared by the table (1024 px and up) and the cards (below 1024 px).
+  const fieldsFor = (contact: Contact) => ({
+    person: (
+      <EditableInput
+        key={`person-${contact.contact_person ?? ""}`}
+        label="Contact Person"
+        value={contact.contact_person}
+        onSave={(v) => saveField(contact, "contact_person", v)}
+      />
+    ),
+    phone: (
+      <EditableInput
+        key={`phone-${contact.phone ?? ""}`}
+        label="Telephone"
+        value={contact.phone}
+        onSave={(v) => saveField(contact, "phone", v)}
+      />
+    ),
+    email: isBrokerRow(contact) ? (
+      <span className="block break-all px-2 py-1">{contact.email}</span>
+    ) : (
+      <EditableInput
+        key={`email-${contact.email ?? ""}`}
+        label="Email"
+        value={contact.email}
+        onSave={(v) => saveField(contact, "email", v)}
+        type="email"
+      />
+    ),
+    notes: <NotesPopover value={contact.notes} onSave={(v) => saveField(contact, "notes", v)} />,
+    mailbox: <CorrespondenceDialog contact={contact} onMarkReplied={markReplied} />,
+    send: (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => sendEmail(contact)}
+        disabled={!contact.email}
+      >
+        <Mail className="h-3.5 w-3.5" /> Send Email
+      </Button>
+    ),
+    followUp: (
+      <FollowUpStatus
+        latest={latestEmail(contact.claim_contact_emails ?? [])}
+        onSendFollowUp={() => sendEmail(contact, true)}
+        onMarkReplied={markReplied}
+      />
+    ),
+  });
+
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-muted/50 text-left">
-            <th className="p-3 font-medium"></th>
-            <th className="p-3 font-medium">Contact Person</th>
-            <th className="p-3 font-medium">Telephone</th>
-            <th className="p-3 font-medium">Email</th>
-            <th className="p-3 font-medium">Notes</th>
-            <th className="p-3 font-medium">Correspondence</th>
-            <th className="p-3 font-medium">Send Email</th>
-            <th className="p-3 font-medium">Status Follow Up</th>
-          </tr>
-        </thead>
-        <tbody>
-          {contacts.map((contact) => {
-            const latest = latestEmail(contact.claim_contact_emails ?? []);
-            return (
-              <tr key={contact.id} className="border-t border-border align-top">
-                <td className="p-3 font-medium whitespace-nowrap">{ROW_LABELS[contact.row_key]}</td>
-                <EditableCell
-                  value={contact.contact_person}
-                  onSave={(v) => saveField(contact, "contact_person", v)}
-                />
-                <EditableCell
-                  value={contact.phone}
-                  onSave={(v) => saveField(contact, "phone", v)}
-                />
-                <EditableCell
-                  value={contact.email}
-                  onSave={(v) => saveField(contact, "email", v)}
-                  type="email"
-                />
-                <td className="p-3">
-                  <NotesPopover
-                    value={contact.notes}
-                    onSave={(v) => saveField(contact, "notes", v)}
-                  />
-                </td>
-                <td className="p-3">
-                  <CorrespondenceDialog contact={contact} onMarkReplied={markReplied} />
-                </td>
-                <td className="p-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => sendEmail(contact)}
-                    disabled={!contact.email}
-                  >
-                    <Mail className="h-3.5 w-3.5" /> Send Email
-                  </Button>
-                </td>
-                <td className="p-3">
-                  <FollowUpStatus
-                    latest={latest}
-                    onSendFollowUp={() => sendEmail(contact, true)}
-                    onMarkReplied={markReplied}
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div className="space-y-3 lg:hidden">
+        {contacts.map((contact) => {
+          const f = fieldsFor(contact);
+          return (
+            <div key={contact.id} className="rounded-lg border border-border p-4 text-sm">
+              <div className="font-medium">{ROW_LABELS[contact.row_key]}</div>
+              <dl className="mt-3 grid gap-2 sm:grid-cols-3">
+                <div>
+                  <dt className="px-2 text-xs text-muted-foreground">Contact Person</dt>
+                  <dd>{f.person}</dd>
+                </div>
+                <div>
+                  <dt className="px-2 text-xs text-muted-foreground">Telephone</dt>
+                  <dd>{f.phone}</dd>
+                </div>
+                <div>
+                  <dt className="px-2 text-xs text-muted-foreground">Email</dt>
+                  <dd>{f.email}</dd>
+                </div>
+              </dl>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {f.notes}
+                {f.mailbox}
+                {f.send}
+              </div>
+              <div className="mt-3 border-t border-border pt-3">
+                <div className="mb-1 text-xs text-muted-foreground">Status Follow Up</div>
+                {f.followUp}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-border lg:block">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-muted/50 text-left">
+              <th className="p-3 font-medium"></th>
+              <th className="p-3 font-medium">Contact Person</th>
+              <th className="p-3 font-medium">Telephone</th>
+              <th className="p-3 font-medium">Email</th>
+              <th className="p-3 font-medium">Notes</th>
+              <th className="p-3 font-medium">Correspondence</th>
+              <th className="p-3 font-medium">Send Email</th>
+              <th className="p-3 font-medium">Status Follow Up</th>
+            </tr>
+          </thead>
+          <tbody>
+            {contacts.map((contact) => {
+              const f = fieldsFor(contact);
+              return (
+                <tr key={contact.id} className="border-t border-border align-top">
+                  <td className="p-3 font-medium whitespace-nowrap">
+                    {ROW_LABELS[contact.row_key]}
+                  </td>
+                  <td className="p-3">{f.person}</td>
+                  <td className="p-3">{f.phone}</td>
+                  <td className="p-3">{f.email}</td>
+                  <td className="p-3">{f.notes}</td>
+                  <td className="p-3">{f.mailbox}</td>
+                  <td className="p-3">{f.send}</td>
+                  <td className="p-3">{f.followUp}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
-function EditableCell({
+function EditableInput({
+  label,
   value,
   onSave,
   type = "text",
 }: {
+  label: string;
   value: string | null;
   onSave: (value: string) => void;
   type?: string;
 }) {
   const [draft, setDraft] = useState(value ?? "");
   return (
-    <td className="p-3">
-      <input
-        type={type}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          if (draft !== (value ?? "")) onSave(draft);
-        }}
-        className="w-full min-w-30 rounded border border-transparent bg-transparent px-2 py-1 hover:border-input focus:border-input focus:bg-background focus:outline-none"
-        placeholder="—"
-      />
-    </td>
+    <input
+      type={type}
+      aria-label={label}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        if (draft !== (value ?? "")) onSave(draft);
+      }}
+      className="w-full min-w-30 rounded border border-transparent bg-transparent px-2 py-1 hover:border-input focus:border-input focus:bg-background focus:outline-none"
+      placeholder="—"
+    />
   );
 }
 

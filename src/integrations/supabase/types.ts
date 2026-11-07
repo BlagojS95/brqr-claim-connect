@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      agency_settings: {
+        Row: {
+          broker_claims_email: string
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          broker_claims_email?: string
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          broker_claims_email?: string
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       claim_contact_emails: {
         Row: {
           claim_contact_id: string
