@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { incurredAmount, paidAmount, reserveAmount } from "@/lib/claim-metrics";
 import { formatDate, formatTime } from "@/lib/dates";
 import { fetchClaimDetail } from "@/lib/overview.functions";
+import { queryKeys } from "@/lib/query-keys";
 import { deleteClaimDocument, uploadClaimDocument } from "@/lib/claim-documents";
 import { StatusBadge } from "@/components/status-badge";
 import { ClaimActivityLog } from "@/components/claim-activity-log";
@@ -80,7 +81,7 @@ function ClaimDetail() {
   const [uploading, setUploading] = useState(false);
   const getClaim = useServerFn(fetchClaimDetail);
   const { data, isLoading } = useQuery({
-    queryKey: ["claim", claimId],
+    queryKey: queryKeys.claim(claimId),
     queryFn: async () => {
       const [claim, { data: docs }] = await Promise.all([
         getClaim({ data: { claimId } }),
@@ -114,7 +115,7 @@ function ClaimDetail() {
     }
     setUploading(false);
     if (uploaded) toast.success(`Uploaded ${uploaded} document${uploaded === 1 ? "" : "s"}`);
-    queryClient.invalidateQueries({ queryKey: ["claim", claimId] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.claim(claimId) });
   }
 
   async function removeDocument(doc: { id: string; file_name: string; file_url: string }) {
@@ -124,7 +125,7 @@ function ClaimDetail() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to remove document");
     }
-    queryClient.invalidateQueries({ queryKey: ["claim", claimId] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.claim(claimId) });
   }
 
   // Loss details from the claim form; imported claims usually have none.

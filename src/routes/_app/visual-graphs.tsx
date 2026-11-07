@@ -13,6 +13,7 @@ import {
 import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
 import { calendarYear, todayIso } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
+import { overviewQueryOptions } from "@/lib/query-keys";
 import { LineChart as LineIcon } from "lucide-react";
 import {
   BarChart,
@@ -43,8 +44,8 @@ function VisualGraphsPage() {
   const getOverview = useServerFn(fetchAgencyOverview);
 
   const { data: claims = [], isLoading } = useQuery({
-    queryKey: ["visual-graphs-claims"],
-    queryFn: async () => (await getOverview({ data: { scope: "claims" } })).claims,
+    ...overviewQueryOptions("claims", getOverview),
+    select: (overview) => overview.claims,
   });
 
   const byLob = useMemo(() => {

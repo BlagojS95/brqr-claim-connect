@@ -10,6 +10,7 @@ import {
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthProvider } from "@/hooks/use-auth";
 
 import appCss from "../styles.css?url";
 
@@ -114,7 +115,9 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthListener />
-      <Outlet />
+      <AuthProvider>
+        <Outlet />
+      </AuthProvider>
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
   );

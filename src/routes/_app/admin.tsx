@@ -6,6 +6,7 @@ import { isOpen } from "@/lib/claim-metrics";
 import { formatDate } from "@/lib/dates";
 import { LOSS_RUN_REQUEST_STATUS } from "@/lib/loss-run-request-status";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
+import { overviewQueryOptions, queryKeys } from "@/lib/query-keys";
 import type { AgencyClient } from "@/lib/overview.types";
 import { createClientAccount, resetClientPassword, deleteClientAccount } from "@/lib/accounts.functions";
 import { retryClaimNotification } from "@/lib/claim-submission.functions";
@@ -50,16 +51,15 @@ function AdminPage() {
   const fulfillRequest = useServerFn(fulfillLossRunRequest);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-overview"],
+    ...overviewQueryOptions("claims", getOverview),
     enabled: role === "agency_admin",
-    queryFn: () => getOverview({ data: { scope: "claims" } }),
   });
 
   const createAccountMutation = useMutation({
     mutationFn: (input: { clientId: string; email: string; password: string }) => createAccount({ data: input }),
     onSuccess: () => {
       toast.success("Account created");
-      qc.invalidateQueries({ queryKey: ["admin-overview"] });
+      qc.invalidateQueries({ queryKey: queryKeys.overviewAll });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to create account"),
   });
@@ -74,7 +74,7 @@ function AdminPage() {
     mutationFn: (input: { userId: string }) => deleteAccount({ data: input }),
     onSuccess: () => {
       toast.success("Account deleted");
-      qc.invalidateQueries({ queryKey: ["admin-overview"] });
+      qc.invalidateQueries({ queryKey: queryKeys.overviewAll });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to delete account"),
   });

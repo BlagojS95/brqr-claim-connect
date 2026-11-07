@@ -6,6 +6,7 @@ import { STATUS_BUCKETS, statusBucket, type StatusBucket } from "@/lib/claim-met
 import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
 import { formatDate } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
+import { overviewQueryOptions } from "@/lib/query-keys";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +22,8 @@ function ClaimsList() {
   const navigate = useNavigate();
   const getOverview = useServerFn(fetchAgencyOverview);
   const { data: claims = [], isLoading } = useQuery({
-    queryKey: ["claims-list"],
-    queryFn: async () => (await getOverview({ data: { scope: "claims" } })).claims,
+    ...overviewQueryOptions("claims", getOverview),
+    select: (overview) => overview.claims,
   });
 
   const q = search.trim().toLowerCase();

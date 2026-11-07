@@ -13,6 +13,7 @@ import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
 import { formatDate } from "@/lib/dates";
 import { POLICY_STATUS } from "@/lib/policy-status";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
+import { overviewQueryOptions } from "@/lib/query-keys";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
@@ -32,9 +33,8 @@ function Dashboard() {
   const getOverview = useServerFn(fetchAgencyOverview);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard", user?.id, isAdmin],
+    ...overviewQueryOptions("all", getOverview),
     enabled: !!user,
-    queryFn: () => getOverview({ data: { scope: "all" } }),
   });
 
   const claims = data?.claims ?? [];

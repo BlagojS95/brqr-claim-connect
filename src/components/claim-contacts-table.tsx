@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { ensureClaimContacts } from "@/lib/claim-contacts.functions";
 import { CONTACT_ROW_LABELS as ROW_LABELS } from "@/lib/claim-contacts";
+import { queryKeys } from "@/lib/query-keys";
 import { claimEmailSubject, followUpEmailBody, type ClaimEmailInfo } from "@/lib/claim-email";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,7 +86,7 @@ export function ClaimContactsTable({
   const invalidate = () => queryClient.invalidateQueries({ queryKey });
   // The DB trigger on claim_contact_emails adds an entry to the claim's activity log.
   const invalidateActivity = () =>
-    queryClient.invalidateQueries({ queryKey: ["claim", claimId, "activity"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.claimActivity(claimId) });
 
   async function saveField(
     contact: Contact,

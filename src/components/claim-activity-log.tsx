@@ -9,20 +9,15 @@ import {
   MAX_ACTIVITY_NOTE_LENGTH,
   normalizeActivityNote,
 } from "@/lib/claim-activity";
+import { queryKeys } from "@/lib/query-keys";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-
-// Under the claim's own key, so invalidating ["claim", id] after an upload
-// also refreshes the log.
-function claimActivityQueryKey(claimId: string) {
-  return ["claim", claimId, "activity"];
-}
 
 // Newest-first log of what happened on a claim, with an "Add note" box that
 // both clients and agency staff can use.
 export function ClaimActivityLog({ claimId }: { claimId: string }) {
   const queryClient = useQueryClient();
-  const queryKey = claimActivityQueryKey(claimId);
+  const queryKey = queryKeys.claimActivity(claimId);
   const getActivity = useServerFn(fetchClaimActivity);
   const addNote = useServerFn(addClaimNote);
   const [draft, setDraft] = useState("");

@@ -9,6 +9,7 @@ import { calendarYear, formatDate, todayIso } from "@/lib/dates";
 import { sendLossRunRequestEmail } from "@/lib/email.functions";
 import { LINE_OF_BUSINESS, lineOfBusinessName } from "@/lib/line-of-business";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
+import { overviewQueryOptions } from "@/lib/query-keys";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { InsurGridLossRuns } from "@/components/insurgrid-loss-runs";
 import { Button } from "@/components/ui/button";
@@ -61,8 +62,8 @@ function LossRunsPage() {
     isLoading: claimsLoading,
     isError: claimsFailed,
   } = useQuery({
-    queryKey: ["loss-run-claims"],
-    queryFn: async () => (await getOverview({ data: { scope: "claims" } })).claims,
+    ...overviewQueryOptions("claims", getOverview),
+    select: (overview) => overview.claims,
   });
 
   // Totals come from the claims themselves so they always match the Claims page.

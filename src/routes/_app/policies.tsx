@@ -5,6 +5,7 @@ import { useState } from "react";
 import { formatDate } from "@/lib/dates";
 import { POLICY_STATUS, type PolicyStatus } from "@/lib/policy-status";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
+import { overviewQueryOptions } from "@/lib/query-keys";
 import { Shield, Calendar, Building2, Search, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +22,8 @@ function PoliciesPage() {
   const [search, setSearch] = useState("");
   const getOverview = useServerFn(fetchAgencyOverview);
   const { data: policies = [], isLoading } = useQuery({
-    queryKey: ["policies"],
-    queryFn: async () => (await getOverview({ data: { scope: "policies" } })).policies,
+    ...overviewQueryOptions("policies", getOverview),
+    select: (overview) => overview.policies,
   });
 
   const term = search.trim().toLowerCase();

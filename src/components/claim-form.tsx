@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { processClaimNotifications, submitClaim } from "@/lib/claim-submission.functions";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
+import { overviewQueryOptions } from "@/lib/query-keys";
 import { uploadClaimFile } from "@/lib/claim-documents";
 import { todayIso } from "@/lib/dates";
 import { LINE_OF_BUSINESS } from "@/lib/line-of-business";
@@ -47,8 +48,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const processNotifications = useServerFn(processClaimNotifications);
 
   const { data: overview } = useQuery({
-    queryKey: ["claim-form-policies"],
-    queryFn: () => getOverview({ data: { scope: "policies" } }),
+    ...overviewQueryOptions("policies", getOverview),
   });
 
   const { data: lines = [], isError: linesFailed } = useQuery({

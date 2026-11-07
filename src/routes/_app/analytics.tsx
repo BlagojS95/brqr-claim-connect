@@ -14,6 +14,7 @@ import {
 import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
 import { calendarYear, formatDate, todayIso } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
+import { overviewQueryOptions } from "@/lib/query-keys";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { BarChart3, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -30,8 +31,8 @@ function AnalyticsPage() {
   const getOverview = useServerFn(fetchAgencyOverview);
 
   const { data: claims = [], isLoading } = useQuery({
-    queryKey: ["analytics-claims"],
-    queryFn: async () => (await getOverview({ data: { scope: "claims" } })).claims,
+    ...overviewQueryOptions("claims", getOverview),
+    select: (overview) => overview.claims,
   });
 
   const groups = useMemo(() => {

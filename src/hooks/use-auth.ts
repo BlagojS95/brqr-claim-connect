@@ -1,4 +1,12 @@
-import { useEffect, useState } from "react";
+import {
+  createContext,
+  createElement,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
 
@@ -12,63 +20,92 @@ export interface AuthState {
   clientId: string | null;
 }
 
-export function useAuth(): AuthState {
-  const [state, setState] = useState<AuthState>({
-    loading: true,
-    session: null,
-    user: null,
-    role: null,
-    clientId: null,
-  });
+const INITIAL_STATE: AuthState = {
+  loading: true,
+  session: null,
+  user: null,
+  role: null,
+  clientId: null,
+};
+
+// What a session change means for the role/client lookup, given the user id it
+// was last run for (undefined = not run yet). Token refreshes and repeat events
+// for the same user keep the lookup they already have.
+export type SessionChange = "same-user" | "signed-out" | "new-user";
+
+export function classifySessionChange(
+  loadedForUserId: string | null | undefined,
+  nextUserId: string | null,
+): SessionChange {
+  if (loadedForUserId !== undefined && loadedForUserId === nextUserId) return "same-user";
+  return nextUserId ? "new-user" : "signed-out";
+}
+
+async function loadRoleAndClient(user: User): Promise<Pick<AuthState, "role" | "clientId">> {
+  const [{ data: roles }, { data: client }] = await Promise.all([
+    supabase.from("user_roles").select("role").eq("user_id", user.id),
+    supabase.from("clients").select("id").eq("user_id", user.id).maybeSingle(),
+  ]);
+  const isAdmin = roles?.some((r) => r.role === "agency_admin");
+  return {
+    role: isAdmin ? "agency_admin" : "client",
+    clientId: client?.id ?? null,
+  };
+}
+
+const AuthContext = createContext<AuthState | null>(null);
+
+// Holds the session and resolves the user's role and client once per signed-in
+// user, for every component that calls useAuth(). Mounted once in __root.tsx.
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
+  const [state, setState] = useState<AuthState>(INITIAL_STATE);
 
   useEffect(() => {
     let cancelled = false;
+    let loadedFor: string | null | undefined;
 
-    const loadExtras = async (user: User | null) => {
-      if (!user) return { role: null, clientId: null };
-      const [{ data: roles }, { data: client }] = await Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", user.id),
-        supabase.from("clients").select("id").eq("user_id", user.id).maybeSingle(),
-      ]);
-      const isAdmin = roles?.some((r) => r.role === "agency_admin");
-      return {
-        role: (isAdmin ? "agency_admin" : "client") as AppRole,
-        clientId: client?.id ?? null,
-      };
-    };
-
+    // onAuthStateChange fires INITIAL_SESSION on subscribe, so this one listener
+    // also covers the first load (no separate getSession call).
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setState((s) => ({ ...s, session, user: session?.user ?? null }));
-      setTimeout(async () => {
-        const extras = await loadExtras(session?.user ?? null);
-        if (!cancelled) {
-          setState({
-            loading: false,
-            session,
-            user: session?.user ?? null,
-            ...extras,
-          });
-        }
-      }, 0);
-    });
+      const user = session?.user ?? null;
+      const userId = user?.id ?? null;
+      const change = classifySessionChange(loadedFor, userId);
+      const switchedUser = loadedFor !== undefined && change !== "same-user";
+      loadedFor = userId;
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const extras = await loadExtras(session?.user ?? null);
-      if (!cancelled) {
-        setState({
-          loading: false,
-          session,
-          user: session?.user ?? null,
-          ...extras,
-        });
+      if (change === "same-user") {
+        setState((s) => ({ ...s, session, user }));
+        return;
       }
+      // Cached data belongs to the previous user; the query keys don't carry the user id.
+      if (switchedUser) queryClient.removeQueries();
+
+      if (change === "signed-out") {
+        setState({ ...INITIAL_STATE, loading: false });
+        return;
+      }
+
+      setState({ ...INITIAL_STATE, session, user });
+      // Deferred out of the auth callback: Supabase calls made inside it can deadlock.
+      setTimeout(async () => {
+        const extras = await loadRoleAndClient(user!);
+        if (cancelled || loadedFor !== userId) return;
+        setState((s) => ({ ...s, loading: false, ...extras }));
+      }, 0);
     });
 
     return () => {
       cancelled = true;
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
+  return createElement(AuthContext.Provider, { value: state }, children);
+}
+
+export function useAuth(): AuthState {
+  const state = useContext(AuthContext);
+  if (!state) throw new Error("useAuth must be used inside <AuthProvider>");
   return state;
 }
