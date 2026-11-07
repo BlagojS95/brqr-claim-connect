@@ -11,6 +11,7 @@ import {
   totalIncurred,
   totalPaid,
 } from "@/lib/claim-metrics";
+import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
 import { calendarYear, formatDate, todayIso } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClaim } from "@/lib/overview.types";
@@ -105,7 +106,9 @@ function AnalyticsPage() {
                     <tr>
                       <th className="text-left p-3">Claim #</th>
                       {STATUS_BUCKETS.map((s) => (
-                        <th key={s} className="text-center p-3">{s}</th>
+                        <th key={s} className="text-center p-3">
+                          {CLAIM_STATUS_LABELS[s]}
+                        </th>
                       ))}
                       <th className="text-right p-3">Paid</th>
                       <th className="text-right p-3">Incurred</th>

@@ -106,7 +106,7 @@ describe("submitClaimCore", () => {
       claim_type: "General Liability",
       policy_number: "GL-100",
       carrier: "Acme",
-      status: "Open",
+      status: "submitted",
       date_reported: "2026-11-07",
     });
     expect(db.documents).toEqual([

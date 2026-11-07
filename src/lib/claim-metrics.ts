@@ -1,34 +1,42 @@
 // The one definition of how claims are counted. Pages must not filter on
 // claim.status themselves, or their numbers drift apart again.
 
+import { CLAIM_STATUSES, type ClaimStatus } from "@/lib/claim-status";
 import { calendarYear } from "@/lib/dates";
 
-export type StatusBucket = "Open" | "Pending" | "Closed";
+export type StatusBucket = ClaimStatus;
 
-export const STATUS_BUCKETS: StatusBucket[] = ["Open", "Pending", "Closed"];
+/** Every status, in display order. Filters, tables and charts iterate this. */
+export const STATUS_BUCKETS: readonly StatusBucket[] = CLAIM_STATUSES;
 
 export interface ClaimStatusFields {
-  status: string;
-  is_notice_only: boolean;
+  status: ClaimStatus;
 }
 
-// Status text comes straight from CSV files, so casing can vary. Anything
-// active that isn't pending or closed, like "Under Review", counts as open.
+// claims.status is an enum, so the stored value is the bucket. The CSV
+// importer maps free text onto it (parseClaimStatus in claim-status.ts).
 export function statusBucket(claim: ClaimStatusFields): StatusBucket {
-  const status = claim.status?.trim().toLowerCase();
-  if (status === "closed") return "Closed";
-  if (claim.is_notice_only || status === "pending") return "Pending";
-  return "Open";
+  return claim.status;
 }
 
+/** Open means the carrier has it and it is still being worked: open or reopened. */
 export function isOpen(claim: ClaimStatusFields): boolean {
-  return statusBucket(claim) === "Open";
+  const status = statusBucket(claim);
+  return status === "open" || status === "reopened";
 }
 
 export function countByStatus(claims: ClaimStatusFields[]): Record<StatusBucket, number> {
-  const counts: Record<StatusBucket, number> = { Open: 0, Pending: 0, Closed: 0 };
+  const counts = Object.fromEntries(STATUS_BUCKETS.map((s) => [s, 0])) as Record<
+    StatusBucket,
+    number
+  >;
   for (const claim of claims) counts[statusBucket(claim)] += 1;
   return counts;
+}
+
+/** The "Open Claims" figure every page shows. */
+export function openCount(claims: ClaimStatusFields[]): number {
+  return claims.filter(isOpen).length;
 }
 
 export interface ClaimAmounts {
@@ -69,7 +77,7 @@ export function summarize(claims: ClaimAmounts[]): YearSummary {
 
 // Open claims are still developing, so only closed claims give a real average.
 export function avgClosedCost(claims: (ClaimStatusFields & ClaimAmounts)[]): number | null {
-  const closed = claims.filter((claim) => statusBucket(claim) === "Closed");
+  const closed = claims.filter((claim) => statusBucket(claim) === "closed");
   return closed.length ? totalIncurred(closed) / closed.length : null;
 }
 

@@ -1,19 +1,23 @@
+import { claimStatusLabel, type ClaimStatus } from "@/lib/claim-status";
 import { cn } from "@/lib/utils";
 
-export function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    Open: "bg-success/15 text-success border-success/30",
-    Closed: "bg-muted text-muted-foreground border-border",
-    Pending: "bg-warning/20 text-warning-foreground border-warning/40",
-  };
+const STATUS_STYLES: Record<ClaimStatus, string> = {
+  notice: "bg-slate-100 text-slate-700 border-slate-300",
+  submitted: "bg-gold/20 text-gold-foreground border-gold/50",
+  open: "bg-navy/10 text-navy border-navy/30",
+  closed: "bg-muted text-muted-foreground border-border",
+  reopened: "bg-orange-100 text-orange-800 border-orange-300",
+};
+
+export function StatusBadge({ status }: { status: ClaimStatus }) {
   return (
     <span
       className={cn(
         "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border",
-        map[status] ?? "bg-muted text-muted-foreground border-border"
+        STATUS_STYLES[status] ?? "bg-muted text-muted-foreground border-border",
       )}
     >
-      {status}
+      {claimStatusLabel(status)}
     </span>
   );
 }

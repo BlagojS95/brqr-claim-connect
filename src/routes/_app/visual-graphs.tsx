@@ -6,9 +6,11 @@ import {
   STATUS_BUCKETS,
   compareYtd,
   countByStatus,
+  openCount,
   totalIncurred,
   totalPaid,
 } from "@/lib/claim-metrics";
+import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
 import { calendarYear, todayIso } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { LineChart as LineIcon } from "lucide-react";
@@ -59,7 +61,10 @@ function VisualGraphsPage() {
 
   const byStatus = useMemo(() => {
     const counts = countByStatus(claims);
-    return STATUS_BUCKETS.filter((name) => counts[name] > 0).map((name) => ({ name, value: counts[name] }));
+    return STATUS_BUCKETS.filter((s) => counts[s] > 0).map((s) => ({
+      name: CLAIM_STATUS_LABELS[s],
+      value: counts[s],
+    }));
   }, [claims]);
 
   const byYear = useMemo(() => {
@@ -88,7 +93,7 @@ function VisualGraphsPage() {
     return {
       paid: totalPaid(claims),
       incurred: totalIncurred(claims),
-      open: countByStatus(claims).Open,
+      open: openCount(claims),
       total: claims.length,
       ytd: compareYtd(claims, todayIso()),
     };

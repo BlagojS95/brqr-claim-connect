@@ -2,6 +2,7 @@
 // TanStack imports so it can be unit tested. The server functions in
 // claim-submission.functions.ts wire these up to the database and senders.
 import { z } from "zod";
+import { CLAIM_STATUS, type ClaimStatus } from "@/lib/claim-status";
 
 export const NOTIFICATION_KINDS = ["email", "webhook"] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -52,7 +53,7 @@ export interface ClaimInsert {
   date_reported: string;
   description: string;
   carrier: string | null;
-  status: string;
+  status: ClaimStatus;
 }
 
 export interface DocumentInsert {
@@ -111,7 +112,7 @@ export async function submitClaimCore(input: SubmitClaimInput, deps: SubmitClaim
     date_reported: deps.today(),
     description: input.description,
     carrier: policy?.carrier ?? null,
-    status: input.isNotice ? "Pending" : "Open",
+    status: input.isNotice ? CLAIM_STATUS.notice : CLAIM_STATUS.submitted,
   });
 
   try {

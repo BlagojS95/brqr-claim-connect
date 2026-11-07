@@ -1,3 +1,5 @@
+import type { ClaimStatus } from "@/lib/claim-status";
+
 export interface AgencyClient {
   id: string;
   name: string;
@@ -28,7 +30,7 @@ export interface AgencyClaim {
   claim_type: string;
   claimant_name: string | null;
   line_of_business: string;
-  status: string;
+  status: ClaimStatus;
   is_notice_only: boolean;
   carrier: string | null;
   date_of_loss: string | null;

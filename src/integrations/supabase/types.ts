@@ -210,7 +210,7 @@ export type Database = {
           policy_id: string | null
           policy_number: string | null
           reserve_amount: number | null
-          status: string
+          status: Database["public"]["Enums"]["claim_status"]
         }
         Insert: {
           adjuster_email?: string | null
@@ -241,7 +241,7 @@ export type Database = {
           policy_id?: string | null
           policy_number?: string | null
           reserve_amount?: number | null
-          status?: string
+          status?: Database["public"]["Enums"]["claim_status"]
         }
         Update: {
           adjuster_email?: string | null
@@ -272,7 +272,7 @@ export type Database = {
           policy_id?: string | null
           policy_number?: string | null
           reserve_amount?: number | null
-          status?: string
+          status?: Database["public"]["Enums"]["claim_status"]
         }
         Relationships: [
           {
@@ -615,6 +615,7 @@ export type Database = {
     }
     Enums: {
       app_role: "agency_admin" | "client"
+      claim_status: "notice" | "submitted" | "open" | "closed" | "reopened"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -743,6 +744,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["agency_admin", "client"],
+      claim_status: ["notice", "submitted", "open", "closed", "reopened"],
     },
   },
 } as const

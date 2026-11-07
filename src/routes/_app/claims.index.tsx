@@ -2,7 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { STATUS_BUCKETS, statusBucket } from "@/lib/claim-metrics";
+import { STATUS_BUCKETS, statusBucket, type StatusBucket } from "@/lib/claim-metrics";
+import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
 import { formatDate } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { StatusBadge } from "@/components/status-badge";
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/_app/claims/")({
 });
 
 function ClaimsList() {
-  const [filter, setFilter] = useState<string>("All");
+  const [filter, setFilter] = useState<StatusBucket | "All">("All");
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const getOverview = useServerFn(fetchAgencyOverview);
@@ -34,7 +35,7 @@ function ClaimsList() {
       c.carrier,
       c.adjuster_name,
       c.description,
-      c.status,
+      CLAIM_STATUS_LABELS[c.status],
     ]
       .filter(Boolean)
       .some((v) => String(v).toLowerCase().includes(q));
@@ -48,7 +49,7 @@ function ClaimsList() {
           <p className="text-sm text-muted-foreground mt-1">All reported claims.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {["All", ...STATUS_BUCKETS].map((s) => (
+          {(["All", ...STATUS_BUCKETS] as const).map((s) => (
             <Button
               key={s}
               size="sm"
@@ -56,7 +57,7 @@ function ClaimsList() {
               className={filter === s ? "bg-navy hover:bg-navy/90 text-navy-foreground" : ""}
               onClick={() => setFilter(s)}
             >
-              {s}
+              {s === "All" ? s : CLAIM_STATUS_LABELS[s]}
             </Button>
           ))}
         </div>

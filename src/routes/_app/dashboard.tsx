@@ -1,7 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { STATUS_BUCKETS, countByStatus, totalIncurred, totalPaid } from "@/lib/claim-metrics";
+import {
+  STATUS_BUCKETS,
+  countByStatus,
+  openCount,
+  totalIncurred,
+  totalPaid,
+  type StatusBucket,
+} from "@/lib/claim-metrics";
+import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
 import { formatDate } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClaim } from "@/lib/overview.types";
@@ -30,7 +38,7 @@ function Dashboard() {
 
   const claims = data?.claims ?? [];
   const policies = data?.policies ?? [];
-  const openClaims = countByStatus(claims).Open;
+  const openClaims = openCount(claims);
   const paidToDate = totalPaid(claims);
   const lastLoss = claims[0]?.date_of_loss ?? null;
   const activePolicies = policies.filter((p) => p.status === "Active").length;
@@ -137,10 +145,13 @@ function ClaimsSummary({ claims }: { claims: AgencyClaim[] }) {
   const paid = totalPaid(claims);
   const incurred = totalIncurred(claims);
 
-  const statusTones: Record<string, string> = {
-    Open: "bg-emerald-500",
-    Pending: "bg-amber-500",
-    Closed: "bg-slate-400",
+  // Same colours as StatusBadge.
+  const statusTones: Record<StatusBucket, string> = {
+    notice: "bg-slate-400",
+    submitted: "bg-gold",
+    open: "bg-navy",
+    closed: "bg-muted-foreground/40",
+    reopened: "bg-orange-500",
   };
 
   const topTypes = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -164,12 +175,12 @@ function ClaimsSummary({ claims }: { claims: AgencyClaim[] }) {
               return (
                 <div key={s}>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-navy">{s}</span>
+                    <span className="text-navy">{CLAIM_STATUS_LABELS[s]}</span>
                     <span className="text-muted-foreground">{n}</span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
                     <div
-                      className={`h-full ${statusTones[s] ?? "bg-navy"}`}
+                      className={`h-full ${statusTones[s]}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>

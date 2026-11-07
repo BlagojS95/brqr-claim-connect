@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { CLAIM_STATUS, parseClaimStatus } from "@/lib/claim-status";
 import { fetchAll } from "@/lib/fetch-all";
 import {
   isExcludedClient,
@@ -56,7 +57,7 @@ const BLANK = {
     claim_number: null,
     claim_type: "Other",
     line_of_business_description: null,
-    status: "Open",
+    status: CLAIM_STATUS.open,
     carrier: null,
     policy_number: null,
     date_of_loss: null,
@@ -328,7 +329,6 @@ function claimsIncoming(rows: CsvRow[], resolveClient: ClientResolver, skipped: 
     for (const column of [
       "claim_number",
       "line_of_business_description",
-      "status",
       "carrier",
       "policy_number",
       "adjuster_name",
@@ -338,6 +338,8 @@ function claimsIncoming(rows: CsvRow[], resolveClient: ClientResolver, skipped: 
     ]) {
       setIfPresent(values, column, csv[column]);
     }
+    // claims.status is an enum; free text from the file is mapped onto it.
+    setIfPresent(values, "status", parseClaimStatus(csv.status, csv.claim_number));
     setIfPresent(values, "claim_type", normalizeClaimType(csv.claim_type));
     setIfPresent(values, "date_of_loss", parseDate(csv.date_of_loss));
     setIfPresent(values, "date_reported", parseDate(csv.date_reported));
