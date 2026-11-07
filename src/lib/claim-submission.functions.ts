@@ -53,7 +53,7 @@ export const submitClaim = createServerFn({ method: "POST" })
       async getPolicy(id, clientId) {
         const { data: policy } = await supabase
           .from("policies")
-          .select("id, policy_number, carrier")
+          .select("id, policy_number, carrier, effective_date, expiration_date, line_of_business_id")
           .eq("id", id)
           .eq("client_id", clientId)
           .maybeSingle();

@@ -19,6 +19,7 @@ export interface AgencyPolicy {
   policy_number: string;
   carrier: string | null;
   policy_type: string | null;
+  line_of_business_id: string | null;
   effective_date: string | null;
   expiry_date: string | null;
   premium: number | null;

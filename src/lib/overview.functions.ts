@@ -101,6 +101,7 @@ async function getScopedOverview(supabase: SupabaseClient<Database>, scope: Over
     policy_number: p.policy_number,
     carrier: p.carrier,
     policy_type: p.policy_type,
+    line_of_business_id: p.line_of_business_id ?? null,
     effective_date: p.effective_date,
     expiry_date: p.expiration_date,
     premium: p.premium,

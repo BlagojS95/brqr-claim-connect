@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { processClaimNotifications, submitClaim } from "@/lib/claim-submission.functions";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { uploadClaimFile } from "@/lib/claim-documents";
+import { todayIso } from "@/lib/dates";
 import { LINE_OF_BUSINESS } from "@/lib/line-of-business";
+import { policyCoversLoss } from "@/lib/policy-match";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 
@@ -116,9 +118,25 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const isWc = lineCode === LINE_OF_BUSINESS.workersComp;
   const isGl = lineCode === LINE_OF_BUSINESS.generalLiability;
 
-  const policies = isAdmin
+  const today = todayIso();
+  const clientPolicies = isAdmin
     ? (overview?.policies ?? []).filter((p) => p.client_id === selectedLocalClientId)
     : (overview?.policies ?? []);
+  // Only policies whose line matches and whose term includes the date of loss.
+  const policies = clientPolicies.filter((p) =>
+    policyCoversLoss(
+      { ...p, expiration_date: p.expiry_date },
+      { dateOfLoss: dateOfLoss || null, lineOfBusinessId: lineId || null },
+    ),
+  );
+  const policyKey = policies.map((p) => p.id).join(",");
+  useEffect(() => {
+    const ids = policyKey ? policyKey.split(",") : [];
+    // Auto-select the only match once line and date are known; drop a pick
+    // that no longer matches.
+    if (ids.length === 1 && lineId && dateOfLoss) setPolicyId(ids[0]);
+    else setPolicyId((current) => (ids.includes(current) ? current : ""));
+  }, [policyKey, lineId, dateOfLoss]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,6 +150,10 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
           ? "Lines of business could not be loaded. Refresh the page and try again."
           : "Select a line of business",
       );
+      return;
+    }
+    if (dateOfLoss > today) {
+      toast.error("Date of loss can't be in the future");
       return;
     }
     setBusy(true);
@@ -242,7 +264,14 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
         </div>
         <div className="space-y-2">
           <Label htmlFor="dol">Date of Loss</Label>
-          <Input id="dol" type="date" value={dateOfLoss} onChange={(e) => setDateOfLoss(e.target.value)} required />
+          <Input
+            id="dol"
+            type="date"
+            value={dateOfLoss}
+            onChange={(e) => setDateOfLoss(e.target.value)}
+            max={today}
+            required
+          />
         </div>
         <TextField id="tol" label="Time of Loss" type="time" value={timeOfLoss} onChange={setTimeOfLoss} />
         <div className="space-y-2">
@@ -324,6 +353,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
               value={dateReportedToEmployer}
               onChange={setDateReportedToEmployer}
               min={dateOfLoss || undefined}
+              max={today}
             />
           </div>
         </div>
@@ -357,7 +387,15 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
         <Label>Policy</Label>
         <Select value={policyId} onValueChange={setPolicyId}>
           <SelectTrigger>
-            <SelectValue placeholder={policies.length ? "Select policy" : "No policies on file"} />
+            <SelectValue
+              placeholder={
+                policies.length
+                  ? "Select policy"
+                  : clientPolicies.length
+                    ? "No matching policy"
+                    : "No policies on file"
+              }
+            />
           </SelectTrigger>
           <SelectContent>
             {policies.map((p) => (
@@ -367,6 +405,12 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
             ))}
           </SelectContent>
         </Select>
+        {!policies.length && clientPolicies.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            No policy on file covers this line of business on the date of loss. You can still
+            submit without a policy and the agency will match it.
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">

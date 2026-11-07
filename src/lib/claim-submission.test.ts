@@ -44,7 +44,14 @@ function fakeDb(ownClientId = CLIENT) {
     getLine: async (id) => LINES[id] ?? null,
     getPolicy: async (id, clientId) =>
       id === POLICY && clientId === CLIENT
-        ? { id, policy_number: "GL-100", carrier: "Acme" }
+        ? {
+            id,
+            policy_number: "GL-100",
+            carrier: "Acme",
+            effective_date: "2026-01-01",
+            expiration_date: "2026-12-31",
+            line_of_business_id: LINE,
+          }
         : null,
     signDocumentUrl: async (path) => `https://signed.example/${path}`,
     async insertClaim(row) {
@@ -286,6 +293,27 @@ describe("loss details by line of business", () => {
         today,
       }),
     ).toBeNull();
+  });
+
+  it("rejects a date of loss in the future and accepts today", async () => {
+    const db = fakeDb();
+    await expect(
+      submitClaimCore(input({ dateOfLoss: "2026-11-08", documents: [] }), db.deps),
+    ).rejects.toThrow("Date of loss can't be in the future");
+    expect(db.claims).toHaveLength(0);
+    await submitClaimCore(input({ dateOfLoss: "2026-11-07", documents: [] }), db.deps);
+    expect(db.claims).toHaveLength(1);
+  });
+
+  it("rejects a policy whose line or term doesn't cover the loss", async () => {
+    const db = fakeDb();
+    await expect(
+      submitClaimCore(input({ lineOfBusinessId: AUTO_LINE, documents: [] }), db.deps),
+    ).rejects.toThrow("Policy GL-100 doesn't cover a Business Auto loss on 11/1/2026");
+    await expect(
+      submitClaimCore(input({ dateOfLoss: "2025-12-31", documents: [] }), db.deps),
+    ).rejects.toThrow("doesn't cover");
+    expect(db.claims).toHaveLength(0);
   });
 
   it("validates the reporter email and time format", () => {

@@ -3,7 +3,9 @@
 // claim-submission.functions.ts wire these up to the database and senders.
 import { z } from "zod";
 import { CLAIM_STATUS, type ClaimStatus } from "@/lib/claim-status";
+import { formatDate } from "@/lib/dates";
 import { LINE_OF_BUSINESS } from "@/lib/line-of-business";
+import { policyCoversLoss, type PolicyTerm } from "@/lib/policy-match";
 
 export const NOTIFICATION_KINDS = ["email", "webhook"] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -111,6 +113,7 @@ export function claimRuleError(
   input: SubmitClaimInput,
   ctx: { lineCode: string | null; today: string },
 ): string | null {
+  if (input.dateOfLoss > ctx.today) return "Date of loss can't be in the future";
   if (ctx.lineCode === LINE_OF_BUSINESS.workersComp && input.dateReportedToEmployer) {
     if (input.dateReportedToEmployer > ctx.today) {
       return "Date reported to employer can't be in the future";
@@ -155,7 +158,7 @@ export interface SubmitClaimDeps {
   getPolicy(
     id: string,
     clientId: string,
-  ): Promise<{ id: string; policy_number: string; carrier: string | null } | null>;
+  ): Promise<({ id: string; policy_number: string; carrier: string | null } & PolicyTerm) | null>;
   signDocumentUrl(path: string): Promise<string>;
   insertClaim(row: ClaimInsert): Promise<{ id: string }>;
   insertDocuments(rows: DocumentInsert[]): Promise<void>;
@@ -176,6 +179,14 @@ export async function submitClaimCore(input: SubmitClaimInput, deps: SubmitClaim
 
   const policy = input.policyId ? await deps.getPolicy(input.policyId, input.clientId) : null;
   if (input.policyId && !policy) throw new Error("That policy doesn't belong to this client");
+  if (
+    policy &&
+    !policyCoversLoss(policy, { dateOfLoss: input.dateOfLoss, lineOfBusinessId: line.id })
+  ) {
+    throw new Error(
+      `Policy ${policy.policy_number} doesn't cover a ${line.name} loss on ${formatDate(input.dateOfLoss)}`,
+    );
+  }
 
   // Storage RLS keys on the first path segment; keep documents inside this claim's folder.
   const prefix = `${input.clientId}/${input.claimId}/`;
