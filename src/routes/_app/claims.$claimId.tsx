@@ -30,6 +30,7 @@ import {
 import { ArrowLeft, FileDown, Trash2, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_app/claims/$claimId")({
+  head: () => ({ meta: [{ title: "Claim | ClaimsQR" }] }),
   component: ClaimDetail,
 });
 

@@ -476,7 +476,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
         <Button type="submit" disabled={busy} className="bg-navy hover:bg-navy/90 text-navy-foreground">
           {busy ? "Submitting…" : "Submit"}
         </Button>
-        <Button type="button" variant="outline" onClick={() => navigate({ to: "/dashboard" })}>
+        <Button type="button" variant="outline" onClick={() => navigate({ to: "/home" })}>
           Cancel
         </Button>
       </div>

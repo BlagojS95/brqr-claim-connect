@@ -23,7 +23,7 @@ function LoginPage() {
     supabase.auth.getSession().then(({ data }) => {
       // An expired session is ended by the /_app guard; don't bounce it there and back.
       if (data.session && !sessionExpiryReason(readSessionTimes(), Date.now())) {
-        navigate({ to: "/dashboard" });
+        navigate({ to: "/home" });
       }
     });
   }, [navigate]);
@@ -35,7 +35,7 @@ function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       markSignedIn();
-      navigate({ to: "/dashboard" });
+      navigate({ to: "/home" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Authentication failed");
     } finally {

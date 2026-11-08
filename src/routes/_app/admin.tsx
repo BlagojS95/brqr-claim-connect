@@ -35,6 +35,7 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/admin")({
+  head: () => ({ meta: [{ title: "Admin | ClaimsQR" }] }),
   component: AdminPage,
 });
 

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_app/policies")({
+  head: () => ({ meta: [{ title: "Policies | ClaimsQR" }] }),
   component: PoliciesPage,
 });
 

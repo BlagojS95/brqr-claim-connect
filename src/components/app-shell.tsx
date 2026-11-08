@@ -1,9 +1,10 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, FileText, PlusCircle, Bell, Users, LogOut, Shield, FolderArchive, BarChart3, LineChart } from "lucide-react";
+import { Home, FileText, PlusCircle, Bell, Users, LogOut, Shield, FolderArchive, LineChart } from "lucide-react";
 import claimsQrLogo from "@/assets/claims-qr-logo-white.png";
 import { supabase } from "@/integrations/supabase/client";
 import { clearSessionTimes } from "@/lib/session-expiry";
 import { cn } from "@/lib/utils";
+import { activeNavPath, HOME_PATH } from "@/lib/navigation";
 import type { AppRole } from "@/hooks/use-auth";
 
 interface NavItem {
@@ -15,14 +16,13 @@ interface NavItem {
 }
 
 const items: NavItem[] = [
-  { to: "/dashboard", label: "Dashboard", icon: Home },
+  { to: HOME_PATH, label: "Home", icon: Home },
+  { to: "/claims", label: "Claims", icon: FileText },
   { to: "/claims/new", label: "Report New Claim", icon: PlusCircle, mobileHide: true },
   { to: "/claims/notice", label: "Incident Notice Only", icon: Bell, mobileHide: true },
-  { to: "/claims", label: "Claims", icon: FileText },
-  { to: "/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/visual-graphs", label: "Visual Graphs", icon: LineChart },
   { to: "/policies", label: "Policies", icon: Shield },
-  { to: "/loss-runs", label: "Loss Runs", icon: FolderArchive },
+  { to: "/insights", label: "Insights", icon: LineChart },
+  { to: "/reports", label: "Reports", icon: FolderArchive },
   { to: "/admin", label: "Admin", icon: Users, adminOnly: true },
 ];
 
@@ -30,6 +30,10 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const visible = items.filter((i) => !i.adminOnly || role === "agency_admin");
+  const activePath = activeNavPath(
+    pathname,
+    visible.map((i) => i.to),
+  );
 
   const logout = async () => {
     clearSessionTimes();
@@ -46,7 +50,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {visible.map((item) => {
-            const active = pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
+            const active = item.to === activePath;
             const Icon = item.icon;
             return (
               <Link
@@ -85,7 +89,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
         {/* Mobile bottom nav */}
         <nav className="md:hidden fixed bottom-0 inset-x-0 bg-sidebar text-sidebar-foreground border-t border-sidebar-border flex">
           {visible.filter((i) => !i.mobileHide).slice(0, 5).map((item) => {
-            const active = pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
+            const active = item.to === activePath;
             const Icon = item.icon;
             return (
               <Link

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
 export const Route = createFileRoute("/_app/claims/")({
+  head: () => ({ meta: [{ title: "Claims | ClaimsQR" }] }),
   component: ClaimsList,
 });
 

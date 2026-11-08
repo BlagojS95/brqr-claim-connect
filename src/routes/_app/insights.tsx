@@ -31,8 +31,9 @@ import {
   Line,
 } from "recharts";
 
-export const Route = createFileRoute("/_app/visual-graphs")({
-  component: VisualGraphsPage,
+export const Route = createFileRoute("/_app/insights")({
+  head: () => ({ meta: [{ title: "Insights | ClaimsQR" }] }),
+  component: InsightsPage,
 });
 
 const COLORS = ["#0c2340", "#c9a84c", "#2d8a9e", "#c44569", "#5a8a5c", "#8b6f5e", "#4f46e5", "#e85d3a"];
@@ -40,7 +41,7 @@ const COLORS = ["#0c2340", "#c9a84c", "#2d8a9e", "#c44569", "#5a8a5c", "#8b6f5e"
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
-function VisualGraphsPage() {
+function InsightsPage() {
   const getOverview = useServerFn(fetchAgencyOverview);
 
   const { data: claims = [], isLoading } = useQuery({
@@ -112,7 +113,7 @@ function VisualGraphsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-navy flex items-center gap-2">
-          <LineIcon className="h-6 w-6 text-gold" /> Visual Graphs
+          <LineIcon className="h-6 w-6 text-gold" /> Insights
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Visual breakdown of claims directly from your data.

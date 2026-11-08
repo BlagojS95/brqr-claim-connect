@@ -76,7 +76,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BRQR Claims Portal" },
+      { title: "ClaimsQR" },
       { name: "description", content: "Secure client portal for BRQR Insurance Agency to manage and track insurance claims." },
       { property: "og:title", content: "BRQR Claims Portal" },
       { property: "og:description", content: "Secure client portal for BRQR Insurance Agency to manage and track insurance claims." },

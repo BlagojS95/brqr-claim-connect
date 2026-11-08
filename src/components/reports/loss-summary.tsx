@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
@@ -19,14 +18,12 @@ import type { AgencyClaim } from "@/lib/overview.types";
 import { BarChart3, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-export const Route = createFileRoute("/_app/analytics")({
-  component: AnalyticsPage,
-});
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
-function AnalyticsPage() {
+// The "Loss Summary" tab on /reports (formerly the Analytics page).
+export function LossSummary() {
   const [search, setSearch] = useState("");
   const getOverview = useServerFn(fetchAgencyOverview);
 
@@ -64,9 +61,9 @@ function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-navy flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-gold" /> Analytics
-          </h1>
+          <h2 className="text-xl md:text-2xl font-bold text-navy flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-gold" /> Loss Summary
+          </h2>
           <p className="text-sm text-muted-foreground mt-1">
             Loss run summary report by year and line of business.
           </p>

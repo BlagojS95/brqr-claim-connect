@@ -20,14 +20,15 @@ import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Bell, FileText, DollarSign, ClipboardList, Calendar } from "lucide-react";
 
-export const Route = createFileRoute("/_app/dashboard")({
-  component: Dashboard,
+export const Route = createFileRoute("/_app/home")({
+  head: () => ({ meta: [{ title: "Home | ClaimsQR" }] }),
+  component: Home,
 });
 
 const fmtCurrency = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
-function Dashboard() {
+function Home() {
   const { role, user } = useAuth();
   const isAdmin = role === "agency_admin";
   const getOverview = useServerFn(fetchAgencyOverview);
@@ -56,7 +57,7 @@ function Dashboard() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-navy">
-            {isAdmin ? "Agency Dashboard" : "Welcome back"}
+            {isAdmin ? "Agency Home" : "Welcome back"}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {isAdmin ? "All-client overview." : "Overview of your active claims and policies."}

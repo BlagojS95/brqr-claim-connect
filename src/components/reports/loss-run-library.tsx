@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -21,9 +20,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, FileText, Send, FolderArchive } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_app/loss-runs")({
-  component: LossRunsPage,
-});
 
 // Names from the lines_of_business table, so a request names lines the same
 // way claims and policies do. "Other" is left off, as before.
@@ -40,7 +36,8 @@ const LOB_OPTIONS = [
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
-function LossRunsPage() {
+// The "Loss Runs" tab on /reports (formerly the Loss Runs page).
+export function LossRunLibrary() {
   const { clientId, role } = useAuth();
   const qc = useQueryClient();
   const notifyAgency = useServerFn(sendLossRunRequestEmail);
@@ -168,7 +165,7 @@ function LossRunsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-navy">Loss Runs</h1>
+        <h2 className="text-xl md:text-2xl font-bold text-navy">Loss Run Library</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Access historical loss run reports and request new ones from your agent.
         </p>

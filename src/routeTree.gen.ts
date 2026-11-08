@@ -11,13 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LossRunsRouteImport } from './routes/loss-runs'
+import { Route as VisualGraphsRouteImport } from './routes/visual-graphs'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
-import { Route as AppAnalyticsRouteImport } from './routes/_app/analytics'
-import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
-import { Route as AppLossRunsRouteImport } from './routes/_app/loss-runs'
+import { Route as AppHomeRouteImport } from './routes/_app/home'
+import { Route as AppInsightsRouteImport } from './routes/_app/insights'
 import { Route as AppPoliciesRouteImport } from './routes/_app/policies'
-import { Route as AppVisualGraphsRouteImport } from './routes/_app/visual-graphs'
+import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppClaimsIndexRouteImport } from './routes/_app/claims.index'
 import { Route as AppClaimsClaimIdRouteImport } from './routes/_app/claims.$claimId'
 import { Route as AppClaimsNewRouteImport } from './routes/_app/claims.new'
@@ -32,9 +35,29 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LossRunsRoute = LossRunsRouteImport.update({
+  id: '/loss-runs',
+  path: '/loss-runs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VisualGraphsRoute = VisualGraphsRouteImport.update({
+  id: '/visual-graphs',
+  path: '/visual-graphs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppAdminRoute = AppAdminRouteImport.update({
@@ -42,19 +65,14 @@ const AppAdminRoute = AppAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
+const AppHomeRoute = AppHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => AppRoute,
 } as any)
-const AppDashboardRoute = AppDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppLossRunsRoute = AppLossRunsRouteImport.update({
-  id: '/loss-runs',
-  path: '/loss-runs',
+const AppInsightsRoute = AppInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPoliciesRoute = AppPoliciesRouteImport.update({
@@ -62,9 +80,9 @@ const AppPoliciesRoute = AppPoliciesRouteImport.update({
   path: '/policies',
   getParentRoute: () => AppRoute,
 } as any)
-const AppVisualGraphsRoute = AppVisualGraphsRouteImport.update({
-  id: '/visual-graphs',
-  path: '/visual-graphs',
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
 const AppClaimsIndexRoute = AppClaimsIndexRouteImport.update({
@@ -90,13 +108,16 @@ const AppClaimsNoticeRoute = AppClaimsNoticeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/loss-runs': typeof LossRunsRoute
+  '/visual-graphs': typeof VisualGraphsRoute
   '/admin': typeof AppAdminRoute
-  '/analytics': typeof AppAnalyticsRoute
-  '/dashboard': typeof AppDashboardRoute
-  '/loss-runs': typeof AppLossRunsRoute
+  '/home': typeof AppHomeRoute
+  '/insights': typeof AppInsightsRoute
   '/policies': typeof AppPoliciesRoute
-  '/visual-graphs': typeof AppVisualGraphsRoute
+  '/reports': typeof AppReportsRoute
   '/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/claims/new': typeof AppClaimsNewRoute
   '/claims/notice': typeof AppClaimsNoticeRoute
@@ -104,13 +125,16 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/loss-runs': typeof LossRunsRoute
+  '/visual-graphs': typeof VisualGraphsRoute
   '/admin': typeof AppAdminRoute
-  '/analytics': typeof AppAnalyticsRoute
-  '/dashboard': typeof AppDashboardRoute
-  '/loss-runs': typeof AppLossRunsRoute
+  '/home': typeof AppHomeRoute
+  '/insights': typeof AppInsightsRoute
   '/policies': typeof AppPoliciesRoute
-  '/visual-graphs': typeof AppVisualGraphsRoute
+  '/reports': typeof AppReportsRoute
   '/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/claims/new': typeof AppClaimsNewRoute
   '/claims/notice': typeof AppClaimsNoticeRoute
@@ -120,13 +144,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/analytics': typeof AnalyticsRoute
+  '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/loss-runs': typeof LossRunsRoute
+  '/visual-graphs': typeof VisualGraphsRoute
   '/_app/admin': typeof AppAdminRoute
-  '/_app/analytics': typeof AppAnalyticsRoute
-  '/_app/dashboard': typeof AppDashboardRoute
-  '/_app/loss-runs': typeof AppLossRunsRoute
+  '/_app/home': typeof AppHomeRoute
+  '/_app/insights': typeof AppInsightsRoute
   '/_app/policies': typeof AppPoliciesRoute
-  '/_app/visual-graphs': typeof AppVisualGraphsRoute
+  '/_app/reports': typeof AppReportsRoute
   '/_app/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/_app/claims/new': typeof AppClaimsNewRoute
   '/_app/claims/notice': typeof AppClaimsNoticeRoute
@@ -136,13 +163,16 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/login'
-    | '/admin'
     | '/analytics'
     | '/dashboard'
+    | '/login'
     | '/loss-runs'
-    | '/policies'
     | '/visual-graphs'
+    | '/admin'
+    | '/home'
+    | '/insights'
+    | '/policies'
+    | '/reports'
     | '/claims/$claimId'
     | '/claims/new'
     | '/claims/notice'
@@ -150,13 +180,16 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/login'
-    | '/admin'
     | '/analytics'
     | '/dashboard'
+    | '/login'
     | '/loss-runs'
-    | '/policies'
     | '/visual-graphs'
+    | '/admin'
+    | '/home'
+    | '/insights'
+    | '/policies'
+    | '/reports'
     | '/claims/$claimId'
     | '/claims/new'
     | '/claims/notice'
@@ -165,13 +198,16 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/analytics'
+    | '/dashboard'
     | '/login'
+    | '/loss-runs'
+    | '/visual-graphs'
     | '/_app/admin'
-    | '/_app/analytics'
-    | '/_app/dashboard'
-    | '/_app/loss-runs'
+    | '/_app/home'
+    | '/_app/insights'
     | '/_app/policies'
-    | '/_app/visual-graphs'
+    | '/_app/reports'
     | '/_app/claims/$claimId'
     | '/_app/claims/new'
     | '/_app/claims/notice'
@@ -181,7 +217,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  AnalyticsRoute: typeof AnalyticsRoute
+  DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  LossRunsRoute: typeof LossRunsRoute
+  VisualGraphsRoute: typeof VisualGraphsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -200,11 +240,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loss-runs': {
+      id: '/loss-runs'
+      path: '/loss-runs'
+      fullPath: '/loss-runs'
+      preLoaderRoute: typeof LossRunsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/visual-graphs': {
+      id: '/visual-graphs'
+      path: '/visual-graphs'
+      fullPath: '/visual-graphs'
+      preLoaderRoute: typeof VisualGraphsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/admin': {
@@ -214,25 +282,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/analytics': {
-      id: '/_app/analytics'
-      path: '/analytics'
-      fullPath: '/analytics'
-      preLoaderRoute: typeof AppAnalyticsRouteImport
+    '/_app/home': {
+      id: '/_app/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AppHomeRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/dashboard': {
-      id: '/_app/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AppDashboardRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/loss-runs': {
-      id: '/_app/loss-runs'
-      path: '/loss-runs'
-      fullPath: '/loss-runs'
-      preLoaderRoute: typeof AppLossRunsRouteImport
+    '/_app/insights': {
+      id: '/_app/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof AppInsightsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/policies': {
@@ -242,11 +303,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPoliciesRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/visual-graphs': {
-      id: '/_app/visual-graphs'
-      path: '/visual-graphs'
-      fullPath: '/visual-graphs'
-      preLoaderRoute: typeof AppVisualGraphsRouteImport
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/claims/': {
@@ -282,11 +343,10 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRoute
-  AppAnalyticsRoute: typeof AppAnalyticsRoute
-  AppDashboardRoute: typeof AppDashboardRoute
-  AppLossRunsRoute: typeof AppLossRunsRoute
+  AppHomeRoute: typeof AppHomeRoute
+  AppInsightsRoute: typeof AppInsightsRoute
   AppPoliciesRoute: typeof AppPoliciesRoute
-  AppVisualGraphsRoute: typeof AppVisualGraphsRoute
+  AppReportsRoute: typeof AppReportsRoute
   AppClaimsClaimIdRoute: typeof AppClaimsClaimIdRoute
   AppClaimsNewRoute: typeof AppClaimsNewRoute
   AppClaimsNoticeRoute: typeof AppClaimsNoticeRoute
@@ -295,11 +355,10 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRoute,
-  AppAnalyticsRoute: AppAnalyticsRoute,
-  AppDashboardRoute: AppDashboardRoute,
-  AppLossRunsRoute: AppLossRunsRoute,
+  AppHomeRoute: AppHomeRoute,
+  AppInsightsRoute: AppInsightsRoute,
   AppPoliciesRoute: AppPoliciesRoute,
-  AppVisualGraphsRoute: AppVisualGraphsRoute,
+  AppReportsRoute: AppReportsRoute,
   AppClaimsClaimIdRoute: AppClaimsClaimIdRoute,
   AppClaimsNewRoute: AppClaimsNewRoute,
   AppClaimsNoticeRoute: AppClaimsNoticeRoute,
@@ -311,7 +370,11 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  AnalyticsRoute: AnalyticsRoute,
+  DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  LossRunsRoute: LossRunsRoute,
+  VisualGraphsRoute: VisualGraphsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
