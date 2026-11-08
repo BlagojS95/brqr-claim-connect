@@ -1,25 +1,11 @@
 import type { ReactNode } from "react";
+import type { ChartCardSpec } from "@/lib/insights-measure";
 
 // Shared by the Insights charts and the placeholder shown while the charting
 // library loads, so both have the same card sizes and the layout never jumps.
 // Keep recharts out of this file: it must stay in the lazily loaded chunk.
 
 export const CHART_HEIGHT = 300;
-
-export interface ChartCardSpec {
-  id: string;
-  title: string;
-  wide?: boolean;
-}
-
-/** The Insights chart cards, in display order. */
-export const INSIGHTS_CHART_CARDS = {
-  lob: { id: "lob", title: "Claims by Line of Business" },
-  status: { id: "status", title: "Claims by Status" },
-  trend: { id: "trend", title: "Claims Trend by Year" },
-  paidByYear: { id: "paidByYear", title: "Paid by Year" },
-  carrier: { id: "carrier", title: "Claims by Carrier", wide: true },
-} as const satisfies Record<string, ChartCardSpec>;
 
 export function ChartCard({
   title,

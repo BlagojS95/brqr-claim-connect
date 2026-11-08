@@ -1,26 +1,42 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useMemo } from "react";
 import {
   STATUS_BUCKETS,
   compareYtd,
-  countByStatus,
   openCount,
+  statusBucket,
   totalIncurred,
   totalPaid,
 } from "@/lib/claim-metrics";
 import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
 import { calendarYear, todayIso } from "@/lib/dates";
+import {
+  DEFAULT_INSIGHTS_MEASURE,
+  INSIGHTS_MEASURES,
+  INSIGHTS_MEASURE_LABELS,
+  insightsChartCards,
+  parseInsightsMeasure,
+  totalsBy,
+  type InsightsMeasure,
+} from "@/lib/insights-measure";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { overviewQueryOptions } from "@/lib/query-keys";
-import { ChartsPlaceholder, INSIGHTS_CHART_CARDS } from "@/components/insights/chart-card";
+import { ChartsPlaceholder } from "@/components/insights/chart-card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LineChart as LineIcon } from "lucide-react";
 
 // recharts loads only when this page renders its charts (fix 27).
 const InsightsCharts = lazy(() => import("@/components/insights/insights-charts"));
 
 export const Route = createFileRoute("/_app/insights")({
+  // Optional so plain "/insights" links stay valid; count is the default and
+  // is left out of the URL.
+  validateSearch: (search: Record<string, unknown>): { measure?: InsightsMeasure } => {
+    const measure = parseInsightsMeasure(search.measure);
+    return measure === DEFAULT_INSIGHTS_MEASURE ? {} : { measure };
+  },
   head: () => ({ meta: [{ title: "Insights | ClaimsQR" }] }),
   component: InsightsPage,
 });
@@ -30,54 +46,48 @@ const fmt = (n: number) =>
 
 function InsightsPage() {
   const getOverview = useServerFn(fetchAgencyOverview);
+  const measure = Route.useSearch({ select: (s) => s.measure ?? DEFAULT_INSIGHTS_MEASURE });
+  const navigate = useNavigate({ from: Route.fullPath });
 
   const { data: claims = [], isLoading } = useQuery({
     ...overviewQueryOptions("claims", getOverview),
     select: (overview) => overview.claims,
   });
 
-  const byLob = useMemo(() => {
-    const m = new Map<string, { lob: string; count: number; paid: number }>();
-    for (const c of claims) {
-      const k = c.line_of_business;
-      const r = m.get(k) ?? { lob: k, count: 0, paid: 0 };
-      r.count += 1;
-      r.paid += Number(c.paid_amount ?? 0);
-      m.set(k, r);
-    }
-    return Array.from(m.values());
-  }, [claims]);
+  const byLob = useMemo(
+    () =>
+      Array.from(totalsBy(claims, (c) => c.line_of_business), ([lob, totals]) => ({
+        lob,
+        ...totals,
+      })),
+    [claims],
+  );
 
   const byStatus = useMemo(() => {
-    const counts = countByStatus(claims);
-    return STATUS_BUCKETS.filter((s) => counts[s] > 0).map((s) => ({
-      status: s,
-      name: CLAIM_STATUS_LABELS[s],
-      value: counts[s],
-    }));
+    const groups = totalsBy(claims, statusBucket);
+    return STATUS_BUCKETS.flatMap((s) => {
+      const totals = groups.get(s);
+      return totals ? [{ status: s, name: CLAIM_STATUS_LABELS[s], ...totals }] : [];
+    });
   }, [claims]);
 
-  const byYear = useMemo(() => {
-    const m = new Map<number, { year: number; count: number; paid: number }>();
-    for (const c of claims) {
-      const y = calendarYear(c.date_of_loss);
-      if (y === null) continue;
-      const r = m.get(y) ?? { year: y, count: 0, paid: 0 };
-      r.count += 1;
-      r.paid += Number(c.paid_amount ?? 0);
-      m.set(y, r);
-    }
-    return Array.from(m.values()).sort((a, b) => a.year - b.year);
-  }, [claims]);
+  const byYear = useMemo(
+    () =>
+      Array.from(totalsBy(claims, (c) => calendarYear(c.date_of_loss)), ([year, totals]) => ({
+        year,
+        ...totals,
+      })).sort((a, b) => a.year - b.year),
+    [claims],
+  );
 
-  const byCarrier = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const c of claims) {
-      const k = c.carrier || "—";
-      m.set(k, (m.get(k) ?? 0) + 1);
-    }
-    return Array.from(m.entries()).map(([carrier, count]) => ({ carrier, count }));
-  }, [claims]);
+  const byCarrier = useMemo(
+    () =>
+      Array.from(totalsBy(claims, (c) => c.carrier || "—"), ([carrier, totals]) => ({
+        carrier,
+        ...totals,
+      })),
+    [claims],
+  );
 
   const totals = useMemo(() => {
     return {
@@ -129,8 +139,32 @@ function InsightsPage() {
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
 
-      <Suspense fallback={<ChartsPlaceholder cards={Object.values(INSIGHTS_CHART_CARDS)} />}>
-        <InsightsCharts byLob={byLob} byStatus={byStatus} byYear={byYear} byCarrier={byCarrier} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">Charts show</span>
+        <Tabs
+          value={measure}
+          onValueChange={(value) =>
+            navigate({ search: { measure: parseInsightsMeasure(value) }, replace: true })
+          }
+        >
+          <TabsList aria-label="Chart measure">
+            {INSIGHTS_MEASURES.map((m) => (
+              <TabsTrigger key={m} value={m}>
+                {INSIGHTS_MEASURE_LABELS[m]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      </div>
+
+      <Suspense fallback={<ChartsPlaceholder cards={Object.values(insightsChartCards(measure))} />}>
+        <InsightsCharts
+          measure={measure}
+          byLob={byLob}
+          byStatus={byStatus}
+          byYear={byYear}
+          byCarrier={byCarrier}
+        />
       </Suspense>
     </div>
   );
