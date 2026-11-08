@@ -2,6 +2,7 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { Home, FileText, PlusCircle, Bell, Users, LogOut, Shield, FolderArchive, BarChart3, LineChart } from "lucide-react";
 import claimsQrLogo from "@/assets/claims-qr-logo-white.png";
 import { supabase } from "@/integrations/supabase/client";
+import { clearSessionTimes } from "@/lib/session-expiry";
 import { cn } from "@/lib/utils";
 import type { AppRole } from "@/hooks/use-auth";
 
@@ -31,6 +32,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
   const visible = items.filter((i) => !i.adminOnly || role === "agency_admin");
 
   const logout = async () => {
+    clearSessionTimes();
     await supabase.auth.signOut();
     navigate({ to: "/login" });
   };
