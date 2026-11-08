@@ -2,8 +2,20 @@
 // all of this in the URL (/claims?status=open&sort=paid&dir=desc&page=2), so
 // links such as Home's "Open Claims" card can point straight at a filtered view.
 
-import { STATUS_BUCKETS, paidAmount, reserveAmount, statusBucket } from "@/lib/claim-metrics";
-import { CLAIM_STATUS_LABELS, isClaimStatus, type ClaimStatus } from "@/lib/claim-status";
+import {
+  STATUS_BUCKETS,
+  isOpen,
+  paidAmount,
+  reserveAmount,
+  statusBucket,
+  type StatusBucket,
+} from "@/lib/claim-metrics";
+import {
+  CLAIM_STATUS,
+  CLAIM_STATUS_LABELS,
+  isClaimStatus,
+  type ClaimStatus,
+} from "@/lib/claim-status";
 import type { AgencyClaim } from "@/lib/overview.types";
 
 export const CLAIMS_PAGE_SIZE = 25;
@@ -83,7 +95,7 @@ export function filterClaims<T extends ClaimListItem>(
 ): T[] {
   const text = q?.trim().toLowerCase() ?? "";
   return claims.filter((c) => {
-    if (status && statusBucket(c) !== status) return false;
+    if (status && !matchesStatus(c, status)) return false;
     if (!text) return true;
     return [
       c.claim_number,
@@ -197,4 +209,11 @@ export function nextSort(
 ): { sort: ClaimSortKey; dir: SortDir } {
   if (current.sort === key) return { sort: key, dir: current.dir === "asc" ? "desc" : "asc" };
   return { sort: key, dir: defaultSortDir(key) };
+}
+
+// "Open" includes reopened claims, the same as the Open Claims count on Home
+// (isOpen in claim-metrics.ts), so /claims?status=open matches that number.
+export function matchesStatus(claim: ClaimListItem, status: StatusBucket): boolean {
+  if (status === CLAIM_STATUS.open) return isOpen(claim);
+  return statusBucket(claim) === status;
 }

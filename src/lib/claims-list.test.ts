@@ -66,7 +66,10 @@ describe("filterClaims", () => {
   });
 
   it("filters by status", () => {
-    expect(filterClaims(claims, { status: CLAIM_STATUS.open }).map((c) => c.id)).toEqual(["a"]);
+    expect(filterClaims(claims, { status: CLAIM_STATUS.open }).map((c) => c.id)).toEqual([
+      "a",
+      "c",
+    ]);
     expect(filterClaims(claims, { status: CLAIM_STATUS.closed }).map((c) => c.id)).toEqual(["b"]);
   });
 
@@ -78,7 +81,10 @@ describe("filterClaims", () => {
   });
 
   it("combines status and search", () => {
-    expect(filterClaims(claims, { status: CLAIM_STATUS.open, q: "pat" })).toEqual([]);
+    expect(filterClaims(claims, { status: CLAIM_STATUS.closed, q: "pat" })).toEqual([]);
+    expect(filterClaims(claims, { status: CLAIM_STATUS.open, q: "pat" }).map((c) => c.id)).toEqual([
+      "c",
+    ]);
   });
 });
 
@@ -165,5 +171,17 @@ describe("nextSort", () => {
       sort: "reserve",
       dir: "desc",
     });
+  });
+});
+
+describe("status=open", () => {
+  it("includes reopened claims, matching the Open Claims count on Home", () => {
+    const rows = [
+      claim({ id: "o", status: CLAIM_STATUS.open }),
+      claim({ id: "r", status: CLAIM_STATUS.reopened }),
+      claim({ id: "c", status: CLAIM_STATUS.closed }),
+    ];
+    expect(filterClaims(rows, { status: CLAIM_STATUS.open }).map((c) => c.id)).toEqual(["o", "r"]);
+    expect(filterClaims(rows, { status: CLAIM_STATUS.reopened }).map((c) => c.id)).toEqual(["r"]);
   });
 });
