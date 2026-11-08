@@ -17,6 +17,7 @@ import { overviewQueryOptions } from "@/lib/query-keys";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { BarChart3, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { StatusBadge } from "@/components/status-badge";
 
 
 const fmt = (n: number) =>
@@ -68,11 +69,11 @@ export function LossSummary() {
             Loss run summary report by year and line of business.
           </p>
         </div>
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search year, LOB, carrier…"
-            className="pl-9 w-64"
+            className="pl-9 w-full sm:w-64"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -103,11 +104,7 @@ export function LossSummary() {
                   <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="text-left p-3">Claim #</th>
-                      {STATUS_BUCKETS.map((s) => (
-                        <th key={s} className="text-center p-3">
-                          {CLAIM_STATUS_LABELS[s]}
-                        </th>
-                      ))}
+                      <th className="text-left p-3">Status</th>
                       <th className="text-right p-3">Paid</th>
                       <th className="text-right p-3">Incurred</th>
                     </tr>
@@ -115,21 +112,31 @@ export function LossSummary() {
                   <tbody>
                     {g.rows.map((r) => (
                       <tr key={r.id} className="border-t border-border">
-                        <td className="p-3 font-mono text-xs">{r.claim_number ?? "—"}</td>
-                        {STATUS_BUCKETS.map((s) => (
-                          <td key={s} className="p-3 text-center">{statusBucket(r) === s ? 1 : 0}</td>
-                        ))}
-                        <td className="p-3 text-right">{fmt(paidAmount(r))}</td>
-                        <td className="p-3 text-right">{fmt(incurredAmount(r))}</td>
+                        <td className="p-3 whitespace-nowrap">
+                          {r.claim_number ? (
+                            <span className="font-mono text-xs">{r.claim_number}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Number pending</span>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <StatusBadge status={statusBucket(r)} />
+                        </td>
+                        <td className="p-3 text-right whitespace-nowrap">{fmt(paidAmount(r))}</td>
+                        <td className="p-3 text-right whitespace-nowrap">
+                          {fmt(incurredAmount(r))}
+                        </td>
                       </tr>
                     ))}
                     <tr className="border-t-2 border-border bg-muted/20 font-semibold text-navy">
-                      <td className="p-3">Total ({totalClaims})</td>
-                      {STATUS_BUCKETS.map((s) => (
-                        <td key={s} className="p-3 text-center">{counts[s]}</td>
-                      ))}
-                      <td className="p-3 text-right">{fmt(paid)}</td>
-                      <td className="p-3 text-right">{fmt(incurred)}</td>
+                      <td className="p-3 whitespace-nowrap">Total ({totalClaims})</td>
+                      <td className="p-3 text-xs font-medium">
+                        {STATUS_BUCKETS.filter((s) => counts[s] > 0)
+                          .map((s) => `${counts[s]} ${CLAIM_STATUS_LABELS[s]}`)
+                          .join(" · ")}
+                      </td>
+                      <td className="p-3 text-right whitespace-nowrap">{fmt(paid)}</td>
+                      <td className="p-3 text-right whitespace-nowrap">{fmt(incurred)}</td>
                     </tr>
                   </tbody>
                 </table>
