@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, linkOptions } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -8,7 +8,7 @@ import {
   totalIncurred,
   totalPaid,
 } from "@/lib/claim-metrics";
-import { CLAIM_STATUS_LABELS, claimStatusLabel } from "@/lib/claim-status";
+import { CLAIM_STATUS, CLAIM_STATUS_LABELS, claimStatusLabel } from "@/lib/claim-status";
 import { STATUS_COLORS } from "@/lib/status-colors";
 import { formatDate } from "@/lib/dates";
 import { POLICY_STATUS } from "@/lib/policy-status";
@@ -45,11 +45,41 @@ function Home() {
   const lastLoss = claims[0]?.date_of_loss ?? null;
   const activePolicies = policies.filter((p) => p.status === POLICY_STATUS.active).length;
 
+  const lastClaim = claims[0] ?? null;
+
+  // Each card links to the list behind its number. Last Claim has no link
+  // when there is no claim.
   const cards = [
-    { label: "Open Claims", value: openClaims, icon: ClipboardList },
-    { label: "Total Paid", value: fmtCurrency(paidToDate), icon: DollarSign },
-    { label: "Active Policies", value: activePolicies, icon: FileText },
-    { label: "Last Claim", value: formatDate(lastLoss), icon: Calendar },
+    {
+      label: "Open Claims",
+      value: openClaims,
+      icon: ClipboardList,
+      ariaLabel: `Open claims: ${openClaims}, view list`,
+      link: linkOptions({ to: "/claims", search: { status: CLAIM_STATUS.open } }),
+    },
+    {
+      label: "Total Paid",
+      value: fmtCurrency(paidToDate),
+      icon: DollarSign,
+      ariaLabel: `Total paid: ${fmtCurrency(paidToDate)}, view in Insights`,
+      link: linkOptions({ to: "/insights", search: { measure: "paid" } }),
+    },
+    {
+      label: "Active Policies",
+      value: activePolicies,
+      icon: FileText,
+      ariaLabel: `Active policies: ${activePolicies}, view policies`,
+      link: linkOptions({ to: "/policies" }),
+    },
+    {
+      label: "Last Claim",
+      value: formatDate(lastLoss),
+      icon: Calendar,
+      ariaLabel: `Last claim: ${formatDate(lastLoss)}, view claim`,
+      link: lastClaim
+        ? linkOptions({ to: "/claims/$claimId", params: { claimId: lastClaim.id } })
+        : null,
+    },
   ];
 
   return (
@@ -78,15 +108,33 @@ function Home() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {cards.map((c) => (
-          <div key={c.label} className="rounded-lg border border-border bg-card p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wide text-muted-foreground">{c.label}</span>
-              <c.icon className="h-4 w-4 text-gold" />
+        {cards.map((c) => {
+          const body = (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {c.label}
+                </span>
+                <c.icon className="h-4 w-4 text-gold" />
+              </div>
+              <div className="mt-2 text-2xl font-bold text-navy">{c.value}</div>
+            </>
+          );
+          return c.link ? (
+            <Link
+              key={c.label}
+              {...c.link}
+              aria-label={c.ariaLabel}
+              className="block rounded-lg border border-border bg-card p-5 transition-colors hover:border-gold hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
+            >
+              {body}
+            </Link>
+          ) : (
+            <div key={c.label} className="rounded-lg border border-border bg-card p-5">
+              {body}
             </div>
-            <div className="mt-2 text-2xl font-bold text-navy">{c.value}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <ClaimsSummary claims={claims} />
