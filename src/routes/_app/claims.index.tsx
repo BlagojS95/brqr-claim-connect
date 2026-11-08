@@ -126,7 +126,26 @@ function ClaimsList() {
         />
       </div>
 
-      <div className="rounded-lg border border-border bg-card overflow-x-auto">
+      {/* Phones get cards (fix 23); the table starts at md. */}
+      <ul className="md:hidden space-y-3">
+        {isLoading && (
+          <li className="rounded-lg border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+            Loading…
+          </li>
+        )}
+        {!isLoading && page.total === 0 && (
+          <li className="rounded-lg border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+            No claims found.
+          </li>
+        )}
+        {page.rows.map((c) => (
+          <li key={c.id}>
+            <ClaimCard claim={c} />
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden md:block rounded-lg border border-border bg-card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
@@ -205,6 +224,36 @@ function ClaimsList() {
         </div>
       )}
     </div>
+  );
+}
+
+function ClaimCard({ claim: c }: { claim: AgencyClaim }) {
+  const carrierShort = carrierShortName(c.carrier);
+  return (
+    <Link
+      to="/claims/$claimId"
+      params={{ claimId: c.id }}
+      className="block rounded-lg border border-border bg-card p-4 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">Date of loss</p>
+          <p className="font-medium text-navy">{formatDate(c.date_of_loss)}</p>
+        </div>
+        <StatusBadge status={c.status} />
+      </div>
+      <p className="mt-2 text-sm font-medium truncate">{c.line_of_business}</p>
+      <div className="mt-1 flex items-center justify-between gap-3 text-sm text-muted-foreground">
+        <span className="truncate" title={c.carrier ?? undefined}>
+          {carrierShort ?? "—"}
+        </span>
+        {c.claim_number ? (
+          <span className="font-mono text-xs truncate">{c.claim_number}</span>
+        ) : (
+          <span className="text-xs italic shrink-0">Number pending</span>
+        )}
+      </div>
+    </Link>
   );
 }
 

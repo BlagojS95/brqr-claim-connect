@@ -5,6 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { clearSessionTimes } from "@/lib/session-expiry";
 import { cn } from "@/lib/utils";
 import { activeNavPath, HOME_PATH } from "@/lib/navigation";
+import {
+  INCIDENT_NOTICE_PATH,
+  MobileBottomNav,
+  REPORT_NEW_CLAIM_PATH,
+} from "@/components/mobile-nav";
 import type { AppRole } from "@/hooks/use-auth";
 
 interface NavItem {
@@ -12,14 +17,13 @@ interface NavItem {
   label: string;
   icon: typeof Home;
   adminOnly?: boolean;
-  mobileHide?: boolean;
 }
 
 const items: NavItem[] = [
   { to: HOME_PATH, label: "Home", icon: Home },
   { to: "/claims", label: "Claims", icon: FileText },
-  { to: "/claims/new", label: "Report New Claim", icon: PlusCircle, mobileHide: true },
-  { to: "/claims/notice", label: "Incident Notice Only", icon: Bell, mobileHide: true },
+  { to: REPORT_NEW_CLAIM_PATH, label: "Report New Claim", icon: PlusCircle },
+  { to: INCIDENT_NOTICE_PATH, label: "Incident Notice Only", icon: Bell },
   { to: "/policies", label: "Policies", icon: Shield },
   { to: "/insights", label: "Insights", icon: LineChart },
   { to: "/reports", label: "Reports", icon: FolderArchive },
@@ -80,32 +84,19 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden flex items-center justify-between p-4 bg-navy text-navy-foreground">
           <img src={claimsQrLogo} alt="Claims QR" className="h-8 w-auto" />
-          <button onClick={logout} className="text-sm opacity-90">
-            <LogOut className="h-4 w-4" />
+          <button
+            onClick={logout}
+            aria-label="Sign out"
+            className="flex items-center gap-2 px-2 py-1 rounded-md text-sm opacity-90 hover:opacity-100"
+          >
+            <LogOut className="h-4 w-4" aria-hidden />
+            <span>Sign out</span>
           </button>
         </header>
         <div className="flex-1 p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto">{children}</div>
 
-        {/* Mobile bottom nav */}
-        <nav className="md:hidden fixed bottom-0 inset-x-0 bg-sidebar text-sidebar-foreground border-t border-sidebar-border flex">
-          {visible.filter((i) => !i.mobileHide).slice(0, 5).map((item) => {
-            const active = item.to === activePath;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "flex-1 flex flex-col items-center py-2 text-[10px] gap-1",
-                  active ? "text-gold" : "text-sidebar-foreground/70"
-                )}
-              >
-                <Icon className="h-5 w-5" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        {/* Mobile bottom nav (fix 23) */}
+        <MobileBottomNav activePath={activePath} />
       </main>
     </div>
   );
