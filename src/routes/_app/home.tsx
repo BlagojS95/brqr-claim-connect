@@ -8,7 +8,7 @@ import {
   totalIncurred,
   totalPaid,
 } from "@/lib/claim-metrics";
-import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
+import { CLAIM_STATUS_LABELS, claimStatusLabel } from "@/lib/claim-status";
 import { STATUS_COLORS } from "@/lib/status-colors";
 import { formatDate } from "@/lib/dates";
 import { POLICY_STATUS } from "@/lib/policy-status";
@@ -115,13 +115,24 @@ function Home() {
                 <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No claims yet.</td></tr>
               )}
               {claims.slice(0, 8).map((c) => (
-                <tr key={c.id} className="border-t border-border hover:bg-muted/30">
+                // The claim # link is stretched over the whole row (after:inset-0
+                // against the relative <tr>), so the row is one real link: click
+                // anywhere, Tab + Enter, Ctrl/Cmd-click for a new tab.
+                <tr
+                  key={c.id}
+                  className="group relative border-t border-border hover:bg-muted/30 focus-within:bg-muted/30"
+                >
                   <td className="p-3">{formatDate(c.date_of_loss)}</td>
                   <td className="p-3">{c.claim_type}</td>
                   <td className="p-3"><StatusBadge status={c.status} /></td>
                   <td className="p-3">{c.carrier ?? "—"}</td>
                   <td className="p-3 font-mono text-xs">
-                    <Link to="/claims/$claimId" params={{ claimId: c.id }} className="text-navy hover:text-gold">
+                    <Link
+                      to="/claims/$claimId"
+                      params={{ claimId: c.id }}
+                      aria-label={`Claim ${c.claim_number ?? "Pending"}: ${c.claim_type}, ${claimStatusLabel(c.status)}, loss date ${formatDate(c.date_of_loss)}`}
+                      className="text-navy group-hover:text-gold focus-visible:outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-gold"
+                    >
                       {/* Display copy for a missing claim number, not a claim status. */}
                       {c.claim_number ?? "Pending"}
                     </Link>
