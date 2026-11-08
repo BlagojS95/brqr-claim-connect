@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import {
   STATUS_BUCKETS,
   compareYtd,
@@ -12,25 +12,13 @@ import {
 } from "@/lib/claim-metrics";
 import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
 import { calendarYear, todayIso } from "@/lib/dates";
-import { STATUS_COLORS, seriesColor } from "@/lib/status-colors";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { overviewQueryOptions } from "@/lib/query-keys";
+import { ChartsPlaceholder, INSIGHTS_CHART_CARDS } from "@/components/insights/chart-card";
 import { LineChart as LineIcon } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-} from "recharts";
+
+// recharts loads only when this page renders its charts (fix 27).
+const InsightsCharts = lazy(() => import("@/components/insights/insights-charts"));
 
 export const Route = createFileRoute("/_app/insights")({
   head: () => ({ meta: [{ title: "Insights | ClaimsQR" }] }),
@@ -141,75 +129,9 @@ function InsightsPage() {
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Claims by Line of Business">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={byLob}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="lob" fontSize={12} interval={0} angle={-15} textAnchor="end" height={60} />
-              <YAxis fontSize={12} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#0c2340" name="Claims" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="Claims by Status">
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={byStatus} dataKey="value" nameKey="name" outerRadius={100} label>
-                {byStatus.map((entry) => (
-                  <Cell key={entry.status} fill={STATUS_COLORS[entry.status].hex} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="Claims Trend by Year">
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={byYear}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="year" fontSize={12} />
-              <YAxis fontSize={12} />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="count" stroke="#0c2340" strokeWidth={2} name="Claims" />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="Paid by Year">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={byYear}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="year" fontSize={12} />
-              <YAxis fontSize={12} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v: number) => fmt(v)} />
-              <Legend />
-              <Bar dataKey="paid" fill="#2d8a9e" name="Paid" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="Claims by Carrier" className="lg:col-span-2">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={byCarrier} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis type="number" fontSize={12} />
-              <YAxis dataKey="carrier" type="category" fontSize={12} width={140} />
-              <Tooltip />
-              <Bar dataKey="count" name="Claims">
-                {byCarrier.map((entry, i) => (
-                  <Cell key={entry.carrier} fill={seriesColor(i)} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
+      <Suspense fallback={<ChartsPlaceholder cards={Object.values(INSIGHTS_CHART_CARDS)} />}>
+        <InsightsCharts byLob={byLob} byStatus={byStatus} byYear={byYear} byCarrier={byCarrier} />
+      </Suspense>
     </div>
   );
 }
@@ -236,15 +158,6 @@ function Stat({
       <div className="text-xs text-muted-foreground uppercase tracking-wide">{label}</div>
       <div className="text-2xl font-bold text-navy mt-1">{value}</div>
       {sub && <div className={`text-xs mt-1 font-medium ${toneClass}`}>{sub}</div>}
-    </div>
-  );
-}
-
-function ChartCard({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`rounded-lg border border-border bg-card p-5 ${className ?? ""}`}>
-      <h2 className="text-sm font-semibold text-navy mb-4">{title}</h2>
-      {children}
     </div>
   );
 }
