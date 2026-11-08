@@ -12,6 +12,7 @@ import {
 } from "@/lib/claim-metrics";
 import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
 import { calendarYear, todayIso } from "@/lib/dates";
+import { STATUS_COLORS, seriesColor } from "@/lib/status-colors";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { overviewQueryOptions } from "@/lib/query-keys";
 import { LineChart as LineIcon } from "lucide-react";
@@ -35,8 +36,6 @@ export const Route = createFileRoute("/_app/insights")({
   head: () => ({ meta: [{ title: "Insights | ClaimsQR" }] }),
   component: InsightsPage,
 });
-
-const COLORS = ["#0c2340", "#c9a84c", "#2d8a9e", "#c44569", "#5a8a5c", "#8b6f5e", "#4f46e5", "#e85d3a"];
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
@@ -64,6 +63,7 @@ function InsightsPage() {
   const byStatus = useMemo(() => {
     const counts = countByStatus(claims);
     return STATUS_BUCKETS.filter((s) => counts[s] > 0).map((s) => ({
+      status: s,
       name: CLAIM_STATUS_LABELS[s],
       value: counts[s],
     }));
@@ -158,8 +158,8 @@ function InsightsPage() {
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie data={byStatus} dataKey="value" nameKey="name" outerRadius={100} label>
-                {byStatus.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                {byStatus.map((entry) => (
+                  <Cell key={entry.status} fill={STATUS_COLORS[entry.status].hex} />
                 ))}
               </Pie>
               <Tooltip />
@@ -201,7 +201,11 @@ function InsightsPage() {
               <XAxis type="number" fontSize={12} />
               <YAxis dataKey="carrier" type="category" fontSize={12} width={140} />
               <Tooltip />
-              <Bar dataKey="count" fill="#4f46e5" name="Claims" />
+              <Bar dataKey="count" name="Claims">
+                {byCarrier.map((entry, i) => (
+                  <Cell key={entry.carrier} fill={seriesColor(i)} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>

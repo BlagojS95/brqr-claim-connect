@@ -7,9 +7,9 @@ import {
   openCount,
   totalIncurred,
   totalPaid,
-  type StatusBucket,
 } from "@/lib/claim-metrics";
 import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
+import { STATUS_COLORS } from "@/lib/status-colors";
 import { formatDate } from "@/lib/dates";
 import { POLICY_STATUS } from "@/lib/policy-status";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
@@ -148,15 +148,6 @@ function ClaimsSummary({ claims }: { claims: AgencyClaim[] }) {
   const paid = totalPaid(claims);
   const incurred = totalIncurred(claims);
 
-  // Same colours as StatusBadge.
-  const statusTones: Record<StatusBucket, string> = {
-    notice: "bg-slate-400",
-    submitted: "bg-gold",
-    open: "bg-navy",
-    closed: "bg-muted-foreground/40",
-    reopened: "bg-orange-500",
-  };
-
   const topTypes = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const maxType = Math.max(1, ...topTypes.map(([, n]) => n));
 
@@ -183,7 +174,7 @@ function ClaimsSummary({ claims }: { claims: AgencyClaim[] }) {
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
                     <div
-                      className={`h-full ${statusTones[s]}`}
+                      className={`h-full ${STATUS_COLORS[s].bar}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
