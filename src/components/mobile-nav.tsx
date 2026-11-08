@@ -1,6 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Bell, ChevronRight, FileText, FolderArchive, Home, Plus, Shield } from "lucide-react";
+import {
+  Bell,
+  ChevronRight,
+  FileText,
+  FolderArchive,
+  Home,
+  LogOut,
+  Menu,
+  Plus,
+  Shield,
+} from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -137,5 +147,81 @@ export function MobileBottomNav({ activePath }: { activePath: string | null }) {
 
       {RIGHT_ITEMS.map(barLink)}
     </nav>
+  );
+}
+
+export interface MenuItem {
+  to: string;
+  label: string;
+  icon: typeof Home;
+}
+
+// The "Menu" button in the mobile top bar: every page the desktop sidebar has
+// (the bottom bar only fits the main five), plus Sign out. Closes on a choice.
+export function MobileMenu({
+  items,
+  activePath,
+  onSignOut,
+}: {
+  items: readonly MenuItem[];
+  activePath: string | null;
+  onSignOut: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger
+        aria-label="Open menu"
+        className="flex items-center gap-2 px-2 py-1 rounded-md text-sm opacity-90 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+      >
+        <Menu className="h-5 w-5" aria-hidden />
+        <span>Menu</span>
+      </SheetTrigger>
+      <SheetContent
+        side="right"
+        className="w-72 max-w-[85vw] flex flex-col bg-sidebar text-sidebar-foreground border-sidebar-border p-0"
+      >
+        <SheetHeader className="p-5 border-b border-sidebar-border text-left">
+          <SheetTitle className="text-sidebar-foreground">Menu</SheetTitle>
+          <SheetDescription className="text-sidebar-foreground/70">
+            All pages of the portal.
+          </SheetDescription>
+        </SheetHeader>
+        <nav aria-label="All pages" className="flex-1 overflow-y-auto p-3 space-y-1">
+          {items.map((item) => {
+            const active = item.to === activePath;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                onClick={() => setOpen(false)}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-3 rounded-md text-sm transition-colors",
+                  active
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-gold"
+                    : "hover:bg-sidebar-accent/60 text-sidebar-foreground/85",
+                )}
+              >
+                <Icon className="h-4 w-4" aria-hidden />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            onSignOut();
+          }}
+          className="m-3 flex items-center gap-2 px-3 py-3 rounded-md text-sm hover:bg-sidebar-accent/60 border-t border-sidebar-border"
+        >
+          <LogOut className="h-4 w-4" aria-hidden /> Sign out
+        </button>
+      </SheetContent>
+    </Sheet>
   );
 }

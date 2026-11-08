@@ -25,6 +25,7 @@ Client claims portal for BRQR Insurance Agency (claimsqr.com). Originally scaffo
 - Status and line-of-business values come from shared constants, never raw strings in components.
 - Server-only code lives in `*.server.ts` and is only imported inside server handlers.
 - Keep the existing visual design unless the task says otherwise.
+- Most users are on a phone. Everything visible on desktop must also be reachable on a phone (375 px): the bottom bar holds the main items, and the top-right "Menu" (`MobileMenu` in `src/components/mobile-nav.tsx`) lists every sidebar page plus Sign out. New pages go in the sidebar list in `app-shell.tsx`, which feeds both.
 - The product name is "ClaimsQR" (capital C, capital QR, no space) everywhere users see it.
 
 ## Workflow

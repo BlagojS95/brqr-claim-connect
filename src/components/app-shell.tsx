@@ -8,6 +8,7 @@ import { activeNavPath, HOME_PATH } from "@/lib/navigation";
 import {
   INCIDENT_NOTICE_PATH,
   MobileBottomNav,
+  MobileMenu,
   REPORT_NEW_CLAIM_PATH,
 } from "@/components/mobile-nav";
 import type { AppRole } from "@/hooks/use-auth";
@@ -84,14 +85,8 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden flex items-center justify-between p-4 bg-navy text-navy-foreground">
           <img src={claimsQrLogo} alt="Claims QR" className="h-8 w-auto" />
-          <button
-            onClick={logout}
-            aria-label="Sign out"
-            className="flex items-center gap-2 px-2 py-1 rounded-md text-sm opacity-90 hover:opacity-100"
-          >
-            <LogOut className="h-4 w-4" aria-hidden />
-            <span>Sign out</span>
-          </button>
+          {/* Every sidebar page and Sign out; the bottom bar holds the main five. */}
+          <MobileMenu items={visible} activePath={activePath} onSignOut={logout} />
         </header>
         <div className="flex-1 p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto">{children}</div>
 
