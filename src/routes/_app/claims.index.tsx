@@ -15,6 +15,7 @@ import {
   parseClaimsSearch,
   sortClaims,
   type ClaimSortKey,
+  type SortDir,
 } from "@/lib/claims-list";
 import { formatDate } from "@/lib/dates";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
@@ -125,6 +126,12 @@ function ClaimsList() {
           className="pl-9"
         />
       </div>
+
+      <MobileSort
+        sort={sort}
+        dir={dir}
+        onChange={(next) => navigate({ search: (prev) => ({ ...prev, ...next, page: undefined }) })}
+      />
 
       {/* Phones get cards (fix 23); the table starts at md. */}
       <ul className="md:hidden space-y-3">
@@ -242,7 +249,10 @@ function ClaimCard({ claim: c }: { claim: AgencyClaim }) {
         </div>
         <StatusBadge status={c.status} />
       </div>
-      <p className="mt-2 text-sm font-medium truncate">{c.line_of_business}</p>
+      <p className="mt-2 text-sm font-medium truncate">{c.claim_type}</p>
+      {c.line_of_business && c.line_of_business !== c.claim_type && (
+        <p className="text-xs text-muted-foreground truncate">{c.line_of_business}</p>
+      )}
       <div className="mt-1 flex items-center justify-between gap-3 text-sm text-muted-foreground">
         <span className="truncate" title={c.carrier ?? undefined}>
           {carrierShort ?? "—"}
@@ -253,7 +263,71 @@ function ClaimCard({ claim: c }: { claim: AgencyClaim }) {
           <span className="text-xs italic shrink-0">Number pending</span>
         )}
       </div>
+      {/* Everything the desktop row shows, so phones see the same (CLAUDE.md). */}
+      <dl className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+        <CardField label="Paid" value={fmtMoney(paidAmount(c))} numeric />
+        <CardField label="Reserve" value={fmtMoney(reserveAmount(c))} numeric />
+        <CardField label="Adjuster" value={c.adjuster_name ?? "—"} />
+        <CardField label="Closed" value={c.closed_date ? formatDate(c.closed_date) : "—"} />
+      </dl>
     </Link>
+  );
+}
+
+function CardField({ label, value, numeric }: { label: string; value: string; numeric?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={cn("truncate", numeric && "tabular-nums font-medium")}>{value}</dd>
+    </div>
+  );
+}
+
+// Phones have no column headers to tap, so sorting is a dropdown plus a
+// direction button, driving the same ?sort=&dir= as the desktop headers.
+function MobileSort({
+  sort,
+  dir,
+  onChange,
+}: {
+  sort: ClaimSortKey;
+  dir: SortDir;
+  onChange: (next: { sort: ClaimSortKey; dir: SortDir }) => void;
+}) {
+  const DirIcon = dir === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <div className="md:hidden flex items-center gap-2">
+      <label htmlFor="claims-sort" className="text-sm text-muted-foreground shrink-0">
+        Sort by
+      </label>
+      <select
+        id="claims-sort"
+        value={sort}
+        onChange={(e) => {
+          const key = e.target.value as ClaimSortKey;
+          onChange({ sort: key, dir: defaultSortDir(key) });
+        }}
+        className="flex-1 min-w-0 h-10 rounded-md border border-input bg-background px-3 text-base"
+      >
+        {COLUMNS.map((col) => (
+          <option key={col.key} value={col.key}>
+            {col.label}
+          </option>
+        ))}
+      </select>
+      <Button
+        type="button"
+        variant="outline"
+        className="h-10 shrink-0"
+        onClick={() => onChange({ sort, dir: dir === "asc" ? "desc" : "asc" })}
+        aria-label={
+          dir === "asc" ? "Ascending, tap for descending" : "Descending, tap for ascending"
+        }
+      >
+        <DirIcon className="h-4 w-4" aria-hidden />
+        {dir === "asc" ? "Ascending" : "Descending"}
+      </Button>
+    </div>
   );
 }
 

@@ -160,8 +160,7 @@ export function LossRunLibrary() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl md:text-2xl font-bold text-navy">Loss Run Library</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground">
           Access historical loss run reports and request new ones from your agent.
         </p>
       </div>
