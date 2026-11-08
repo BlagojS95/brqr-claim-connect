@@ -4,6 +4,7 @@ import { parseInput } from "@/lib/http-errors.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { escapeHtml, FONT_STACK, NAVY, sendViaResend } from "@/lib/claim-notifications.server";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
+import { normalizeRequestLines, sortRequestYears } from "@/lib/loss-run-request";
 
 // The new-claim email is sent through the notification outbox
 // (claim-submission.functions.ts), not from here.
@@ -61,10 +62,11 @@ export const sendLossRunRequestEmail = createServerFn({ method: "POST" })
       .eq("id", request.client_id)
       .maybeSingle();
     const namedInsured = clientRow?.company_name || clientRow?.name || "Unknown Insured";
-    const years = [...(request.years ?? [])].sort((a, b) => b - a);
-    const lines = request.lines_of_business ?? [];
+    // Oldest year first and lookup-table line names, also for requests saved before that.
+    const years = sortRequestYears(request.years);
+    const lines = normalizeRequestLines(request.lines_of_business);
     // Format asked for by the agency:
-    // "Regarding: Acme LLC | 2026, 2025 | General Liability, Property Loss Runs"
+    // "Regarding: Acme LLC | 2025, 2026 | General Liability, Commercial Property Loss Runs"
     const subject = `Regarding: ${namedInsured} | ${years.join(", ")} | ${lines.join(", ")} Loss Runs`;
 
     await sendViaResend(

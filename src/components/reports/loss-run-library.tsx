@@ -6,7 +6,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { summarize } from "@/lib/claim-metrics";
 import { calendarYear, formatDate, todayIso } from "@/lib/dates";
 import { sendLossRunRequestEmail } from "@/lib/email.functions";
-import { LINE_OF_BUSINESS, lineOfBusinessName } from "@/lib/line-of-business";
+import {
+  LOSS_RUN_REQUEST_LINES,
+  formatRequestLines,
+  formatRequestYears,
+  normalizeRequestLines,
+  sortRequestYears,
+} from "@/lib/loss-run-request";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { overviewQueryOptions } from "@/lib/query-keys";
 import type { AgencyClaim } from "@/lib/overview.types";
@@ -20,18 +26,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, FileText, Send, FolderArchive } from "lucide-react";
 import { toast } from "sonner";
 
-
-// Names from the lines_of_business table, so a request names lines the same
-// way claims and policies do. "Other" is left off, as before.
-const LOB_OPTIONS = [
-  LINE_OF_BUSINESS.generalLiability,
-  LINE_OF_BUSINESS.workersComp,
-  LINE_OF_BUSINESS.auto,
-  LINE_OF_BUSINESS.property,
-  LINE_OF_BUSINESS.umbrella,
-  LINE_OF_BUSINESS.professional,
-  LINE_OF_BUSINESS.cyber,
-].map(lineOfBusinessName);
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
@@ -119,7 +113,8 @@ export function LossRunLibrary() {
   });
 
   const currentYear = new Date().getFullYear();
-  const yearChoices = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4];
+  // The last five years, oldest first, like requests are stored.
+  const yearChoices = Array.from({ length: 5 }, (_, i) => currentYear - 4 + i);
 
   const [years, setYears] = useState<number[]>([currentYear]);
   const [lobs, setLobs] = useState<string[]>([]);
@@ -134,8 +129,8 @@ export function LossRunLibrary() {
         .from("loss_run_requests")
         .insert({
           client_id: clientId,
-          years,
-          lines_of_business: lobs,
+          years: sortRequestYears(years),
+          lines_of_business: normalizeRequestLines(lobs),
           notes: notes || null,
         })
         .select("id")
@@ -265,7 +260,7 @@ export function LossRunLibrary() {
             <div>
               <Label className="text-sm font-medium text-navy">Lines of Business</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                {LOB_OPTIONS.map((l) => (
+                {LOSS_RUN_REQUEST_LINES.map((l) => (
                   <label key={l} className="flex items-center gap-2 text-sm cursor-pointer">
                     <Checkbox checked={lobs.includes(l)} onCheckedChange={() => toggle(lobs, l, setLobs)} />
                     {l}
@@ -320,8 +315,8 @@ export function LossRunLibrary() {
               {requests.map((r) => (
                 <tr key={r.id} className="border-t border-border">
                   <td className="p-3">{new Date(r.created_at).toLocaleDateString()}</td>
-                  <td className="p-3">{(r.years ?? []).join(", ")}</td>
-                  <td className="p-3 text-xs">{(r.lines_of_business ?? []).join(", ")}</td>
+                  <td className="p-3">{formatRequestYears(r.years)}</td>
+                  <td className="p-3 text-xs">{formatRequestLines(r.lines_of_business)}</td>
                   <td className="p-3">
                     <span className="text-xs px-2 py-1 rounded-full bg-muted/60 text-navy">{r.status}</span>
                   </td>

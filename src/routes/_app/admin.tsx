@@ -5,6 +5,7 @@ import { useState } from "react";
 import { isOpen } from "@/lib/claim-metrics";
 import { formatDate } from "@/lib/dates";
 import { LOSS_RUN_REQUEST_STATUS } from "@/lib/loss-run-request-status";
+import { formatRequestLines, formatRequestYears } from "@/lib/loss-run-request";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { overviewQueryOptions, queryKeys } from "@/lib/query-keys";
 import type { AgencyClient } from "@/lib/overview.types";
@@ -274,8 +275,8 @@ function AdminPage() {
                   <tr key={r.id} className="border-t border-border">
                     <td className="p-3">{new Date(r.created_at).toLocaleDateString()}</td>
                     <td className="p-3">{client ? client.company_name || client.name : "—"}</td>
-                    <td className="p-3">{(r.years ?? []).join(", ")}</td>
-                    <td className="p-3 text-xs">{(r.lines_of_business ?? []).join(", ")}</td>
+                    <td className="p-3">{formatRequestYears(r.years)}</td>
+                    <td className="p-3 text-xs">{formatRequestLines(r.lines_of_business)}</td>
                     <td className="p-3 text-xs">{r.notes ?? "—"}</td>
                     <td className="p-3">
                       <Button
