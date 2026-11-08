@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -123,15 +123,17 @@ function RootComponent() {
   );
 }
 
+// Re-runs the route guards when someone signs in or out. Cached data is cleared
+// by AuthProvider when the user changes; refetching everything here on every auth
+// event (including hourly token refreshes) made the old user's pages fetch once
+// more with no session after sign-out (401).
 function AuthListener() {
   const router = useRouter();
-  const qc = useQueryClient();
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange(() => {
-      router.invalidate();
-      qc.invalidateQueries();
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") router.invalidate();
     });
     return () => data.subscription.unsubscribe();
-  }, [router, qc]);
+  }, [router]);
   return null;
 }

@@ -79,7 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       // Cached data belongs to the previous user; the query keys don't carry the user id.
-      if (switchedUser) queryClient.removeQueries();
+      // Cleared after React has re-rendered with the new state, so the old user's pages
+      // are already unmounted; clearing first makes them refetch once with no session (401).
+      if (switchedUser) setTimeout(() => queryClient.removeQueries(), 0);
 
       if (change === "signed-out") {
         setState({ ...INITIAL_STATE, loading: false });
