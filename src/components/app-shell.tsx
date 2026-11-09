@@ -1,5 +1,16 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, FileText, PlusCircle, Bell, Users, LogOut, Shield, FolderArchive, LineChart } from "lucide-react";
+import {
+  Home,
+  FileText,
+  PlusCircle,
+  Bell,
+  Users,
+  LogOut,
+  Shield,
+  FolderArchive,
+  LineChart,
+  Settings,
+} from "lucide-react";
 import claimsQrLogo from "@/assets/claims-qr-logo-white.png";
 import { supabase } from "@/integrations/supabase/client";
 import { clearSessionTimes } from "@/lib/session-expiry";
@@ -28,6 +39,7 @@ const items: NavItem[] = [
   { to: "/policies", label: "Policies", icon: Shield },
   { to: "/insights", label: "Insights", icon: LineChart },
   { to: "/reports", label: "Reports", icon: FolderArchive },
+  { to: "/settings", label: "Settings", icon: Settings },
   { to: "/admin", label: "Admin", icon: Users, adminOnly: true },
 ];
 

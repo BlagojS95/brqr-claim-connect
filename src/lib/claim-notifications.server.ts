@@ -127,7 +127,12 @@ export function notificationRecipient(): string {
   return process.env.CLAIM_NOTIFICATION_EMAIL || DEFAULT_RECIPIENT;
 }
 
-export async function sendViaResend(subject: string, html: string) {
+// `to` defaults to the agency inbox; the weekly digest passes the user's own address.
+export async function sendViaResend(
+  subject: string,
+  html: string,
+  options: { to?: string; text?: string } = {},
+) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error("Missing RESEND_API_KEY environment variable");
 
@@ -139,9 +144,10 @@ export async function sendViaResend(subject: string, html: string) {
     },
     body: JSON.stringify({
       from: process.env.NOTIFICATION_FROM_EMAIL || DEFAULT_SENDER,
-      to: [notificationRecipient()],
+      to: [options.to ?? notificationRecipient()],
       subject,
       html,
+      ...(options.text ? { text: options.text } : {}),
     }),
   });
 
