@@ -28,6 +28,7 @@ import {
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { overviewQueryOptions } from "@/lib/query-keys";
+import { ExportMenu } from "@/components/claims/export-menu";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,6 +125,7 @@ function ClaimsList() {
               </Button>
             );
           })}
+          <ExportMenu claims={claims} search={search} />
         </div>
       </div>
 
