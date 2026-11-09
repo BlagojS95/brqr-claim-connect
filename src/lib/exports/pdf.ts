@@ -61,13 +61,20 @@ export async function createPdfReport(
     pageWidth,
     pageHeight,
     autoTable: (tableOptions) => {
+      const { styles, didParseCell, ...rest } = tableOptions;
       autoTable(doc, {
         margin: { top: PDF_TOP, bottom: PDF_BOTTOM + 8, left: PDF_MARGIN, right: PDF_MARGIN },
-        styles: { fontSize: 8, cellPadding: 4, textColor: [30, 30, 30] },
         headStyles: { fillColor: PDF_NAVY, textColor: [255, 255, 255], fontStyle: "bold" },
         footStyles: { fillColor: PDF_LIGHT, textColor: PDF_NAVY, fontStyle: "bold" },
         alternateRowStyles: { fillColor: [250, 251, 252] },
-        ...tableOptions,
+        ...rest,
+        styles: { fontSize: 8, cellPadding: 4, textColor: [30, 30, 30], ...styles },
+        didParseCell: (data) => {
+          // Header and totals line up with their column (money to the right).
+          const halign = tableOptions.columnStyles?.[data.column.index]?.halign;
+          if (halign && data.section !== "body") data.cell.styles.halign = halign;
+          didParseCell?.(data);
+        },
       });
       const last = (doc as unknown as { lastAutoTable?: { finalY?: number } }).lastAutoTable;
       finalY = last?.finalY ?? finalY;

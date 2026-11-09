@@ -44,4 +44,9 @@ describe("parseReportTab", () => {
     expect(parseReportTab("nonsense")).toBe("loss-summary");
     expect(parseReportTab("loss-runs")).toBe("loss-runs");
   });
+
+  it("knows the renewal pack tab", () => {
+    expect(parseReportTab("renewal-pack")).toBe("renewal-pack");
+    expect(parseReportTab(["renewal-pack"])).toBe("loss-summary");
+  });
 });

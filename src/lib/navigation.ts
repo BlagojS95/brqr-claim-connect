@@ -5,12 +5,18 @@ export const HOME_PATH = "/home";
 export const REPORT_TABS = {
   lossSummary: "loss-summary",
   lossRuns: "loss-runs",
+  renewalPack: "renewal-pack",
 } as const;
 
 export type ReportTab = (typeof REPORT_TABS)[keyof typeof REPORT_TABS];
 
+const REPORT_TAB_VALUES: readonly string[] = Object.values(REPORT_TABS);
+
+/** Unknown or missing tabs open the loss summary. */
 export function parseReportTab(value: unknown): ReportTab {
-  return value === REPORT_TABS.lossRuns ? REPORT_TABS.lossRuns : REPORT_TABS.lossSummary;
+  return typeof value === "string" && REPORT_TAB_VALUES.includes(value)
+    ? (value as ReportTab)
+    : REPORT_TABS.lossSummary;
 }
 
 // The one nav item to highlight for a path: the item whose path is the longest
