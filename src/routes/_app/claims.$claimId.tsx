@@ -15,6 +15,7 @@ import { ClaimActivityLog } from "@/components/claim-activity-log";
 import { ClaimContactsTable } from "@/components/claim-contacts-table";
 import { ClaimInternalNotes } from "@/components/claim-internal-notes";
 import { ClaimReserveEditor } from "@/components/claim-reserve-editor";
+import { WaitingOnControl } from "@/components/claim/waiting-on-control";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -203,6 +204,10 @@ function ClaimDetail() {
           }
         />
         <Field label="Incurred" value={`$${incurredAmount(claim).toLocaleString()}`} />
+        <Field
+          label="Waiting on"
+          value={<WaitingOnControl claim={claim} editable={role === "agency_admin"} />}
+        />
       </section>
 
       {claim.description && (

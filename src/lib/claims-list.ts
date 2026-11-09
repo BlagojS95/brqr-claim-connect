@@ -17,6 +17,7 @@ import {
   type ClaimStatus,
 } from "@/lib/claim-status";
 import type { AgencyClaim } from "@/lib/overview.types";
+import { WAITING_ON_VALUES, claimWaitingOn, lastUpdateAt } from "@/lib/waiting-on";
 
 export const CLAIMS_PAGE_SIZE = 25;
 
@@ -30,6 +31,8 @@ export const CLAIM_SORT_KEYS = [
   "paid",
   "reserve",
   "closed",
+  "waiting",
+  "updated",
 ] as const;
 
 export type ClaimSortKey = (typeof CLAIM_SORT_KEYS)[number];
@@ -40,9 +43,18 @@ export type SortDir = (typeof SORT_DIRS)[number];
 
 export const DEFAULT_CLAIM_SORT: ClaimSortKey = "date";
 
-/** Dates and money read best newest / largest first; text columns A to Z. */
+/**
+ * Dates and money read best newest / largest first; text columns A to Z;
+ * "Days since update" most days first, so the stalest claims lead.
+ */
 export function defaultSortDir(key: ClaimSortKey): SortDir {
-  return key === "date" || key === "closed" || key === "paid" || key === "reserve" ? "desc" : "asc";
+  return key === "date" ||
+    key === "closed" ||
+    key === "paid" ||
+    key === "reserve" ||
+    key === "updated"
+    ? "desc"
+    : "asc";
 }
 
 /** The claims list's URL search params. Every one is optional; missing means the default. */
@@ -87,6 +99,9 @@ export type ClaimListItem = Pick<
   | "closed_date"
   | "paid_amount"
   | "reserve_amount"
+  | "waiting_on"
+  | "last_activity_at"
+  | "created_at"
 >;
 
 export function filterClaims<T extends ClaimListItem>(
@@ -141,6 +156,17 @@ function sortValue(claim: ClaimListItem, key: ClaimSortKey): string | number | n
       return paidAmount(claim);
     case "reserve":
       return reserveAmount(claim);
+    case "waiting": {
+      // Client, Agency, Carrier order; closed claims (no one) go last.
+      const waitingOn = claimWaitingOn(claim);
+      return waitingOn ? WAITING_ON_VALUES.indexOf(waitingOn) : null;
+    }
+    case "updated": {
+      // More days since the update = an older time, so sort on the negated
+      // time: descending puts the longest-untouched claim first.
+      const time = Date.parse(lastUpdateAt(claim) ?? "");
+      return Number.isNaN(time) ? null : -time;
+    }
   }
 }
 

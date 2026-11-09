@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CLAIMS_PAGE_SIZE,
+  defaultSortDir,
   filterClaims,
   nextSort,
   pageRangeLabel,
@@ -10,6 +11,7 @@ import {
   type ClaimListItem,
 } from "@/lib/claims-list";
 import { CLAIM_STATUS } from "@/lib/claim-status";
+import { WAITING_ON } from "@/lib/waiting-on";
 
 const base: ClaimListItem = {
   claim_number: null,
@@ -23,6 +25,9 @@ const base: ClaimListItem = {
   closed_date: null,
   paid_amount: null,
   reserve_amount: null,
+  waiting_on: null,
+  last_activity_at: null,
+  created_at: "2026-01-01T00:00:00Z",
 };
 
 const claim = (fields: Partial<ClaimListItem> & { id: string }) => ({ ...base, ...fields });
@@ -32,6 +37,8 @@ describe("parseClaimsSearch", () => {
     expect(
       parseClaimsSearch({ status: "open", q: "chubb", sort: "paid", dir: "asc", page: 3 }),
     ).toEqual({ status: "open", q: "chubb", sort: "paid", dir: "asc", page: 3 });
+    expect(parseClaimsSearch({ sort: "waiting" })).toEqual({ sort: "waiting" });
+    expect(parseClaimsSearch({ sort: "updated" })).toEqual({ sort: "updated" });
   });
 
   it("accepts the page as text", () => {
@@ -121,6 +128,38 @@ describe("sortClaims", () => {
     expect(ids(sortClaims(rows, "status", "asc"))).toEqual(["notice", "open", "closed"]);
   });
 
+  it("sorts waiting on as Client, Agency, Carrier with closed claims last", () => {
+    const rows = [
+      claim({ id: "carrier", waiting_on: WAITING_ON.carrier }),
+      claim({ id: "closed", status: CLAIM_STATUS.closed, waiting_on: WAITING_ON.client }),
+      claim({ id: "client", waiting_on: WAITING_ON.client }),
+      claim({ id: "agency", waiting_on: WAITING_ON.agency }),
+    ];
+    expect(ids(sortClaims(rows, "waiting", "asc"))).toEqual([
+      "client",
+      "agency",
+      "carrier",
+      "closed",
+    ]);
+    expect(ids(sortClaims(rows, "waiting", "desc"))).toEqual([
+      "carrier",
+      "agency",
+      "client",
+      "closed",
+    ]);
+  });
+
+  it("sorts days since update, stalest first by default, falling back to created_at", () => {
+    const rows = [
+      claim({ id: "recent", last_activity_at: "2026-11-08T12:00:00Z" }),
+      claim({ id: "stale", last_activity_at: "2026-09-01T12:00:00Z" }),
+      claim({ id: "never", last_activity_at: null, created_at: "2026-10-01T00:00:00Z" }),
+    ];
+    expect(defaultSortDir("updated")).toBe("desc");
+    expect(ids(sortClaims(rows, "updated", "desc"))).toEqual(["stale", "never", "recent"]);
+    expect(ids(sortClaims(rows, "updated", "asc"))).toEqual(["recent", "never", "stale"]);
+  });
+
   it("does not change the input", () => {
     const copy = [...claims];
     sortClaims(claims, "paid", "asc");
@@ -169,6 +208,14 @@ describe("nextSort", () => {
     });
     expect(nextSort({ sort: "carrier", dir: "asc" }, "reserve")).toEqual({
       sort: "reserve",
+      dir: "desc",
+    });
+    expect(nextSort({ sort: "date", dir: "desc" }, "waiting")).toEqual({
+      sort: "waiting",
+      dir: "asc",
+    });
+    expect(nextSort({ sort: "date", dir: "desc" }, "updated")).toEqual({
+      sort: "updated",
       dir: "desc",
     });
   });

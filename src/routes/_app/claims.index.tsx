@@ -18,6 +18,13 @@ import {
   type SortDir,
 } from "@/lib/claims-list";
 import { formatDate } from "@/lib/dates";
+import {
+  claimWaitingOn,
+  daysLabel,
+  daysSince,
+  lastUpdateAt,
+  waitingOnLabel,
+} from "@/lib/waiting-on";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { overviewQueryOptions } from "@/lib/query-keys";
@@ -51,6 +58,8 @@ const COLUMNS: { key: ClaimSortKey; label: string; numeric?: boolean }[] = [
   { key: "paid", label: "Paid", numeric: true },
   { key: "reserve", label: "Reserve", numeric: true },
   { key: "closed", label: "Closed" },
+  { key: "waiting", label: "Waiting on" },
+  { key: "updated", label: "Days since update", numeric: true },
 ];
 
 function ClaimsList() {
@@ -71,6 +80,8 @@ function ClaimsList() {
 
   const filtered = filterClaims(claims, search);
   const page = paginate(sortClaims(filtered, sort, dir), search.page);
+  // One clock for every row's "Days since update".
+  const now = new Date();
 
   const onSearch = (value: string) => {
     setQuery(value);
@@ -147,7 +158,7 @@ function ClaimsList() {
         )}
         {page.rows.map((c) => (
           <li key={c.id}>
-            <ClaimCard claim={c} />
+            <ClaimCard claim={c} now={now} />
           </li>
         ))}
       </ul>
@@ -199,7 +210,7 @@ function ClaimsList() {
               </tr>
             )}
             {page.rows.map((c) => (
-              <ClaimRow key={c.id} claim={c} />
+              <ClaimRow key={c.id} claim={c} now={now} />
             ))}
           </tbody>
         </table>
@@ -234,7 +245,7 @@ function ClaimsList() {
   );
 }
 
-function ClaimCard({ claim: c }: { claim: AgencyClaim }) {
+function ClaimCard({ claim: c, now }: { claim: AgencyClaim; now: Date }) {
   const carrierShort = carrierShortName(c.carrier);
   return (
     <Link
@@ -269,6 +280,8 @@ function ClaimCard({ claim: c }: { claim: AgencyClaim }) {
         <CardField label="Reserve" value={fmtMoney(reserveAmount(c))} numeric />
         <CardField label="Adjuster" value={c.adjuster_name ?? "—"} />
         <CardField label="Closed" value={c.closed_date ? formatDate(c.closed_date) : "—"} />
+        <CardField label="Waiting on" value={waitingOnLabel(claimWaitingOn(c))} />
+        <CardField label="Days since update" value={daysLabel(daysSince(lastUpdateAt(c), now))} />
       </dl>
     </Link>
   );
@@ -334,7 +347,7 @@ function MobileSort({
 // Every cell is a real link to the claim, so a click anywhere in the row opens
 // it and Ctrl/Cmd/middle-click opens a new tab. Only the first link is in the
 // tab order, so keyboard users get one stop per row.
-function ClaimRow({ claim: c }: { claim: AgencyClaim }) {
+function ClaimRow({ claim: c, now }: { claim: AgencyClaim; now: Date }) {
   const cell = (content: React.ReactNode, className?: string, first = false) => (
     <td className="p-0">
       <Link
@@ -368,6 +381,8 @@ function ClaimRow({ claim: c }: { claim: AgencyClaim }) {
       {cell(fmtMoney(paidAmount(c)), "text-right tabular-nums")}
       {cell(fmtMoney(reserveAmount(c)), "text-right tabular-nums")}
       {cell(formatDate(c.closed_date), "text-muted-foreground")}
+      {cell(waitingOnLabel(claimWaitingOn(c)))}
+      {cell(daysLabel(daysSince(lastUpdateAt(c), now)), "text-right tabular-nums")}
     </tr>
   );
 }
