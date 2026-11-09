@@ -30,7 +30,10 @@ function displayName(client: { name?: string | null; company_name?: string | nul
   return client?.company_name || client?.name || "";
 }
 
-type ClaimRow = Tables<"claims"> & { lines_of_business: { name: string } | null };
+type ClaimRow = Tables<"claims"> & {
+  lines_of_business: { name: string } | null;
+  causes_of_loss: { name: string } | null;
+};
 
 function toClaim(row: ClaimRow, clientName: string): AgencyClaim {
   return {
@@ -48,11 +51,21 @@ function toClaim(row: ClaimRow, clientName: string): AgencyClaim {
     date_reported: row.date_reported,
     paid_amount: row.paid_amount,
     reserve_amount: row.reserve_amount,
+    recovery_amount: row.recovery_amount ?? null,
     adjuster_name: row.adjuster_name,
     policy_number: row.policy_number,
     description: row.description,
     client_id: row.client_id,
     client_name: clientName,
+    waiting_on: row.waiting_on ?? null,
+    last_activity_at: row.last_activity_at ?? null,
+    created_at: row.created_at,
+    cause_of_loss_id: row.cause_of_loss_id ?? null,
+    cause_of_loss: row.causes_of_loss?.name ?? null,
+    loss_location: row.loss_location ?? null,
+    employee_name: row.employee_name ?? null,
+    driver_name: row.driver_name ?? null,
+    vehicles_involved: row.vehicles_involved ?? null,
   };
 }
 
@@ -73,7 +86,7 @@ async function getScopedOverview(supabase: SupabaseClient<Database>, scope: Over
       : fetchAll<ClaimRow>((from, to) =>
           supabase
             .from("claims")
-            .select("*, lines_of_business(name)")
+            .select("*, lines_of_business(name), causes_of_loss(name)")
             .order("date_of_loss", { ascending: false, nullsFirst: false })
             .order("id")
             .range(from, to),
@@ -108,6 +121,7 @@ async function getScopedOverview(supabase: SupabaseClient<Database>, scope: Over
     effective_date: p.effective_date,
     expiry_date: p.expiration_date,
     premium: p.premium,
+    experience_mod: p.experience_mod ?? null,
     status: computePolicyStatus(p.effective_date, p.expiration_date),
   }));
 
@@ -133,7 +147,7 @@ export const fetchClaimDetail = createServerFn({ method: "GET" })
 
     const { data: claim } = await context.supabase
       .from("claims")
-      .select("*, clients(name, company_name), lines_of_business(name)")
+      .select("*, clients(name, company_name), lines_of_business(name), causes_of_loss(name)")
       .eq("id", data.claimId)
       .maybeSingle();
     if (!claim) return null;

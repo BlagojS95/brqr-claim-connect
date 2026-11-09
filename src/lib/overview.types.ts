@@ -1,4 +1,7 @@
 import type { ClaimStatus } from "@/lib/claim-status";
+import type { Database } from "@/integrations/supabase/types";
+
+export type WaitingOn = Database["public"]["Enums"]["claim_waiting_on"];
 import type { PolicyStatus } from "@/lib/policy-status";
 import type { LossDetails } from "@/lib/claim-submission";
 
@@ -24,6 +27,8 @@ export interface AgencyPolicy {
   effective_date: string | null;
   expiry_date: string | null;
   premium: number | null;
+  // Workers comp experience mod for this term (fix 36), when stored.
+  experience_mod: number | null;
   status: PolicyStatus;
 }
 
@@ -41,11 +46,26 @@ export interface AgencyClaim {
   date_reported: string | null;
   paid_amount: number | null;
   reserve_amount: number | null;
+  // Subrogation, salvage and other money back (fix 39).
+  recovery_amount: number | null;
   adjuster_name: string | null;
   policy_number: string | null;
   description: string | null;
   client_id: string;
   client_name: string;
+  // Who has the ball (fix 30); null on closed claims.
+  waiting_on: WaitingOn | null;
+  // Newest claim_activity time (fix 30), for "days since update".
+  last_activity_at: string | null;
+  created_at: string;
+  // Cause of loss (fix 35) from the causes_of_loss lookup.
+  cause_of_loss_id: string | null;
+  cause_of_loss: string | null;
+  // Searchable loss details (fix 31).
+  loss_location: string | null;
+  employee_name: string | null;
+  driver_name: string | null;
+  vehicles_involved: string | null;
   // Only filled by fetchClaimDetail; the list views don't need it.
   loss_details?: LossDetails;
 }

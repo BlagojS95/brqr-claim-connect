@@ -386,6 +386,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "claims_cause_of_loss_id_fkey"
+            columns: ["cause_of_loss_id"]
+            isOneToOne: false
+            referencedRelation: "causes_of_loss"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "claims_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
