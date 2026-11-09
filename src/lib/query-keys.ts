@@ -18,6 +18,8 @@ export const queryKeys = {
   claimDocumentRequests: (claimId: string) => ["claim", claimId, "document-requests"] as const,
   // The active causes_of_loss lookup rows (fix 35) for the report form.
   causesOfLoss: ["causes-of-loss"] as const,
+  // The signed-in user's saved claims-list views (fix 31).
+  savedClaimViews: ["saved-claim-views"] as const,
 };
 
 export interface CauseOfLossOption {

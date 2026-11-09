@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   CLAIMS_PAGE_SIZE,
+  activeFilterCount,
+  claimFilterOptions,
   defaultSortDir,
   filterClaims,
   nextSort,
@@ -20,6 +22,11 @@ const base: ClaimListItem = {
   carrier: null,
   adjuster_name: null,
   description: null,
+  claimant_name: null,
+  employee_name: null,
+  driver_name: null,
+  vehicles_involved: null,
+  loss_location: null,
   status: CLAIM_STATUS.open,
   date_of_loss: null,
   closed_date: null,
@@ -39,6 +46,47 @@ describe("parseClaimsSearch", () => {
     ).toEqual({ status: "open", q: "chubb", sort: "paid", dir: "asc", page: 3 });
     expect(parseClaimsSearch({ sort: "waiting" })).toEqual({ sort: "waiting" });
     expect(parseClaimsSearch({ sort: "updated" })).toEqual({ sort: "updated" });
+  });
+
+  it("keeps the line, year, carrier and location filters (fix 31)", () => {
+    expect(
+      parseClaimsSearch({
+        line: "Business Auto",
+        year: 2025,
+        carrier: "Progressive",
+        location: "Dayton Yard",
+      }),
+    ).toEqual({
+      line: "Business Auto",
+      year: 2025,
+      carrier: "Progressive",
+      location: "Dayton Yard",
+    });
+  });
+
+  it("trims filter text and accepts the year as text", () => {
+    expect(parseClaimsSearch({ carrier: "  Chubb ", location: " HQ ", year: "2026" })).toEqual({
+      carrier: "Chubb",
+      location: "HQ",
+      year: 2026,
+    });
+  });
+
+  it("drops malformed filters", () => {
+    expect(
+      parseClaimsSearch({
+        line: "   ",
+        year: "26",
+        carrier: 42,
+        location: ["HQ"],
+      }),
+    ).toEqual({});
+    for (const year of [1899, 2101, 2025.5, "2025abc", "", null, "abcd"]) {
+      expect(parseClaimsSearch({ year })).toEqual({});
+    }
+    expect(parseClaimsSearch({ carrier: "x".repeat(201) })).toEqual({});
+    expect(parseClaimsSearch({ q: "x".repeat(201) })).toEqual({});
+    expect(parseClaimsSearch({ hack: "1" })).toEqual({});
   });
 
   it("accepts the page as text", () => {
@@ -92,6 +140,168 @@ describe("filterClaims", () => {
     expect(filterClaims(claims, { status: CLAIM_STATUS.open, q: "pat" }).map((c) => c.id)).toEqual([
       "c",
     ]);
+  });
+});
+
+describe("filterClaims search (fix 31)", () => {
+  const claims = [
+    claim({
+      id: "wc",
+      line_of_business: "Workers Compensation",
+      claimant_name: "Maria Gomez",
+      employee_name: "Maria Gomez",
+      loss_location: "Warehouse 3, Dayton OH",
+      description: "Back strain lifting boxes",
+    }),
+    claim({
+      id: "auto",
+      line_of_business: "Business Auto",
+      carrier: "Progressive",
+      driver_name: "John Smith",
+      vehicles_involved: "Unit 42 - 2021 Ford F-150",
+      loss_location: "I-75 near Dayton",
+    }),
+    claim({
+      id: "gl",
+      claimant_name: "Ann Lee",
+      adjuster_name: "Pat Lee",
+      loss_location: "Main St store",
+    }),
+  ];
+  const ids = (q: string) => filterClaims(claims, { q }).map((c) => c.id);
+
+  it("matches the claimant, employee, driver, vehicle and loss location", () => {
+    expect(ids("gomez")).toEqual(["wc"]);
+    expect(ids("smith")).toEqual(["auto"]);
+    expect(ids("unit 42")).toEqual(["auto"]);
+    expect(ids("F-150")).toEqual(["auto"]);
+    expect(ids("warehouse")).toEqual(["wc"]);
+    expect(ids("dayton")).toEqual(["wc", "auto"]);
+    expect(ids("strain")).toEqual(["wc"]);
+  });
+
+  it("needs every word, each possibly in a different field", () => {
+    expect(ids("dayton smith")).toEqual(["auto"]);
+    expect(ids("progressive unit")).toEqual(["auto"]);
+    expect(ids("lee store")).toEqual(["gl"]);
+    expect(ids("gomez smith")).toEqual([]);
+  });
+
+  it("ignores case and extra whitespace", () => {
+    expect(ids("  JOHN   smith ")).toEqual(["auto"]);
+    expect(ids("\tmaria\n gomez")).toEqual(["wc"]);
+    expect(ids("   ")).toEqual(["wc", "auto", "gl"]);
+  });
+
+  it("does not match a word across two fields", () => {
+    // "Gomez" ends the claimant and "Warehouse" starts the location.
+    expect(ids("gomezwarehouse")).toEqual([]);
+  });
+
+  it("still matches claim number, type, carrier and adjuster", () => {
+    const rows = [
+      claim({ id: "x", claim_number: "PRG-77", claim_type: "Collision", adjuster_name: "Kim Ng" }),
+    ];
+    for (const q of ["prg-77", "collision", "kim ng"]) {
+      expect(filterClaims(rows, { q }).map((c) => c.id)).toEqual(["x"]);
+    }
+  });
+});
+
+describe("filterClaims filters (fix 31)", () => {
+  const claims = [
+    claim({
+      id: "a",
+      line_of_business: "Business Auto",
+      date_of_loss: "2025-12-31",
+      carrier: "Progressive",
+      loss_location: "Dayton Yard",
+    }),
+    claim({
+      id: "b",
+      line_of_business: "General Liability",
+      date_of_loss: "2026-01-01",
+      carrier: "Chubb",
+      loss_location: " dayton yard ",
+    }),
+    claim({
+      id: "c",
+      line_of_business: "Business Auto",
+      date_of_loss: "2026-06-15",
+      carrier: "progressive ",
+      loss_location: "Columbus",
+    }),
+    claim({ id: "d", date_of_loss: null, carrier: null, loss_location: null }),
+  ];
+  const ids = (rows: { id: string }[]) => rows.map((r) => r.id);
+
+  it("filters by line of business", () => {
+    expect(ids(filterClaims(claims, { line: "Business Auto" }))).toEqual(["a", "c"]);
+    expect(ids(filterClaims(claims, { line: "business auto" }))).toEqual(["a", "c"]);
+  });
+
+  it("filters by the calendar year of the loss, with no time zone shift", () => {
+    expect(ids(filterClaims(claims, { year: 2025 }))).toEqual(["a"]);
+    expect(ids(filterClaims(claims, { year: 2026 }))).toEqual(["b", "c"]);
+    expect(filterClaims(claims, { year: 2024 })).toEqual([]);
+  });
+
+  it("filters by carrier, ignoring case and outer spaces", () => {
+    expect(ids(filterClaims(claims, { carrier: "Progressive" }))).toEqual(["a", "c"]);
+    expect(ids(filterClaims(claims, { carrier: "CHUBB" }))).toEqual(["b"]);
+  });
+
+  it("filters by location, trimmed and ignoring case", () => {
+    expect(ids(filterClaims(claims, { location: "Dayton Yard" }))).toEqual(["a", "b"]);
+    expect(ids(filterClaims(claims, { location: "columbus" }))).toEqual(["c"]);
+  });
+
+  it("combines filters with status and search", () => {
+    expect(ids(filterClaims(claims, { line: "Business Auto", year: 2026 }))).toEqual(["c"]);
+    expect(
+      ids(filterClaims(claims, { carrier: "progressive", location: "dayton yard", q: "auto" })),
+    ).toEqual(["a"]);
+    expect(filterClaims(claims, { carrier: "progressive", status: CLAIM_STATUS.closed })).toEqual(
+      [],
+    );
+  });
+});
+
+describe("activeFilterCount", () => {
+  it("counts the line, year, carrier and location filters only", () => {
+    expect(activeFilterCount({})).toBe(0);
+    expect(activeFilterCount({ line: "Cyber", year: 2026 })).toBe(2);
+    expect(
+      activeFilterCount({
+        line: "Cyber",
+        year: 2026,
+        carrier: "Chubb",
+        location: "HQ",
+        status: CLAIM_STATUS.open,
+        q: "x",
+      } as Parameters<typeof activeFilterCount>[0]),
+    ).toBe(4);
+  });
+});
+
+describe("claimFilterOptions", () => {
+  it("lists distinct values, sorted, years newest first", () => {
+    const options = claimFilterOptions([
+      claim({ id: "1", carrier: "Zurich", date_of_loss: "2024-05-01", loss_location: "HQ" }),
+      claim({ id: "2", carrier: " chubb", date_of_loss: "2026-01-01", loss_location: "hq " }),
+      claim({ id: "3", carrier: "Chubb", date_of_loss: "2024-12-31", loss_location: "" }),
+      claim({
+        id: "4",
+        carrier: null,
+        date_of_loss: null,
+        line_of_business: "Business Auto",
+        loss_location: null,
+      }),
+    ]);
+    expect(options.carriers).toEqual(["chubb", "Zurich"]);
+    expect(options.years).toEqual([2026, 2024]);
+    expect(options.locations).toEqual(["HQ"]);
+    expect(options.lines).toEqual(["Business Auto", "General Liability"]);
   });
 });
 

@@ -78,6 +78,17 @@ describe("claimsToExport", () => {
     expect(rows.map((c) => c.id)).toEqual(["a", "c"]);
   });
 
+  it("applies the fix 31 search fields and filters, the same as the list", () => {
+    expect(claimsToExport(claims, { q: "pat lee" }).map((c) => c.id)).toEqual(["c"]);
+    expect(claimsToExport(claims, { year: 2026, carrier: "chubb" }).map((c) => c.id)).toEqual([
+      "c",
+      "a",
+    ]);
+    expect(
+      claimsToExport(claims, { line: "Workers Compensation", year: 2025 }).map((c) => c.id),
+    ).toEqual([]);
+  });
+
   it("uses the list's default sort (newest loss first) without sort params", () => {
     expect(claimsToExport(claims, {}).map((c) => c.id)).toEqual(["c", "a", "b"]);
   });

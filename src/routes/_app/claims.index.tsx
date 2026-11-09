@@ -28,7 +28,9 @@ import {
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { overviewQueryOptions } from "@/lib/query-keys";
+import { ClaimFiltersControl } from "@/components/claims/claim-filters";
 import { ExportMenu } from "@/components/claims/export-menu";
+import { SavedViewsBar } from "@/components/claims/saved-views-bar";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +38,8 @@ import { cn } from "@/lib/utils";
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_app/claims/")({
-  // status, q, sort, dir and page live in the URL (fix 24), e.g. /claims?status=open.
+  // status, q, sort, dir and page live in the URL (fix 24), e.g. /claims?status=open,
+  // and so do the line, year, carrier and location filters (fix 31).
   validateSearch: parseClaimsSearch,
   head: () => ({ meta: [{ title: "Claims | ClaimsQR" }] }),
   component: ClaimsList,
@@ -129,14 +132,26 @@ function ClaimsList() {
         </div>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => onSearch(e.target.value)}
-          placeholder="Search by claim #, type, carrier, adjuster…"
-          aria-label="Search claims"
-          className="pl-9"
+      {/* Saved views (fix 31): "All claims" plus the user's own views. */}
+      <SavedViewsBar search={search} onApply={(filters) => navigate({ search: filters })} />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-0 md:flex-none md:w-full md:max-w-md">
+          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder="Search claim #, claimant, driver, vehicle, location…"
+            aria-label="Search claims"
+            className="pl-9"
+          />
+        </div>
+        <ClaimFiltersControl
+          claims={claims}
+          filters={search}
+          onChange={(next) =>
+            navigate({ search: (prev) => ({ ...prev, ...next, page: undefined }) })
+          }
         />
       </div>
 

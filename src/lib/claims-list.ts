@@ -1,6 +1,10 @@
 // Filtering, sorting and paging for the claims list (fix 24). The list keeps
 // all of this in the URL (/claims?status=open&sort=paid&dir=desc&page=2), so
 // links such as Home's "Open Claims" card can point straight at a filtered view.
+// Fix 31 adds the line, year, carrier and location filters and a search that
+// also looks at the claimant, employee, driver, vehicles and loss location.
+// The list (and its export) filters the claims fetchAgencyOverview loaded with
+// the caller's token, so RLS has already limited them to what the user may see.
 
 import {
   STATUS_BUCKETS,
@@ -16,6 +20,7 @@ import {
   isClaimStatus,
   type ClaimStatus,
 } from "@/lib/claim-status";
+import { calendarYear } from "@/lib/dates";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { WAITING_ON_VALUES, claimWaitingOn, lastUpdateAt } from "@/lib/waiting-on";
 
@@ -61,10 +66,30 @@ export function defaultSortDir(key: ClaimSortKey): SortDir {
 export interface ClaimsSearch {
   status?: ClaimStatus;
   q?: string;
+  /** A line_of_business name, e.g. "Business Auto". */
+  line?: string;
+  /** The calendar year of date_of_loss. */
+  year?: number;
+  carrier?: string;
+  /**
+   * For now the claim's loss_location text. Fix 32 switches this to a real
+   * location, so it stays a plain string.
+   */
+  location?: string;
   sort?: ClaimSortKey;
   dir?: SortDir;
   page?: number;
 }
+
+/** The filters beside the search box (status has its own buttons). */
+export const CLAIM_FILTER_KEYS = ["line", "year", "carrier", "location"] as const;
+
+export type ClaimFilterKey = (typeof CLAIM_FILTER_KEYS)[number];
+
+export const MAX_SEARCH_LENGTH = 200;
+export const MAX_FILTER_LENGTH = 200;
+export const MIN_FILTER_YEAR = 1900;
+export const MAX_FILTER_YEAR = 2100;
 
 function isSortKey(value: unknown): value is ClaimSortKey {
   return typeof value === "string" && (CLAIM_SORT_KEYS as readonly string[]).includes(value);
@@ -74,11 +99,38 @@ function isSortDir(value: unknown): value is SortDir {
   return value === "asc" || value === "desc";
 }
 
+// A filter value from the URL: trimmed text, or nothing when blank or too long.
+function filterText(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed && trimmed.length <= MAX_FILTER_LENGTH ? trimmed : undefined;
+}
+
+// A four-digit year, as a number or as text (the router may hand over either).
+function filterYear(value: unknown): number | undefined {
+  if (typeof value === "string" && !/^\d{4}$/.test(value.trim())) return undefined;
+  if (typeof value !== "number" && typeof value !== "string") return undefined;
+  const year = Number(value);
+  return Number.isInteger(year) && year >= MIN_FILTER_YEAR && year <= MAX_FILTER_YEAR
+    ? year
+    : undefined;
+}
+
 /** validateSearch for /claims: unknown or malformed values are dropped, not errors. */
 export function parseClaimsSearch(search: Record<string, unknown>): ClaimsSearch {
   const result: ClaimsSearch = {};
   if (isClaimStatus(search.status)) result.status = search.status;
-  if (typeof search.q === "string" && search.q.trim()) result.q = search.q;
+  if (typeof search.q === "string" && search.q.trim() && search.q.length <= MAX_SEARCH_LENGTH) {
+    result.q = search.q;
+  }
+  const line = filterText(search.line);
+  if (line) result.line = line;
+  const year = filterYear(search.year);
+  if (year) result.year = year;
+  const carrier = filterText(search.carrier);
+  if (carrier) result.carrier = carrier;
+  const location = filterText(search.location);
+  if (location) result.location = location;
   if (isSortKey(search.sort)) result.sort = search.sort;
   if (isSortDir(search.dir)) result.dir = search.dir;
   const page = Number(search.page);
@@ -94,6 +146,11 @@ export type ClaimListItem = Pick<
   | "carrier"
   | "adjuster_name"
   | "description"
+  | "claimant_name"
+  | "employee_name"
+  | "driver_name"
+  | "vehicles_involved"
+  | "loss_location"
   | "status"
   | "date_of_loss"
   | "closed_date"
@@ -104,26 +161,103 @@ export type ClaimListItem = Pick<
   | "created_at"
 >;
 
+/** The search box's words: trimmed, lower-cased, split on any run of whitespace. */
+export function searchWords(q: string | undefined): string[] {
+  const normalized = q?.trim().toLowerCase() ?? "";
+  return normalized ? normalized.split(/\s+/) : [];
+}
+
+// Every searchable field of a claim, lower-cased, one per line. Words never
+// hold whitespace, so a word can't match across two fields.
+function searchText(c: ClaimListItem): string {
+  return [
+    c.claim_number,
+    c.claim_type,
+    c.line_of_business,
+    c.carrier,
+    c.adjuster_name,
+    c.claimant_name,
+    c.employee_name,
+    c.driver_name,
+    c.vehicles_involved,
+    c.loss_location,
+    c.description,
+    CLAIM_STATUS_LABELS[c.status],
+  ]
+    .filter(Boolean)
+    .map((v) => String(v).toLowerCase())
+    .join("\n");
+}
+
+/** Filter values compare trimmed and ignoring case. */
+export function filterKey(value: string | null | undefined): string {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+function matchesText(value: string | null | undefined, wanted: string | undefined): boolean {
+  return !wanted || filterKey(value) === filterKey(wanted);
+}
+
+/**
+ * The claims matching the search and filters. Every word of `q` has to appear
+ * somewhere in the claim, though each word may match a different field.
+ */
 export function filterClaims<T extends ClaimListItem>(
   claims: T[],
-  { status, q }: Pick<ClaimsSearch, "status" | "q">,
+  { status, q, line, year, carrier, location }: Pick<ClaimsSearch, "status" | "q" | ClaimFilterKey>,
 ): T[] {
-  const text = q?.trim().toLowerCase() ?? "";
+  const words = searchWords(q);
   return claims.filter((c) => {
     if (status && !matchesStatus(c, status)) return false;
-    if (!text) return true;
-    return [
-      c.claim_number,
-      c.claim_type,
-      c.line_of_business,
-      c.carrier,
-      c.adjuster_name,
-      c.description,
-      CLAIM_STATUS_LABELS[c.status],
-    ]
-      .filter(Boolean)
-      .some((v) => String(v).toLowerCase().includes(text));
+    if (!matchesText(c.line_of_business, line)) return false;
+    if (year && calendarYear(c.date_of_loss) !== year) return false;
+    if (!matchesText(c.carrier, carrier)) return false;
+    if (!matchesText(c.loss_location, location)) return false;
+    if (words.length === 0) return true;
+    const text = searchText(c);
+    return words.every((word) => text.includes(word));
   });
+}
+
+/** How many of the line, year, carrier and location filters are set. */
+export function activeFilterCount(search: Pick<ClaimsSearch, ClaimFilterKey>): number {
+  return CLAIM_FILTER_KEYS.filter((key) => search[key] !== undefined).length;
+}
+
+export interface ClaimFilterOptions {
+  lines: string[];
+  /** Newest first. */
+  years: number[];
+  carriers: string[];
+  locations: string[];
+}
+
+// Distinct values, ignoring case and outer spaces; the first spelling seen is
+// the one shown. Sorted A to Z.
+function distinctText(values: (string | null | undefined)[]): string[] {
+  const byKey = new Map<string, string>();
+  for (const value of values) {
+    const key = filterKey(value);
+    if (value && key && !byKey.has(key)) byKey.set(key, value.trim());
+  }
+  return [...byKey.values()].sort((a, b) =>
+    a.localeCompare(b, "en-US", { sensitivity: "base", numeric: true }),
+  );
+}
+
+/** The choices for each filter, taken from the claims the user can see. */
+export function claimFilterOptions(claims: ClaimListItem[]): ClaimFilterOptions {
+  const years = new Set<number>();
+  for (const c of claims) {
+    const year = calendarYear(c.date_of_loss);
+    if (year) years.add(year);
+  }
+  return {
+    lines: distinctText(claims.map((c) => c.line_of_business)),
+    years: [...years].sort((a, b) => b - a),
+    carriers: distinctText(claims.map((c) => c.carrier)),
+    locations: distinctText(claims.map((c) => c.loss_location)),
+  };
 }
 
 // Calendar dates compare as their "YYYY-MM-DD" text; closed_date may carry a time after it.
