@@ -6,7 +6,9 @@ import {
   countByStatus,
   incurredAmount,
   isOpen,
+  netIncurred,
   openCount,
+  recoveryAmount,
   statusBucket,
   summarize,
 } from "@/lib/claim-metrics";
@@ -105,5 +107,33 @@ describe("KPI comparisons", () => {
     const result = compareYtd([money("open", "2026-03-01", 0, 0)], "2026-06-15");
     expect(result.countChange).toBeNull();
     expect(result.avgClosedChange).toBeNull();
+  });
+});
+
+describe("recoveries and net incurred", () => {
+  const amounts = (paid: number | null, reserve: number | null, recovery: number | null) => ({
+    paid_amount: paid,
+    reserve_amount: reserve,
+    recovery_amount: recovery,
+  });
+
+  it("subtracts recoveries from paid plus reserve", () => {
+    expect(netIncurred(amounts(1000, 500, 300))).toBe(1200);
+    expect(recoveryAmount(amounts(0, 0, 300))).toBe(300);
+  });
+
+  it("treats NULL amounts as zero", () => {
+    expect(netIncurred(amounts(1000, null, null))).toBe(1000);
+    expect(netIncurred(amounts(null, null, null))).toBe(0);
+    expect(recoveryAmount(amounts(0, 0, null))).toBe(0);
+  });
+
+  it("never goes below zero", () => {
+    expect(netIncurred(amounts(100, 0, 500))).toBe(0);
+  });
+
+  it("reads numeric columns that arrive as strings", () => {
+    const row = { paid_amount: "1000", reserve_amount: "0", recovery_amount: "250.00" };
+    expect(netIncurred(row as never)).toBe(750);
   });
 });

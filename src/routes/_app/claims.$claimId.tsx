@@ -5,7 +5,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { incurredAmount, paidAmount, reserveAmount } from "@/lib/claim-metrics";
+import {
+  incurredAmount,
+  netIncurred,
+  paidAmount,
+  recoveryAmount,
+  reserveAmount,
+} from "@/lib/claim-metrics";
 import { formatDate, formatTime } from "@/lib/dates";
 import { fetchClaimDetail } from "@/lib/overview.functions";
 import { queryKeys } from "@/lib/query-keys";
@@ -14,7 +20,8 @@ import { StatusBadge } from "@/components/status-badge";
 import { ClaimActivityLog } from "@/components/claim-activity-log";
 import { ClaimContactsTable } from "@/components/claim-contacts-table";
 import { ClaimInternalNotes } from "@/components/claim-internal-notes";
-import { ClaimReserveEditor } from "@/components/claim-reserve-editor";
+import { ClaimRecoveryEditor, ClaimReserveEditor } from "@/components/claim-reserve-editor";
+import { ClaimOutcome } from "@/components/claim/claim-outcome";
 import { WaitingOnControl } from "@/components/claim/waiting-on-control";
 import { ClaimDocumentRequests, RequestedFromYouCard } from "@/components/claim/document-requests";
 import { Button } from "@/components/ui/button";
@@ -184,6 +191,8 @@ function ClaimDetail() {
 
       {role === "client" && <RequestedFromYouCard claimId={claim.id} clientId={claim.client_id} />}
 
+      <ClaimOutcome claim={claim} />
+
       <section className="rounded-lg border border-border bg-card p-6 grid sm:grid-cols-2 md:grid-cols-3 gap-5">
         <Field label="Claimant Name" value={claim.claimant_name} />
         <Field label="Carrier" value={claim.carrier} />
@@ -207,6 +216,25 @@ function ClaimDetail() {
           }
         />
         <Field label="Incurred" value={`$${incurredAmount(claim).toLocaleString()}`} />
+        {role === "agency_admin" ? (
+          <Field
+            label="Recoveries"
+            value={
+              <ClaimRecoveryEditor
+                key={recoveryAmount(claim)}
+                claimId={claim.id}
+                recovery={recoveryAmount(claim)}
+              />
+            }
+          />
+        ) : (
+          recoveryAmount(claim) > 0 && (
+            <Field label="Recoveries" value={`$${recoveryAmount(claim).toLocaleString()}`} />
+          )
+        )}
+        {recoveryAmount(claim) > 0 && (
+          <Field label="Net Incurred" value={`$${netIncurred(claim).toLocaleString()}`} />
+        )}
         <Field
           label="Waiting on"
           value={<WaitingOnControl claim={claim} editable={role === "agency_admin"} />}

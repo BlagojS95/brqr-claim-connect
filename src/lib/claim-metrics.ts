@@ -57,6 +57,16 @@ export function incurredAmount(claim: ClaimAmounts): number {
   return paidAmount(claim) + reserveAmount(claim);
 }
 
+/** Money back on the claim (subrogation, salvage). NULL means none. */
+export function recoveryAmount(claim: { recovery_amount: number | null }): number {
+  return Number(claim.recovery_amount ?? 0);
+}
+
+/** Incurred less recoveries, never below zero. */
+export function netIncurred(claim: ClaimAmounts & { recovery_amount: number | null }): number {
+  return Math.max(0, incurredAmount(claim) - recoveryAmount(claim));
+}
+
 export function totalPaid(claims: ClaimAmounts[]): number {
   return claims.reduce((sum, claim) => sum + paidAmount(claim), 0);
 }
