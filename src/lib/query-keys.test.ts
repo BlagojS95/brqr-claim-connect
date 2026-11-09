@@ -30,6 +30,11 @@ describe("queryKeys", () => {
     }
   });
 
+  it("keeps the attention queue apart from the overview", () => {
+    const query = { queryKey: queryKeys.attention, queryHash: "" };
+    expect(matchQuery({ queryKey: queryKeys.overviewAll }, query as never)).toBe(false);
+  });
+
   it("nests a claim's activity under the claim key", () => {
     const query = { queryKey: queryKeys.claimActivity("c1"), queryHash: "" };
     expect(matchQuery({ queryKey: queryKeys.claim("c1") }, query as never)).toBe(true);

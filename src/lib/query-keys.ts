@@ -13,6 +13,8 @@ export const queryKeys = {
   claim: (claimId: string) => ["claim", claimId] as const,
   // Under the claim's own key, so invalidating claim(id) also refreshes the log.
   claimActivity: (claimId: string) => ["claim", claimId, "activity"] as const,
+  // Home's "Needs your attention" list (fix 29), from fetchAttentionQueue.
+  attention: ["attention"] as const,
 };
 
 type FetchOverview = (opts: { data: { scope: OverviewScope } }) => Promise<AgencyOverview>;

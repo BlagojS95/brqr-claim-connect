@@ -17,6 +17,7 @@ import { overviewQueryOptions } from "@/lib/query-keys";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
+import { AttentionQueue } from "@/components/attention-queue";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Bell, FileText, DollarSign, ClipboardList, Calendar } from "lucide-react";
 
@@ -106,6 +107,8 @@ function Home() {
           </Link>
         </div>
       </div>
+
+      <AttentionQueue showClient={isAdmin} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((c) => {
