@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { LINE_OF_BUSINESS } from "@/lib/line-of-business";
 import {
   backoffMs,
+  checkDuplicatesCore,
   claimRuleError,
   deliverPendingRows,
   lossDetailsFor,
@@ -75,6 +76,11 @@ function fakeDb(ownClientId = CLIENT) {
     async deleteClaim(id) {
       const i = claims.findIndex((c) => c.id === id);
       if (i !== -1) claims.splice(i, 1);
+    },
+    async findClaimsOnDate(clientId, dateOfLoss) {
+      return claims
+        .filter((c) => c.client_id === clientId && c.date_of_loss === dateOfLoss)
+        .map((c) => ({ ...c, claim_number: null }));
     },
   };
   const updateOutbox = async (id: string, patch: OutboxPatch) => {
@@ -357,5 +363,98 @@ describe("loss details by line of business", () => {
     );
     expect(SubmitClaimSchema.safeParse({ ...base, timeOfLoss: "2pm" }).success).toBe(false);
     expect(SubmitClaimSchema.safeParse({ ...base, timeOfLoss: "14:05" }).success).toBe(true);
+  });
+});
+
+describe("duplicate check on submit (fix 38)", () => {
+  const SECOND = "88888888-8888-4888-8888-888888888888";
+
+  it("returns the possible duplicates and saves nothing", async () => {
+    const db = fakeDb();
+    await submitClaimCore(input({ documents: [] }), db.deps);
+    const outboxBefore = db.outbox.length;
+
+    const result = await submitClaimCore(
+      input({
+        claimId: SECOND,
+        claimantName: "  jane   DOE ",
+        documents: [{ path: `${CLIENT}/${SECOND}/a.pdf`, fileName: "a.pdf" }],
+      }),
+      db.deps,
+    );
+
+    expect(result.claimId).toBeNull();
+    expect(result.duplicates.map((d) => d.id)).toEqual([CLAIM]);
+    expect(db.claims).toHaveLength(1);
+    expect(db.documents).toHaveLength(0);
+    expect(db.outbox).toHaveLength(outboxBefore);
+  });
+
+  it("saves when the user chose Report anyway", async () => {
+    const db = fakeDb();
+    await submitClaimCore(input({ documents: [] }), db.deps);
+    const result = await submitClaimCore(
+      input({ claimId: SECOND, documents: [], skipDuplicateCheck: true }),
+      db.deps,
+    );
+    expect(result).toEqual({ claimId: SECOND, duplicates: [] });
+    expect(db.claims).toHaveLength(2);
+  });
+
+  it("saves a claim for a different person on the same day", async () => {
+    const db = fakeDb();
+    await submitClaimCore(input({ documents: [] }), db.deps);
+    const result = await submitClaimCore(
+      input({ claimId: SECOND, claimantName: "John Roe", documents: [] }),
+      db.deps,
+    );
+    expect(result.claimId).toBe(SECOND);
+  });
+
+  it("matches the same vehicle on an auto claim", async () => {
+    const db = fakeDb();
+    const auto = (overrides: Partial<SubmitClaimInput>) =>
+      input({
+        lineOfBusinessId: AUTO_LINE,
+        policyId: null,
+        claimantName: null,
+        thirdPartyContact: null,
+        documents: [],
+        ...overrides,
+      });
+    await submitClaimCore(auto({ vehiclesInvolved: "2019 Ford F-150" }), db.deps);
+    const result = await submitClaimCore(
+      auto({ claimId: SECOND, vehiclesInvolved: "2019 ford  F-150" }),
+      db.deps,
+    );
+    expect(result.duplicates.map((d) => d.id)).toEqual([CLAIM]);
+  });
+
+  it("ignores a vehicle sent on a line that doesn't keep one", async () => {
+    const db = fakeDb();
+    await submitClaimCore(input({ claimantName: "A", documents: [] }), db.deps);
+    db.claims[0].vehicles_involved = "Truck 7";
+    const result = await submitClaimCore(
+      input({ claimId: SECOND, claimantName: "B", vehiclesInvolved: "Truck 7", documents: [] }),
+      db.deps,
+    );
+    expect(result.claimId).toBe(SECOND);
+  });
+
+  it("checkDuplicatesCore checks access first and never saves", async () => {
+    const db = fakeDb();
+    await submitClaimCore(input({ documents: [] }), db.deps);
+    const probe = {
+      claimId: SECOND,
+      clientId: CLIENT,
+      lineOfBusinessId: LINE,
+      dateOfLoss: "2026-11-01",
+      claimantName: "Jane Doe",
+    };
+    expect((await checkDuplicatesCore(probe, db.deps)).map((d) => d.id)).toEqual([CLAIM]);
+    await expect(
+      checkDuplicatesCore({ ...probe, clientId: OTHER_CLIENT }, db.deps),
+    ).rejects.toThrow("your own account");
+    expect(db.claims).toHaveLength(1);
   });
 });

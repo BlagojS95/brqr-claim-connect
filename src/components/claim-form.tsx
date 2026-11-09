@@ -8,8 +8,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { processClaimNotifications, submitClaim } from "@/lib/claim-submission.functions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  checkDuplicateClaims,
+  processClaimNotifications,
+  submitClaim,
+} from "@/lib/claim-submission.functions";
+import type { DuplicateMatch } from "@/lib/duplicate-claims";
+import { DuplicateClaimsDialog } from "@/components/duplicate-claims-dialog";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { overviewQueryOptions } from "@/lib/query-keys";
 import { uploadClaimFile } from "@/lib/claim-documents";
@@ -45,6 +57,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const isAdmin = role === "agency_admin";
   const getOverview = useServerFn(fetchAgencyOverview);
   const submitClaimFn = useServerFn(submitClaim);
+  const checkDuplicates = useServerFn(checkDuplicateClaims);
   const processNotifications = useServerFn(processClaimNotifications);
 
   const { data: overview } = useQuery({
@@ -89,6 +102,12 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const [thirdPartyContact, setThirdPartyContact] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
+  const [duplicates, setDuplicates] = useState<DuplicateMatch[] | null>(null);
+  // Files already uploaded for this report, reused if the save is retried.
+  const [pendingUpload, setPendingUpload] = useState<{
+    claimId: string;
+    documents: { path: string; fileName: string }[];
+  } | null>(null);
 
   useEffect(() => {
     if (!isAdmin && clientId) {
@@ -138,8 +157,13 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
     else setPolicyId((current) => (ids.includes(current) ? current : ""));
   }, [policyKey, lineId, dateOfLoss]);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    void send(false);
+  };
+
+  // skipDuplicateCheck is true only after "Report anyway" (fix 38).
+  const send = async (skipDuplicateCheck: boolean) => {
     if (!selectedLocalClientId) {
       toast.error("No client selected");
       return;
@@ -162,22 +186,52 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
     }
     setBusy(true);
     try {
-      // Files go to storage first, under the id the claim will get, so the
-      // server can save the claim and its document rows together.
-      const claimId = crypto.randomUUID();
-      const documents: { path: string; fileName: string }[] = [];
-      for (const file of files) {
-        try {
-          documents.push(await uploadClaimFile(selectedLocalClientId, claimId, file));
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : `Upload failed: ${file.name}`);
+      const text = (v: string) => v.trim() || null;
+      // Only the current line's person and vehicle, as the server keeps them.
+      const probe = {
+        clientId: selectedLocalClientId,
+        lineOfBusinessId: line.id,
+        dateOfLoss,
+        claimantName: text(claimantName),
+        employeeName: isWc ? text(employeeName) : null,
+        vehiclesInvolved: isAuto ? text(vehiclesInvolved) : null,
+      };
+
+      // Look for possible duplicates before uploading anything, so a
+      // cancelled report leaves no files behind.
+      if (!skipDuplicateCheck && !pendingUpload) {
+        const { duplicates: found } = await checkDuplicates({
+          data: { ...probe, claimId: crypto.randomUUID() },
+        });
+        if (found.length) {
+          setDuplicates(found);
+          return;
         }
       }
 
-      const text = (v: string) => v.trim() || null;
+      // Files go to storage first, under the id the claim will get, so the
+      // server can save the claim and its document rows together. Kept for a
+      // retry after the server's own duplicate check stopped the save.
+      let upload = pendingUpload;
+      if (!upload) {
+        const claimId = crypto.randomUUID();
+        const documents: { path: string; fileName: string }[] = [];
+        for (const file of files) {
+          try {
+            documents.push(await uploadClaimFile(selectedLocalClientId, claimId, file));
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : `Upload failed: ${file.name}`);
+          }
+        }
+        upload = { claimId, documents };
+        setPendingUpload(upload);
+      }
+      const { claimId, documents } = upload;
+
       const saved = await submitClaimFn({
         data: {
           claimId,
+          skipDuplicateCheck,
           clientId: selectedLocalClientId,
           lineOfBusinessId: line.id,
           policyId: policyId || null,
@@ -207,6 +261,12 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
           documents,
         },
       });
+
+      // A matching claim arrived since the check above; nothing was saved.
+      if (saved.claimId === null) {
+        setDuplicates(saved.duplicates);
+        return;
+      }
 
       // The claim is saved; the email and webhook are sent (and retried) from
       // the outbox in the background. Failures show up on /admin.
@@ -246,9 +306,15 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
               setPolicyId("");
             }}
           >
-            <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Select client" />
+            </SelectTrigger>
             <SelectContent>
-              {selectableClients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              {selectableClients.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -262,7 +328,11 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
               <SelectValue placeholder={linesFailed ? "Could not load lines" : "Select line"} />
             </SelectTrigger>
             <SelectContent>
-              {lines.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+              {lines.map((l) => (
+                <SelectItem key={l.id} value={l.id}>
+                  {l.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -277,11 +347,19 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
             required
           />
         </div>
-        <TextField id="tol" label="Time of Loss" type="time" value={timeOfLoss} onChange={setTimeOfLoss} />
+        <TextField
+          id="tol"
+          label="Time of Loss"
+          type="time"
+          value={timeOfLoss}
+          onChange={setTimeOfLoss}
+        />
         <div className="space-y-2">
           <Label>Any Injuries?</Label>
           <Select value={injuries} onValueChange={(v) => setInjuries(v as "yes" | "no")}>
-            <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Select" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="yes">Yes</SelectItem>
               <SelectItem value="no">No</SelectItem>
@@ -325,7 +403,13 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
             />
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
-            <TextField id="driver" label="Driver" value={driverName} onChange={setDriverName} maxLength={200} />
+            <TextField
+              id="driver"
+              label="Driver"
+              value={driverName}
+              onChange={setDriverName}
+              maxLength={200}
+            />
             <TextField
               id="police"
               label="Police Report Number"
@@ -341,8 +425,20 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
         <div className="rounded-md border border-border p-4 space-y-4">
           <h2 className="font-semibold text-navy">Injured Employee</h2>
           <div className="grid sm:grid-cols-2 gap-4">
-            <TextField id="employee" label="Employee Name" value={employeeName} onChange={setEmployeeName} maxLength={200} />
-            <TextField id="job" label="Job Title" value={employeeJobTitle} onChange={setEmployeeJobTitle} maxLength={200} />
+            <TextField
+              id="employee"
+              label="Employee Name"
+              value={employeeName}
+              onChange={setEmployeeName}
+              maxLength={200}
+            />
+            <TextField
+              id="job"
+              label="Job Title"
+              value={employeeJobTitle}
+              onChange={setEmployeeJobTitle}
+              maxLength={200}
+            />
             <TextField
               id="body-part"
               label="Body Part Injured"
@@ -413,15 +509,21 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
         </Select>
         {!policies.length && clientPolicies.length > 0 && (
           <p className="text-xs text-muted-foreground">
-            No policy on file covers this line of business on the date of loss. You can still
-            submit without a policy and the agency will match it.
+            No policy on file covers this line of business on the date of loss. You can still submit
+            without a policy and the agency will match it.
           </p>
         )}
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="desc">Description</Label>
-        <Textarea id="desc" rows={5} value={description} onChange={(e) => setDescription(e.target.value)} required />
+        <Textarea
+          id="desc"
+          rows={5}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          required
+        />
       </div>
 
       <div className="rounded-md border border-border p-4 space-y-4">
@@ -461,25 +563,40 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
         <label className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-md p-6 cursor-pointer hover:bg-muted/30">
           <Upload className="h-6 w-6 text-muted-foreground" />
           <span className="text-sm text-muted-foreground mt-2">
-            {files.length ? `${files.length} file(s) selected` : "Click to upload (multiple allowed)"}
+            {files.length
+              ? `${files.length} file(s) selected`
+              : "Click to upload (multiple allowed)"}
           </span>
           <input
             type="file"
             multiple
             className="hidden"
-            onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+            onChange={(e) => {
+              setFiles(Array.from(e.target.files ?? []));
+              setPendingUpload(null);
+            }}
           />
         </label>
       </div>
 
       <div className="flex gap-3">
-        <Button type="submit" disabled={busy} className="bg-navy hover:bg-navy/90 text-navy-foreground">
+        <Button
+          type="submit"
+          disabled={busy}
+          className="bg-navy hover:bg-navy/90 text-navy-foreground"
+        >
           {busy ? "Submitting…" : "Submit"}
         </Button>
         <Button type="button" variant="outline" onClick={() => navigate({ to: "/home" })}>
           Cancel
         </Button>
       </div>
+
+      <DuplicateClaimsDialog
+        duplicates={duplicates}
+        onReportAnyway={() => void send(true)}
+        onCancel={() => setDuplicates(null)}
+      />
     </form>
   );
 }

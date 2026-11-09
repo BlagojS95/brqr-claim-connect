@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import type { Database } from "@/integrations/supabase/types";
 import { forbidden, parseInput } from "@/lib/http-errors.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
@@ -10,18 +12,66 @@ import {
   outboxDeliveryDeps,
 } from "@/lib/claim-notifications.server";
 import {
+  checkDuplicatesCore,
   deliverOutboxRow,
   deliverPendingRows,
+  DuplicateCheckSchema,
   OUTBOX_STATUS,
   submitClaimCore,
   SubmitClaimSchema,
 } from "@/lib/claim-submission";
+import { DUPLICATE_CANDIDATE_COLUMNS } from "@/lib/duplicate-claims";
 import { todayIso } from "@/lib/dates";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
 
+type CallerContext = { supabase: SupabaseClient<Database>; userId: string };
+
+// The caller may report for clientId: an agency admin, or the login linked to it.
+function submitterDeps({ supabase, userId }: CallerContext) {
+  return {
+    async assertCanSubmitFor(clientId: string) {
+      const { data: adminRole } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "agency_admin")
+        .maybeSingle();
+      if (adminRole) return;
+      const { data: own } = await supabaseAdmin
+        .from("clients")
+        .select("id")
+        .eq("id", clientId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!own) forbidden("You can only report claims for your own account");
+    },
+    async findClaimsOnDate(clientId: string, dateOfLoss: string) {
+      // Caller's token, so RLS limits a client to their own claims.
+      const { data: rows, error } = await supabase
+        .from("claims")
+        .select(DUPLICATE_CANDIDATE_COLUMNS)
+        .eq("client_id", clientId)
+        .eq("date_of_loss", dateOfLoss);
+      if (error) throw new Error(`Couldn't check for duplicate claims: ${error.message}`);
+      return rows ?? [];
+    },
+  };
+}
+
+// Possible duplicates of a report (fix 38), checked before any file is
+// uploaded or anything is saved.
+export const checkDuplicateClaims = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(parseInput(DuplicateCheckSchema))
+  .handler(async ({ data, context }) => {
+    await loadDevVars();
+    return { duplicates: await checkDuplicatesCore(data, submitterDeps(context)) };
+  });
+
 // Saves a reported claim, its document rows and its notification outbox rows.
 // Notifications are sent afterwards by processClaimNotifications, so a mail or
-// webhook outage never loses the claim.
+// webhook outage never loses the claim. Returns possible duplicates instead of
+// saving unless skipDuplicateCheck is set.
 export const submitClaim = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(parseInput(SubmitClaimSchema))
@@ -30,23 +80,8 @@ export const submitClaim = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
 
     return submitClaimCore(data, {
+      ...submitterDeps(context),
       today: () => todayIso(),
-      async assertCanSubmitFor(clientId) {
-        const { data: adminRole } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", userId)
-          .eq("role", "agency_admin")
-          .maybeSingle();
-        if (adminRole) return;
-        const { data: own } = await supabaseAdmin
-          .from("clients")
-          .select("id")
-          .eq("id", clientId)
-          .eq("user_id", userId)
-          .maybeSingle();
-        if (!own) forbidden("You can only report claims for your own account");
-      },
       async getLine(id) {
         const { data: line } = await supabase
           .from("lines_of_business")
@@ -58,7 +93,9 @@ export const submitClaim = createServerFn({ method: "POST" })
       async getPolicy(id, clientId) {
         const { data: policy } = await supabase
           .from("policies")
-          .select("id, policy_number, carrier, effective_date, expiration_date, line_of_business_id")
+          .select(
+            "id, policy_number, carrier, effective_date, expiration_date, line_of_business_id",
+          )
           .eq("id", id)
           .eq("client_id", clientId)
           .maybeSingle();

@@ -4,6 +4,11 @@
 import { z } from "zod";
 import { CLAIM_STATUS, type ClaimStatus } from "@/lib/claim-status";
 import { formatDate } from "@/lib/dates";
+import {
+  findDuplicateClaims,
+  type DuplicateCandidate,
+  type DuplicateMatch,
+} from "@/lib/duplicate-claims";
 import { unprocessableError } from "@/lib/http-errors";
 import { LINE_OF_BUSINESS } from "@/lib/line-of-business";
 import { policyCoversLoss, type PolicyTerm } from "@/lib/policy-match";
@@ -67,6 +72,8 @@ export const SubmitClaimSchema = z.object({
       }),
     )
     .max(50),
+  // Set by "Report anyway" after the form showed possible duplicates (fix 38).
+  skipDuplicateCheck: z.boolean().optional(),
 });
 export type SubmitClaimInput = z.infer<typeof SubmitClaimSchema>;
 
@@ -182,9 +189,44 @@ export interface SubmitClaimDeps {
   notificationKinds?(): readonly NotificationKind[];
   // Used to undo a half-saved claim (documents and outbox rows cascade).
   deleteClaim(id: string): Promise<void>;
+  // The client's existing claims with this date of loss, for the duplicate
+  // check. Loaded with the caller's token, so RLS applies.
+  findClaimsOnDate(clientId: string, dateOfLoss: string): Promise<DuplicateCandidate[]>;
 }
 
-export async function submitClaimCore(input: SubmitClaimInput, deps: SubmitClaimDeps) {
+/** The fields the pre-submit duplicate check needs (fix 38). */
+export const DuplicateCheckSchema = SubmitClaimSchema.pick({
+  claimId: true,
+  clientId: true,
+  lineOfBusinessId: true,
+  dateOfLoss: true,
+  claimantName: true,
+  employeeName: true,
+  vehiclesInvolved: true,
+});
+export type DuplicateCheckInput = z.infer<typeof DuplicateCheckSchema>;
+
+/**
+ * Possible duplicates of a report, without saving anything. The form calls
+ * this before uploading files, so a cancelled report leaves nothing behind.
+ */
+export async function checkDuplicatesCore(
+  input: DuplicateCheckInput,
+  deps: Pick<SubmitClaimDeps, "assertCanSubmitFor" | "findClaimsOnDate">,
+): Promise<DuplicateMatch[]> {
+  await deps.assertCanSubmitFor(input.clientId);
+  const candidates = await deps.findClaimsOnDate(input.clientId, input.dateOfLoss);
+  return findDuplicateClaims(input, candidates);
+}
+
+export type SubmitClaimResult =
+  | { claimId: string; duplicates: [] }
+  | { claimId: null; duplicates: DuplicateMatch[] };
+
+export async function submitClaimCore(
+  input: SubmitClaimInput,
+  deps: SubmitClaimDeps,
+): Promise<SubmitClaimResult> {
   await deps.assertCanSubmitFor(input.clientId);
 
   const line = await deps.getLine(input.lineOfBusinessId);
@@ -215,6 +257,24 @@ export async function submitClaimCore(input: SubmitClaimInput, deps: SubmitClaim
     }
   }
 
+  const lossDetails = lossDetailsFor(input, line.code);
+
+  // Checked again here in case a matching claim arrived after the form's
+  // pre-check. Nothing is saved until the user chooses "Report anyway".
+  if (!input.skipDuplicateCheck) {
+    const candidates = await deps.findClaimsOnDate(input.clientId, input.dateOfLoss);
+    const duplicates = findDuplicateClaims(
+      {
+        ...input,
+        // Only the fields this line keeps, as saved.
+        employeeName: lossDetails.employee_name,
+        vehiclesInvolved: lossDetails.vehicles_involved,
+      },
+      candidates,
+    );
+    if (duplicates.length) return { claimId: null, duplicates };
+  }
+
   const claim = await deps.insertClaim({
     id: input.claimId,
     client_id: input.clientId,
@@ -230,7 +290,7 @@ export async function submitClaimCore(input: SubmitClaimInput, deps: SubmitClaim
     description: input.description,
     carrier: policy?.carrier ?? null,
     status: input.isNotice ? CLAIM_STATUS.notice : CLAIM_STATUS.submitted,
-    ...lossDetailsFor(input, line.code),
+    ...lossDetails,
   });
 
   try {
@@ -254,7 +314,7 @@ export async function submitClaimCore(input: SubmitClaimInput, deps: SubmitClaim
     throw err;
   }
 
-  return { claimId: claim.id };
+  return { claimId: claim.id, duplicates: [] };
 }
 
 export interface OutboxRow {
@@ -301,7 +361,11 @@ export async function deliverOutboxRow(row: OutboxRow, deps: DeliveryDeps): Prom
   for (let attempt = row.attempts + 1; attempt <= MAX_NOTIFICATION_ATTEMPTS; attempt++) {
     try {
       await send(row.claim_id);
-      await deps.updateOutbox(row.id, { status: OUTBOX_STATUS.sent, attempts: attempt, last_error: null });
+      await deps.updateOutbox(row.id, {
+        status: OUTBOX_STATUS.sent,
+        attempts: attempt,
+        last_error: null,
+      });
       return OUTBOX_STATUS.sent;
     } catch (err) {
       const last = attempt >= MAX_NOTIFICATION_ATTEMPTS;
