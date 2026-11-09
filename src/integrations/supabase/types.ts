@@ -263,6 +263,7 @@ export type Database = {
           line_of_business: string | null
           line_of_business_description: string | null
           line_of_business_id: string | null
+          location_id: string | null
           notes: string | null
           paid_amount: number | null
           policy_id: string | null
@@ -297,6 +298,7 @@ export type Database = {
           claim_number?: string | null
           claim_type: string
           line_of_business_id?: string | null
+          location_id?: string | null
           claimant_name?: string | null
           client_id: string
           closed_date?: string | null
@@ -346,6 +348,7 @@ export type Database = {
           claim_number?: string | null
           claim_type?: string
           line_of_business_id?: string | null
+          location_id?: string | null
           claimant_name?: string | null
           client_id?: string
           closed_date?: string | null
@@ -400,6 +403,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "claims_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "client_locations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "claims_line_of_business_id_fkey"
             columns: ["line_of_business_id"]
             isOneToOne: false
@@ -411,6 +421,70 @@ export type Database = {
             columns: ["policy_id"]
             isOneToOne: false
             referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_locations: {
+        Row: {
+          address: string | null
+          client_id: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          address?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          address?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_locations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_users: {
+        Row: {
+          client_id: string
+          created_at: string
+          location_ids: string[]
+          role: Database["public"]["Enums"]["client_user_role"]
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          location_ids?: string[]
+          role?: Database["public"]["Enums"]["client_user_role"]
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          location_ids?: string[]
+          role?: Database["public"]["Enums"]["client_user_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_users_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -653,6 +727,7 @@ export type Database = {
           expiration_date: string | null
           id: string
           line_of_business_id: string | null
+          location_id: string | null
           policy_number: string
           policy_type: string | null
           premium: number | null
@@ -667,6 +742,7 @@ export type Database = {
           expiration_date?: string | null
           id?: string
           line_of_business_id?: string | null
+          location_id?: string | null
           policy_number: string
           policy_type?: string | null
           premium?: number | null
@@ -681,6 +757,7 @@ export type Database = {
           expiration_date?: string | null
           id?: string
           line_of_business_id?: string | null
+          location_id?: string | null
           policy_number?: string
           policy_type?: string | null
           premium?: number | null
@@ -878,6 +955,7 @@ export type Database = {
       app_role: "agency_admin" | "client"
       claim_status: "notice" | "submitted" | "open" | "closed" | "reopened"
       claim_waiting_on: "client" | "agency" | "carrier"
+      client_user_role: "client_admin" | "company" | "location"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1008,6 +1086,7 @@ export const Constants = {
       app_role: ["agency_admin", "client"],
       claim_status: ["notice", "submitted", "open", "closed", "reopened"],
       claim_waiting_on: ["client", "agency", "carrier"],
+      client_user_role: ["client_admin", "company", "location"],
     },
   },
 } as const
