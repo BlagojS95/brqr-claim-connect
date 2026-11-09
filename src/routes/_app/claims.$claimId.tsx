@@ -16,6 +16,7 @@ import { ClaimContactsTable } from "@/components/claim-contacts-table";
 import { ClaimInternalNotes } from "@/components/claim-internal-notes";
 import { ClaimReserveEditor } from "@/components/claim-reserve-editor";
 import { WaitingOnControl } from "@/components/claim/waiting-on-control";
+import { ClaimDocumentRequests, RequestedFromYouCard } from "@/components/claim/document-requests";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -181,6 +182,8 @@ function ClaimDetail() {
         <StatusBadge status={claim.status} />
       </div>
 
+      {role === "client" && <RequestedFromYouCard claimId={claim.id} clientId={claim.client_id} />}
+
       <section className="rounded-lg border border-border bg-card p-6 grid sm:grid-cols-2 md:grid-cols-3 gap-5">
         <Field label="Claimant Name" value={claim.claimant_name} />
         <Field label="Carrier" value={claim.carrier} />
@@ -285,6 +288,8 @@ function ClaimDetail() {
           ))}
         </ul>
       </section>
+
+      <ClaimDocumentRequests claimId={claim.id} isAdmin={role === "agency_admin"} />
 
       {role === "agency_admin" && (
         <section className="rounded-lg border border-border bg-card p-6">

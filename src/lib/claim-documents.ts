@@ -42,7 +42,14 @@ export async function uploadClaimFile(clientId: string, claimId: string, file: F
   return { path, fileName: file.name };
 }
 
-export async function uploadClaimDocument(clientId: string, claimId: string, file: File) {
+// Pass documentRequestId when the upload answers a document request; the
+// fulfill_document_request trigger then closes that request.
+export async function uploadClaimDocument(
+  clientId: string,
+  claimId: string,
+  file: File,
+  options: { documentRequestId?: string } = {},
+) {
   const { path } = await uploadClaimFile(clientId, claimId, file);
 
   const { data: signed } = await supabase.storage
@@ -53,6 +60,7 @@ export async function uploadClaimDocument(clientId: string, claimId: string, fil
     client_id: clientId,
     file_name: file.name,
     file_url: signed?.signedUrl ?? path,
+    document_request_id: options.documentRequestId ?? null,
   });
   if (docErr)
     throw new Error(`Uploaded ${file.name} but couldn't attach it to the claim: ${docErr.message}`);

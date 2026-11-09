@@ -15,6 +15,7 @@ export const queryKeys = {
   claimActivity: (claimId: string) => ["claim", claimId, "activity"] as const,
   // Home's "Needs your attention" list (fix 29), from fetchAttentionQueue.
   attention: ["attention"] as const,
+  claimDocumentRequests: (claimId: string) => ["claim", claimId, "document-requests"] as const,
 };
 
 type FetchOverview = (opts: { data: { scope: OverviewScope } }) => Promise<AgencyOverview>;
