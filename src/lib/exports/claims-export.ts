@@ -4,6 +4,7 @@
 import {
   incurredAmount,
   paidAmount,
+  recoveryAmount,
   reserveAmount,
   totalIncurred,
   totalPaid,
@@ -18,16 +19,11 @@ import {
   type ClaimsSearch,
 } from "@/lib/claims-list";
 import { formatDate } from "@/lib/dates";
-import type { AgencyClaim, WaitingOn } from "@/lib/overview.types";
+import type { AgencyClaim } from "@/lib/overview.types";
+import { WAITING_ON_LABELS } from "@/lib/waiting-on";
 import type { ExportCell, ExportColumn, ExportTable } from "@/lib/exports/table";
 
 export { toCsv } from "@/lib/exports/table";
-
-export const WAITING_ON_LABELS: Record<WaitingOn, string> = {
-  client: "Client",
-  agency: "Agency",
-  carrier: "Carrier",
-};
 
 export type ExportClaim = Pick<
   AgencyClaim,
@@ -48,10 +44,6 @@ export type ExportClaim = Pick<
   | "recovery_amount"
   | "client_name"
 >;
-
-export function recoveryAmount(claim: Pick<AgencyClaim, "recovery_amount">): number {
-  return Number(claim.recovery_amount ?? 0);
-}
 
 interface ClaimColumn extends ExportColumn {
   value: (claim: ExportClaim) => ExportCell;

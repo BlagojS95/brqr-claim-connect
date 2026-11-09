@@ -52,7 +52,13 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function RemoveDocumentButton({ fileName, onConfirm }: { fileName: string; onConfirm: () => void }) {
+function RemoveDocumentButton({
+  fileName,
+  onConfirm,
+}: {
+  fileName: string;
+  onConfirm: () => void;
+}) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>

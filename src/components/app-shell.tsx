@@ -77,7 +77,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
                   "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors",
                   active
                     ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-gold"
-                    : "hover:bg-sidebar-accent/60 text-sidebar-foreground/85"
+                    : "hover:bg-sidebar-accent/60 text-sidebar-foreground/85",
                 )}
               >
                 <Icon className="h-4 w-4" />
