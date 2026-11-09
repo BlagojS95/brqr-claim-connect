@@ -161,6 +161,10 @@ function ClaimDetail() {
         { label: "Third-Party Contact", value: loss.third_party_contact },
       ].filter((f) => f.value)
     : [];
+  // Cause of loss (fix 35) is on imported claims too, so it doesn't need loss_details.
+  if (claim.cause_of_loss) {
+    lossFields.unshift({ label: "Cause of Loss", value: claim.cause_of_loss });
+  }
 
   // Timeline step labels (display copy), not claim status values.
   const timeline = [

@@ -21,7 +21,9 @@ import {
   totalsBy,
   type InsightsMeasure,
 } from "@/lib/insights-measure";
+import { largestOpenClaims, totalsByCause, totalsByLocation } from "@/lib/insights-breakdowns";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
+import { LargestOpenClaims } from "@/components/insights/largest-open-claims";
 import { overviewQueryOptions } from "@/lib/query-keys";
 import { ChartsPlaceholder } from "@/components/insights/chart-card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,8 +43,15 @@ export const Route = createFileRoute("/_app/insights")({
   component: InsightsPage,
 });
 
+// How many claims the "largest open claims" table lists.
+const LARGEST_OPEN_LIMIT = 10;
+
 const fmt = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(n);
 
 function InsightsPage() {
   const getOverview = useServerFn(fetchAgencyOverview);
@@ -56,10 +65,13 @@ function InsightsPage() {
 
   const byLob = useMemo(
     () =>
-      Array.from(totalsBy(claims, (c) => c.line_of_business), ([lob, totals]) => ({
-        lob,
-        ...totals,
-      })),
+      Array.from(
+        totalsBy(claims, (c) => c.line_of_business),
+        ([lob, totals]) => ({
+          lob,
+          ...totals,
+        }),
+      ),
     [claims],
   );
 
@@ -73,20 +85,33 @@ function InsightsPage() {
 
   const byYear = useMemo(
     () =>
-      Array.from(totalsBy(claims, (c) => calendarYear(c.date_of_loss)), ([year, totals]) => ({
-        year,
-        ...totals,
-      })).sort((a, b) => a.year - b.year),
+      Array.from(
+        totalsBy(claims, (c) => calendarYear(c.date_of_loss)),
+        ([year, totals]) => ({
+          year,
+          ...totals,
+        }),
+      ).sort((a, b) => a.year - b.year),
     [claims],
   );
 
   const byCarrier = useMemo(
     () =>
-      Array.from(totalsBy(claims, (c) => c.carrier || "—"), ([carrier, totals]) => ({
-        carrier,
-        ...totals,
-      })),
+      Array.from(
+        totalsBy(claims, (c) => c.carrier || "—"),
+        ([carrier, totals]) => ({
+          carrier,
+          ...totals,
+        }),
+      ),
     [claims],
+  );
+
+  const byCause = useMemo(() => totalsByCause(claims), [claims]);
+  const byLocation = useMemo(() => totalsByLocation(claims), [claims]);
+  const largest = useMemo(
+    () => largestOpenClaims(claims, measure, LARGEST_OPEN_LIMIT),
+    [claims, measure],
   );
 
   const totals = useMemo(() => {
@@ -164,8 +189,12 @@ function InsightsPage() {
           byStatus={byStatus}
           byYear={byYear}
           byCarrier={byCarrier}
+          byCause={byCause}
+          byLocation={byLocation}
         />
       </Suspense>
+
+      <LargestOpenClaims claims={largest} measure={measure} limit={LARGEST_OPEN_LIMIT} />
     </div>
   );
 }

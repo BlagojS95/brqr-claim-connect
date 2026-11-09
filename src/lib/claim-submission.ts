@@ -64,6 +64,8 @@ export const SubmitClaimSchema = z.object({
   injuredBodyPart: optionalText(200),
   dateReportedToEmployer: isoDate.nullish(),
   thirdPartyContact: optionalText(500),
+  // Optional pick from the causes_of_loss lookup (fix 35).
+  causeOfLossId: z.string().uuid("Unknown cause of loss").nullish(),
   documents: z
     .array(
       z.object({
@@ -161,6 +163,7 @@ export interface ClaimInsert extends LossDetails {
   description: string;
   carrier: string | null;
   status: ClaimStatus;
+  cause_of_loss_id: string | null;
 }
 
 export interface DocumentInsert {
@@ -176,6 +179,7 @@ export interface SubmitClaimDeps {
   // Throws unless the caller is an agency admin or the login linked to clientId.
   assertCanSubmitFor(clientId: string): Promise<void>;
   getLine(id: string): Promise<{ id: string; name: string; code: string } | null>;
+  getCauseOfLoss(id: string): Promise<{ id: string; active: boolean } | null>;
   getPolicy(
     id: string,
     clientId: string,
@@ -236,6 +240,9 @@ export async function submitClaimCore(
   const ruleError = claimRuleError(input, { lineCode: line.code, today });
   if (ruleError) throw unprocessableError(ruleError);
 
+  const cause = input.causeOfLossId ? await deps.getCauseOfLoss(input.causeOfLossId) : null;
+  if (input.causeOfLossId && !cause?.active) throw unprocessableError("Unknown cause of loss");
+
   const policy = input.policyId ? await deps.getPolicy(input.policyId, input.clientId) : null;
   if (input.policyId && !policy) {
     throw unprocessableError("That policy doesn't belong to this client");
@@ -290,6 +297,7 @@ export async function submitClaimCore(
     description: input.description,
     carrier: policy?.carrier ?? null,
     status: input.isNotice ? CLAIM_STATUS.notice : CLAIM_STATUS.submitted,
+    cause_of_loss_id: cause?.id ?? null,
     ...lossDetails,
   });
 

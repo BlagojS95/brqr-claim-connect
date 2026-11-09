@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { matchQuery } from "@tanstack/react-query";
 import { classifySessionChange } from "@/hooks/use-auth";
-import { overviewQueryOptions, queryKeys } from "@/lib/query-keys";
+import { causesOfLossQueryOptions, overviewQueryOptions, queryKeys } from "@/lib/query-keys";
 import type { AgencyOverview } from "@/lib/overview.types";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
@@ -33,6 +33,12 @@ describe("queryKeys", () => {
   it("keeps the attention queue apart from the overview", () => {
     const query = { queryKey: queryKeys.attention, queryHash: "" };
     expect(matchQuery({ queryKey: queryKeys.overviewAll }, query as never)).toBe(false);
+  });
+
+  it("caches the causes of loss under one key for the session", () => {
+    const opts = causesOfLossQueryOptions(async () => []);
+    expect(opts.queryKey).toEqual(queryKeys.causesOfLoss);
+    expect(opts.staleTime).toBe(Infinity);
   });
 
   it("nests a claim's activity under the claim key", () => {

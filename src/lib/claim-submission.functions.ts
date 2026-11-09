@@ -90,6 +90,14 @@ export const submitClaim = createServerFn({ method: "POST" })
           .maybeSingle();
         return line;
       },
+      async getCauseOfLoss(id) {
+        const { data: cause } = await supabase
+          .from("causes_of_loss")
+          .select("id, active")
+          .eq("id", id)
+          .maybeSingle();
+        return cause;
+      },
       async getPolicy(id, clientId) {
         const { data: policy } = await supabase
           .from("policies")

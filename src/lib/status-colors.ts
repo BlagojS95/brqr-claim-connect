@@ -68,6 +68,9 @@ export const BRAND_SERIES_COLORS = [
   "#a9d3dc",
 ] as const;
 
+/** Grey for chart rows that aren't a real group, like "Not given" or "All other". */
+export const NEUTRAL_SERIES_COLOR = "#9ca3af";
+
 export function seriesColor(index: number): string {
   return BRAND_SERIES_COLORS[index % BRAND_SERIES_COLORS.length];
 }

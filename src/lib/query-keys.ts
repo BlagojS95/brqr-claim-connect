@@ -16,7 +16,23 @@ export const queryKeys = {
   // Home's "Needs your attention" list (fix 29), from fetchAttentionQueue.
   attention: ["attention"] as const,
   claimDocumentRequests: (claimId: string) => ["claim", claimId, "document-requests"] as const,
+  // The active causes_of_loss lookup rows (fix 35) for the report form.
+  causesOfLoss: ["causes-of-loss"] as const,
 };
+
+export interface CauseOfLossOption {
+  id: string;
+  name: string;
+}
+
+// The lookup changes rarely, so it is fetched once per session.
+export function causesOfLossQueryOptions(fetchCauses: () => Promise<CauseOfLossOption[]>) {
+  return queryOptions({
+    queryKey: queryKeys.causesOfLoss,
+    queryFn: fetchCauses,
+    staleTime: Infinity,
+  });
+}
 
 type FetchOverview = (opts: { data: { scope: OverviewScope } }) => Promise<AgencyOverview>;
 

@@ -31,6 +31,13 @@ const LINES: Record<string, { id: string; name: string; code: string }> = {
   [AUTO_LINE]: { id: AUTO_LINE, name: "Business Auto", code: "AUTO" },
 };
 
+const CAUSE = "99999999-9999-4999-8999-999999999999";
+const RETIRED_CAUSE = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const CAUSES: Record<string, { id: string; active: boolean }> = {
+  [CAUSE]: { id: CAUSE, active: true },
+  [RETIRED_CAUSE]: { id: RETIRED_CAUSE, active: false },
+};
+
 // In-memory stand-in for the claims, documents and notification_outbox tables.
 function fakeDb(ownClientId = CLIENT) {
   const claims: ClaimInsert[] = [];
@@ -43,6 +50,7 @@ function fakeDb(ownClientId = CLIENT) {
         throw new Error("You can only report claims for your own account");
     },
     getLine: async (id) => LINES[id] ?? null,
+    getCauseOfLoss: async (id) => CAUSES[id] ?? null,
     getPolicy: async (id, clientId) =>
       id === POLICY && clientId === CLIENT
         ? {
@@ -456,5 +464,41 @@ describe("duplicate check on submit (fix 38)", () => {
       checkDuplicatesCore({ ...probe, clientId: OTHER_CLIENT }, db.deps),
     ).rejects.toThrow("your own account");
     expect(db.claims).toHaveLength(1);
+  });
+});
+
+describe("cause of loss (fix 35)", () => {
+  it("saves the chosen cause", async () => {
+    const db = fakeDb();
+    await submitClaimCore(input({ causeOfLossId: CAUSE, documents: [] }), db.deps);
+    expect(db.claims[0].cause_of_loss_id).toBe(CAUSE);
+  });
+
+  it("is optional", async () => {
+    const db = fakeDb();
+    await submitClaimCore(input({ documents: [] }), db.deps);
+    await submitClaimCore(
+      input({ claimId: POLICY, claimantName: "Other", causeOfLossId: null, documents: [] }),
+      db.deps,
+    );
+    expect(db.claims.map((c) => c.cause_of_loss_id)).toEqual([null, null]);
+  });
+
+  it("refuses an unknown or retired cause and saves nothing", async () => {
+    const db = fakeDb();
+    await expect(
+      submitClaimCore(input({ causeOfLossId: LINE, documents: [] }), db.deps),
+    ).rejects.toThrow("Unknown cause of loss");
+    await expect(
+      submitClaimCore(input({ causeOfLossId: RETIRED_CAUSE, documents: [] }), db.deps),
+    ).rejects.toThrow("Unknown cause of loss");
+    expect(db.claims).toHaveLength(0);
+  });
+
+  it("only accepts a uuid", () => {
+    const base = { ...input(), documents: [] };
+    expect(SubmitClaimSchema.safeParse({ ...base, causeOfLossId: "fire" }).success).toBe(false);
+    expect(SubmitClaimSchema.safeParse({ ...base, causeOfLossId: CAUSE }).success).toBe(true);
+    expect(SubmitClaimSchema.safeParse({ ...base, causeOfLossId: null }).success).toBe(true);
   });
 });

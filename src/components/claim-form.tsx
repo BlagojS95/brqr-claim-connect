@@ -23,13 +23,16 @@ import {
 import type { DuplicateMatch } from "@/lib/duplicate-claims";
 import { DuplicateClaimsDialog } from "@/components/duplicate-claims-dialog";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
-import { overviewQueryOptions } from "@/lib/query-keys";
+import { causesOfLossQueryOptions, overviewQueryOptions } from "@/lib/query-keys";
 import { uploadClaimFile } from "@/lib/claim-documents";
 import { todayIso } from "@/lib/dates";
 import { LINE_OF_BUSINESS } from "@/lib/line-of-business";
 import { policyCoversLoss } from "@/lib/policy-match";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
+
+// Select value for "Not sure"; Radix Select items can't use an empty string.
+const NO_CAUSE = "none";
 
 function TextField({
   id,
@@ -76,6 +79,20 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
     },
   });
 
+  // Active causes only; RLS lets any signed-in user read the lookup.
+  const { data: causes = [], isError: causesFailed } = useQuery(
+    causesOfLossQueryOptions(async () => {
+      const { data, error } = await supabase
+        .from("causes_of_loss")
+        .select("id, name")
+        .eq("active", true)
+        .order("sort_order")
+        .order("name");
+      if (error) throw error;
+      return data;
+    }),
+  );
+
   const selectableClients = isAdmin
     ? (overview?.clients ?? []).map((c) => ({ id: c.id, name: c.company_name || c.name }))
     : [];
@@ -85,6 +102,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const [dateOfLoss, setDateOfLoss] = useState("");
   const [timeOfLoss, setTimeOfLoss] = useState("");
   const [lossLocation, setLossLocation] = useState("");
+  const [causeId, setCauseId] = useState("");
   const [claimantName, setClaimantName] = useState("");
   const [description, setDescription] = useState("");
   const [policyId, setPolicyId] = useState<string>("");
@@ -258,6 +276,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
             dateReportedToEmployer: dateReportedToEmployer || null,
           }),
           ...(isGl && { thirdPartyContact: text(thirdPartyContact) }),
+          causeOfLossId: causeId || null,
           documents,
         },
       });
@@ -366,6 +385,23 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="cause">Cause of Loss (optional)</Label>
+        <Select value={causeId} onValueChange={(v) => setCauseId(v === NO_CAUSE ? "" : v)}>
+          <SelectTrigger id="cause">
+            <SelectValue placeholder={causesFailed ? "Could not load causes" : "Select cause"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_CAUSE}>Not sure</SelectItem>
+            {causes.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <TextField

@@ -48,6 +48,8 @@ export function insightsChartCards(measure: InsightsMeasure) {
     // Not driven by the measure: always compares the two amounts.
     amountsByYear: { id: "amountsByYear", title: "Paid and Incurred by Year" },
     carrier: { id: "carrier", title: `${noun} by Carrier`, wide: true },
+    cause: { id: "cause", title: `${noun} by Cause` },
+    location: { id: "location", title: `${noun} by Location` },
   } satisfies Record<string, ChartCardSpec>;
 }
 
