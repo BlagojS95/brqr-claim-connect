@@ -19,16 +19,19 @@ export type Database = {
           broker_claims_email: string
           id: number
           updated_at: string
+          weekly_digest_enabled: boolean
         }
         Insert: {
           broker_claims_email?: string
           id?: number
           updated_at?: string
+          weekly_digest_enabled?: boolean
         }
         Update: {
           broker_claims_email?: string
           id?: number
           updated_at?: string
+          weekly_digest_enabled?: boolean
         }
         Relationships: []
       }
@@ -241,6 +244,7 @@ export type Database = {
           ams360_doc_id: string | null
           carrier: string | null
           carrier_email: string | null
+          cause_of_loss_id: string | null
           claim_number: string | null
           claim_type: string
           claimant_name: string | null
@@ -254,6 +258,7 @@ export type Database = {
           fnol_sent_date: string | null
           id: string
           is_notice_only: boolean
+          last_activity_at: string | null
           last_follow_up: string | null
           line_of_business: string | null
           line_of_business_description: string | null
@@ -262,8 +267,10 @@ export type Database = {
           paid_amount: number | null
           policy_id: string | null
           policy_number: string | null
+          recovery_amount: number | null
           reserve_amount: number | null
           status: Database["public"]["Enums"]["claim_status"]
+          waiting_on: Database["public"]["Enums"]["claim_waiting_on"] | null
           date_reported_to_employer: string | null
           driver_name: string | null
           employee_job_title: string | null
@@ -286,6 +293,7 @@ export type Database = {
           ams360_doc_id?: string | null
           carrier?: string | null
           carrier_email?: string | null
+          cause_of_loss_id?: string | null
           claim_number?: string | null
           claim_type: string
           line_of_business_id?: string | null
@@ -300,6 +308,7 @@ export type Database = {
           fnol_sent_date?: string | null
           id?: string
           is_notice_only?: boolean
+          last_activity_at?: string | null
           last_follow_up?: string | null
           line_of_business?: string | null
           line_of_business_description?: string | null
@@ -307,8 +316,10 @@ export type Database = {
           paid_amount?: number | null
           policy_id?: string | null
           policy_number?: string | null
+          recovery_amount?: number | null
           reserve_amount?: number | null
           status?: Database["public"]["Enums"]["claim_status"]
+          waiting_on?: Database["public"]["Enums"]["claim_waiting_on"] | null
           date_reported_to_employer?: string | null
           driver_name?: string | null
           employee_job_title?: string | null
@@ -331,6 +342,7 @@ export type Database = {
           ams360_doc_id?: string | null
           carrier?: string | null
           carrier_email?: string | null
+          cause_of_loss_id?: string | null
           claim_number?: string | null
           claim_type?: string
           line_of_business_id?: string | null
@@ -345,6 +357,7 @@ export type Database = {
           fnol_sent_date?: string | null
           id?: string
           is_notice_only?: boolean
+          last_activity_at?: string | null
           last_follow_up?: string | null
           line_of_business?: string | null
           line_of_business_description?: string | null
@@ -352,8 +365,10 @@ export type Database = {
           paid_amount?: number | null
           policy_id?: string | null
           policy_number?: string | null
+          recovery_amount?: number | null
           reserve_amount?: number | null
           status?: Database["public"]["Enums"]["claim_status"]
+          waiting_on?: Database["public"]["Enums"]["claim_waiting_on"] | null
           date_reported_to_employer?: string | null
           driver_name?: string | null
           employee_job_title?: string | null
@@ -430,6 +445,7 @@ export type Database = {
         Row: {
           claim_id: string | null
           client_id: string
+          document_request_id: string | null
           file_name: string
           file_url: string
           id: string
@@ -438,6 +454,7 @@ export type Database = {
         Insert: {
           claim_id?: string | null
           client_id: string
+          document_request_id?: string | null
           file_name: string
           file_url: string
           id?: string
@@ -446,6 +463,7 @@ export type Database = {
         Update: {
           claim_id?: string | null
           client_id?: string
+          document_request_id?: string | null
           file_name?: string
           file_url?: string
           id?: string
@@ -624,6 +642,7 @@ export type Database = {
           client_id: string
           created_at: string
           effective_date: string | null
+          experience_mod: number | null
           expiration_date: string | null
           id: string
           line_of_business_id: string | null
@@ -637,6 +656,7 @@ export type Database = {
           client_id: string
           created_at?: string
           effective_date?: string | null
+          experience_mod?: number | null
           expiration_date?: string | null
           id?: string
           line_of_business_id?: string | null
@@ -650,6 +670,7 @@ export type Database = {
           client_id?: string
           created_at?: string
           effective_date?: string | null
+          experience_mod?: number | null
           expiration_date?: string | null
           id?: string
           line_of_business_id?: string | null
@@ -673,6 +694,144 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      causes_of_loss: {
+        Row: {
+          active: boolean
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      claim_document_requests: {
+        Row: {
+          claim_id: string
+          fulfilled_at: string | null
+          fulfilled_document_id: string | null
+          id: string
+          name: string
+          note: string | null
+          requested_at: string
+          requested_by: string | null
+        }
+        Insert: {
+          claim_id: string
+          fulfilled_at?: string | null
+          fulfilled_document_id?: string | null
+          id?: string
+          name: string
+          note?: string | null
+          requested_at?: string
+          requested_by?: string | null
+        }
+        Update: {
+          claim_id?: string
+          fulfilled_at?: string | null
+          fulfilled_document_id?: string | null
+          id?: string
+          name?: string
+          note?: string | null
+          requested_at?: string
+          requested_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_document_requests_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claim_document_requests_fulfilled_document_id_fkey"
+            columns: ["fulfilled_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      digest_runs: {
+        Row: {
+          created_at: string
+          detail: string | null
+          id: string
+          status: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          id?: string
+          status: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          id?: string
+          status?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
+      saved_claim_views: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_notification_prefs: {
+        Row: {
+          updated_at: string
+          user_id: string
+          weekly_digest: boolean
+        }
+        Insert: {
+          updated_at?: string
+          user_id?: string
+          weekly_digest?: boolean
+        }
+        Update: {
+          updated_at?: string
+          user_id?: string
+          weekly_digest?: boolean
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -711,6 +870,7 @@ export type Database = {
     Enums: {
       app_role: "agency_admin" | "client"
       claim_status: "notice" | "submitted" | "open" | "closed" | "reopened"
+      claim_waiting_on: "client" | "agency" | "carrier"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -840,6 +1000,7 @@ export const Constants = {
     Enums: {
       app_role: ["agency_admin", "client"],
       claim_status: ["notice", "submitted", "open", "closed", "reopened"],
+      claim_waiting_on: ["client", "agency", "carrier"],
     },
   },
 } as const
