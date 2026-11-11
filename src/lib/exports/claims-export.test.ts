@@ -34,6 +34,8 @@ const base: AgencyClaim = {
   employee_name: null,
   driver_name: null,
   vehicles_involved: null,
+  location_id: null,
+  location_name: null,
 };
 
 const claim = (fields: Partial<AgencyClaim>): AgencyClaim => ({ ...base, ...fields });
@@ -118,6 +120,7 @@ describe("buildClaimsExport", () => {
       "Type",
       "Line of business",
       "Cause of loss",
+      "Location",
       "Date of loss",
       "Reported",
       "Closed",
@@ -143,6 +146,7 @@ describe("buildClaimsExport", () => {
       "Slip and fall",
       "Workers Compensation",
       "Strain",
+      null,
       "6/1/2026",
       "6/2/2026",
       null,
@@ -155,14 +159,15 @@ describe("buildClaimsExport", () => {
       2500,
     ]);
     const closed = buildClaimsExport([claims[1]], { includeClient: false }).rows[0];
-    expect(closed[8]).toBe("2/1/2026");
-    expect(closed[6]).toBe("12/31/2025");
+    expect(closed[9]).toBe("2/1/2026");
+    expect(closed[7]).toBe("12/31/2025");
   });
 
   it("ends with a totals row matching claim-metrics", () => {
     const table = buildClaimsExport(claims, { includeClient: false });
     expect(table.totals).toEqual([
       "Total (3 claims)",
+      null,
       null,
       null,
       null,
@@ -241,7 +246,7 @@ describe("toCsv", () => {
     const csv = toCsv(buildClaimsExport(claims, { includeClient: false }));
     const lines = csv.trimEnd().split("\r\n");
     expect(lines).toHaveLength(5);
-    expect(lines[4]).toBe("Total (3 claims),,,,,,,,,,,,5000,3000,200,8000");
+    expect(lines[4]).toBe("Total (3 claims),,,,,,,,,,,,,5000,3000,200,8000");
   });
 });
 

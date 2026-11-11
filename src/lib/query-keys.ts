@@ -20,6 +20,8 @@ export const queryKeys = {
   causesOfLoss: ["causes-of-loss"] as const,
   // The signed-in user's saved claims-list views (fix 31).
   savedClaimViews: ["saved-claim-views"] as const,
+  // Settings > Users & Locations (fix 32), for a client admin.
+  clientTeam: ["client-team"] as const,
 };
 
 export interface CauseOfLossOption {

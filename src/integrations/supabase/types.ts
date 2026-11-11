@@ -771,6 +771,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "policies_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "client_locations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "policies_line_of_business_id_fkey"
             columns: ["line_of_business_id"]
             isOneToOne: false

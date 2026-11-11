@@ -5,6 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { ClaimLocationControl } from "@/components/claim/claim-location-control";
+import { isCompanyWide } from "@/lib/client-users";
 import {
   incurredAmount,
   netIncurred,
@@ -92,7 +94,7 @@ function RemoveDocumentButton({
 
 function ClaimDetail() {
   const { claimId } = Route.useParams();
-  const { role } = useAuth();
+  const { role, clientRole } = useAuth();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const getClaim = useServerFn(fetchClaimDetail);
@@ -248,6 +250,15 @@ function ClaimDetail() {
         <Field
           label="Waiting on"
           value={<WaitingOnControl claim={claim} editable={role === "agency_admin"} />}
+        />
+        <Field
+          label="Location"
+          value={
+            <ClaimLocationControl
+              claim={claim}
+              editable={role === "agency_admin" || isCompanyWide(clientRole)}
+            />
+          }
         />
       </section>
 

@@ -21,12 +21,15 @@ import {
   SubmitClaimSchema,
 } from "@/lib/claim-submission";
 import { DUPLICATE_CANDIDATE_COLUMNS } from "@/lib/duplicate-claims";
+import { getClientMembership } from "@/lib/client-access.server";
+import { isCompanyWide } from "@/lib/client-users";
 import { todayIso } from "@/lib/dates";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
 
 type CallerContext = { supabase: SupabaseClient<Database>; userId: string };
 
-// The caller may report for clientId: an agency admin, or the login linked to it.
+// The caller may report for clientId: an agency admin, or one of that
+// client's users (fix 32). A location user only for their own locations.
 function submitterDeps({ supabase, userId }: CallerContext) {
   return {
     async assertCanSubmitFor(clientId: string) {
@@ -37,13 +40,20 @@ function submitterDeps({ supabase, userId }: CallerContext) {
         .eq("role", "agency_admin")
         .maybeSingle();
       if (adminRole) return;
-      const { data: own } = await supabaseAdmin
-        .from("clients")
+      const member = await getClientMembership(userId);
+      if (!member || member.clientId !== clientId) {
+        forbidden("You can only report claims for your own account");
+      }
+      return isCompanyWide(member.role) ? undefined : { only: member.locationIds };
+    },
+    async getLocation(id: string, clientId: string) {
+      const { data: location } = await supabaseAdmin
+        .from("client_locations")
         .select("id")
-        .eq("id", clientId)
-        .eq("user_id", userId)
+        .eq("id", id)
+        .eq("client_id", clientId)
         .maybeSingle();
-      if (!own) forbidden("You can only report claims for your own account");
+      return location;
     },
     async findClaimsOnDate(clientId: string, dateOfLoss: string) {
       // Caller's token, so RLS limits a client to their own claims.

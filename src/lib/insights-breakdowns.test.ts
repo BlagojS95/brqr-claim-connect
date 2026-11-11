@@ -18,6 +18,7 @@ interface TestClaim {
   reserve_amount: number | null;
   cause_of_loss: string | null;
   loss_location: string | null;
+  location_name?: string | null;
 }
 
 let seq = 0;
@@ -73,6 +74,18 @@ describe("totalsByLocation", () => {
       "Warehouse 3": { name: "Warehouse 3", count: 3, incurred: 12, paid: 12 },
       "Main St Store": { name: "Main St Store", count: 1, incurred: 0, paid: 0 },
     });
+  });
+
+  it("uses the client's site name before the loss location text (fix 32)", () => {
+    const rows = byName(
+      totalsByLocation([
+        claim({ location_name: "Dayton Yard", loss_location: "Bay 4", paid_amount: 5 }),
+        claim({ location_name: "dayton yard" }),
+        claim({ loss_location: "Bay 4" }),
+      ]),
+    );
+    expect(Object.keys(rows).sort()).toEqual(["Bay 4", "Dayton Yard"]);
+    expect(rows["Dayton Yard"].count).toBe(2);
   });
 
   it("groups blank and missing locations as Not given", () => {

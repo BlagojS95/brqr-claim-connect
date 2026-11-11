@@ -78,6 +78,26 @@ describe("scopeDigestDataToClient", () => {
     expect(scoped.documentRequests.map((r) => r.name)).toEqual(["Photos"]);
   });
 
+  it("keeps only a location user's sites (fix 32)", () => {
+    const data: DigestData = {
+      claims: [
+        claim({ id: "a1", location_id: "north" }),
+        claim({ id: "a2", location_id: "south" }),
+        claim({ id: "a3", location_id: null }),
+      ],
+      activity: [
+        { claim_id: "a1", kind: "status_change", body: "N", created_at: "2026-11-08T00:00:00Z" },
+        { claim_id: "a2", kind: "status_change", body: "S", created_at: "2026-11-08T00:00:00Z" },
+      ],
+      documentRequests: [],
+    };
+    const scoped = scopeDigestDataToClient("client-a", data, ["north"]);
+    expect(scoped.claims.map((c) => c.id)).toEqual(["a1"]);
+    expect(scoped.activity.map((a) => a.body)).toEqual(["N"]);
+    // Company-wide logins still get every claim.
+    expect(scopeDigestDataToClient("client-a", data).claims).toHaveLength(3);
+  });
+
   it("returns nothing for a client with no claims", () => {
     const data: DigestData = {
       claims: [claim({ id: "b1", client_id: "client-b" })],

@@ -28,11 +28,14 @@ import { uploadClaimFile } from "@/lib/claim-documents";
 import { todayIso } from "@/lib/dates";
 import { LINE_OF_BUSINESS } from "@/lib/line-of-business";
 import { policyCoversLoss } from "@/lib/policy-match";
+import { CLIENT_USER_ROLE } from "@/lib/client-users";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 
 // Select value for "Not sure"; Radix Select items can't use an empty string.
 const NO_CAUSE = "none";
+// Select value for "No specific location" (fix 32).
+const NO_LOCATION = "none";
 
 function TextField({
   id,
@@ -56,7 +59,7 @@ function TextField({
 
 export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const navigate = useNavigate();
-  const { clientId, role, user } = useAuth();
+  const { clientId, role, user, clientRole, locationIds } = useAuth();
   const isAdmin = role === "agency_admin";
   const getOverview = useServerFn(fetchAgencyOverview);
   const submitClaimFn = useServerFn(submitClaim);
@@ -103,6 +106,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
   const [timeOfLoss, setTimeOfLoss] = useState("");
   const [lossLocation, setLossLocation] = useState("");
   const [causeId, setCauseId] = useState("");
+  const [locationId, setLocationId] = useState("");
   const [claimantName, setClaimantName] = useState("");
   const [description, setDescription] = useState("");
   const [policyId, setPolicyId] = useState<string>("");
@@ -175,6 +179,20 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
     else setPolicyId((current) => (ids.includes(current) ? current : ""));
   }, [policyKey, lineId, dateOfLoss]);
 
+  // The selected client's sites (fix 32). A location user only gets their own
+  // and must pick one; the server checks both again.
+  const mustPickLocation = !isAdmin && clientRole === CLIENT_USER_ROLE.location;
+  const locationChoices = (overview?.locations ?? []).filter(
+    (l) =>
+      l.client_id === selectedLocalClientId && (!mustPickLocation || locationIds.includes(l.id)),
+  );
+  const locationKey = locationChoices.map((l) => l.id).join(",");
+  useEffect(() => {
+    const ids = locationKey ? locationKey.split(",") : [];
+    if (mustPickLocation && ids.length === 1) setLocationId(ids[0]);
+    else setLocationId((current) => (ids.includes(current) ? current : ""));
+  }, [locationKey, mustPickLocation]);
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     void send(false);
@@ -196,6 +214,10 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
     }
     if (dateOfLoss > today) {
       toast.error("Date of loss can't be in the future");
+      return;
+    }
+    if (mustPickLocation && !locationId) {
+      toast.error("Choose the location this claim is for");
       return;
     }
     if (isGl && (!claimantName.trim() || !thirdPartyContact.trim())) {
@@ -277,6 +299,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
           }),
           ...(isGl && { thirdPartyContact: text(thirdPartyContact) }),
           causeOfLossId: causeId || null,
+          locationId: locationId || null,
           documents,
         },
       });
@@ -403,6 +426,30 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
           </SelectContent>
         </Select>
       </div>
+
+      {locationChoices.length > 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="site">{mustPickLocation ? "Location" : "Location (optional)"}</Label>
+          <Select
+            value={locationId}
+            onValueChange={(v) => setLocationId(v === NO_LOCATION ? "" : v)}
+          >
+            <SelectTrigger id="site">
+              <SelectValue placeholder="Select location" />
+            </SelectTrigger>
+            <SelectContent>
+              {!mustPickLocation && (
+                <SelectItem value={NO_LOCATION}>No specific location</SelectItem>
+              )}
+              {locationChoices.map((l) => (
+                <SelectItem key={l.id} value={l.id}>
+                  {l.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <TextField
         id="location"

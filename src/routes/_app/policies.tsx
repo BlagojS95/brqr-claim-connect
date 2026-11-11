@@ -6,7 +6,7 @@ import { formatDate } from "@/lib/dates";
 import { POLICY_STATUS, type PolicyStatus } from "@/lib/policy-status";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { overviewQueryOptions } from "@/lib/query-keys";
-import { Shield, Calendar, Building2, Search, DollarSign } from "lucide-react";
+import { Shield, Calendar, Building2, Search, DollarSign, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -16,7 +16,11 @@ export const Route = createFileRoute("/_app/policies")({
 });
 
 const fmtCurrency = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(n);
 
 function PoliciesPage() {
   const [view, setView] = useState<"active" | "nonactive">("active");
@@ -29,7 +33,8 @@ function PoliciesPage() {
 
   const term = search.trim().toLowerCase();
   const filtered = policies.filter((p) => {
-    if (p.status !== (view === "active" ? POLICY_STATUS.active : POLICY_STATUS.inactive)) return false;
+    if (p.status !== (view === "active" ? POLICY_STATUS.active : POLICY_STATUS.inactive))
+      return false;
     if (!term) return true;
     return (
       (p.policy_type?.toLowerCase() ?? "").includes(term) ||
@@ -52,7 +57,12 @@ function PoliciesPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-navy">Policies</h1>
           <p className="text-sm text-muted-foreground mt-1">
             All policies on file ({policies.length}).
-            {activePremium > 0 && <> Total premium on active policies: <b>{fmtCurrency(activePremium)}</b>.</>}
+            {activePremium > 0 && (
+              <>
+                {" "}
+                Total premium on active policies: <b>{fmtCurrency(activePremium)}</b>.
+              </>
+            )}
           </p>
         </div>
         <div className="flex items-end gap-2 flex-wrap">
@@ -77,7 +87,9 @@ function PoliciesPage() {
             <Button
               size="sm"
               variant={view === "nonactive" ? "default" : "outline"}
-              className={view === "nonactive" ? "bg-navy hover:bg-navy/90 text-navy-foreground" : ""}
+              className={
+                view === "nonactive" ? "bg-navy hover:bg-navy/90 text-navy-foreground" : ""
+              }
               onClick={() => setView("nonactive")}
             >
               Non Active ({nonActiveCount})
@@ -94,7 +106,9 @@ function PoliciesPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((p) => <PolicyCard key={p.id} p={p} />)}
+        {filtered.map((p) => (
+          <PolicyCard key={p.id} p={p} />
+        ))}
       </div>
     </div>
   );
@@ -109,6 +123,7 @@ type PolicyRow = {
   effective_date: string | null;
   expiry_date: string | null;
   premium: number | null;
+  location_name: string | null;
   status: PolicyStatus;
 };
 
@@ -119,7 +134,9 @@ function PolicyCard({ p }: { p: PolicyRow }) {
       : "bg-slate-100 text-slate-600 border-slate-200";
 
   return (
-    <div className={`rounded-lg border border-border bg-card p-5 space-y-3 ${p.status === POLICY_STATUS.inactive ? "opacity-80" : ""}`}>
+    <div
+      className={`rounded-lg border border-border bg-card p-5 space-y-3 ${p.status === POLICY_STATUS.inactive ? "opacity-80" : ""}`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="h-9 w-9 rounded-md bg-navy/5 flex items-center justify-center">
@@ -130,7 +147,9 @@ function PolicyCard({ p }: { p: PolicyRow }) {
             <div className="text-xs text-muted-foreground font-mono">{p.policy_number}</div>
           </div>
         </div>
-        <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full border ${tone}`}>
+        <span
+          className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full border ${tone}`}
+        >
           {p.status}
         </span>
       </div>
@@ -148,6 +167,12 @@ function PolicyCard({ p }: { p: PolicyRow }) {
             {formatDate(p.expiry_date)}
           </span>
         </div>
+        {p.location_name && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5" />
+            <span>{p.location_name}</span>
+          </div>
+        )}
         {p.premium != null && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <DollarSign className="h-3.5 w-3.5" />

@@ -6,10 +6,19 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
 
 // Reset/delete take a raw auth user id, so make sure it really is a client's
-// login before touching it — otherwise an admin could hit another admin's account.
+// login (any of a company's users, fix 32) before touching it — otherwise an
+// admin could hit another admin's account.
 async function requireClientLogin(userId: string) {
-  const { data } = await supabaseAdmin.from("clients").select("id").eq("user_id", userId).maybeSingle();
-  if (!data) throw new Error("No client login found for this user.");
+  const [{ data }, { data: adminRole }] = await Promise.all([
+    supabaseAdmin.from("client_users").select("user_id").eq("user_id", userId).maybeSingle(),
+    supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "agency_admin")
+      .maybeSingle(),
+  ]);
+  if (!data || adminRole) throw new Error("No client login found for this user.");
 }
 
 const CreateAccountSchema = z.object({
@@ -69,7 +78,9 @@ export const resetClientPassword = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await loadDevVars();
     await requireClientLogin(data.userId);
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password: data.password });
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      password: data.password,
+    });
     if (error) throw new Error(error.message);
     return { ok: true };
   });

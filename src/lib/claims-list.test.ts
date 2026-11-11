@@ -27,6 +27,7 @@ const base: ClaimListItem = {
   driver_name: null,
   vehicles_involved: null,
   loss_location: null,
+  location_name: null,
   status: CLAIM_STATUS.open,
   date_of_loss: null,
   closed_date: null,
@@ -254,6 +255,17 @@ describe("filterClaims filters (fix 31)", () => {
   it("filters by location, trimmed and ignoring case", () => {
     expect(ids(filterClaims(claims, { location: "Dayton Yard" }))).toEqual(["a", "b"]);
     expect(ids(filterClaims(claims, { location: "columbus" }))).toEqual(["c"]);
+  });
+
+  it("filters by the client's site before the loss location text (fix 32)", () => {
+    const sited = [
+      claim({ id: "s1", location_name: "North Plant", loss_location: "Dock 2" }),
+      claim({ id: "s2", location_name: null, loss_location: "Dock 2" }),
+    ];
+    expect(ids(filterClaims(sited, { location: "north plant" }))).toEqual(["s1"]);
+    expect(ids(filterClaims(sited, { location: "Dock 2" }))).toEqual(["s2"]);
+    expect(claimFilterOptions(sited).locations).toEqual(["Dock 2", "North Plant"]);
+    expect(ids(filterClaims(sited, { q: "plant" }))).toEqual(["s1"]);
   });
 
   it("combines filters with status and search", () => {

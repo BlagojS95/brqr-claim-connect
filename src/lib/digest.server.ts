@@ -6,6 +6,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendViaResend } from "@/lib/claim-notifications.server";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
 import { fetchAll } from "@/lib/fetch-all";
+import { isCompanyWide } from "@/lib/client-users";
 import {
   buildDigest,
   DIGEST_RUN_STATUS,
@@ -20,7 +21,7 @@ import {
 } from "@/lib/digest";
 
 const CLAIM_COLUMNS =
-  "id, client_id, claim_number, claimant_name, claim_type, status, is_notice_only, date_of_loss, created_at";
+  "id, client_id, claim_number, claimant_name, claim_type, status, is_notice_only, date_of_loss, created_at, location_id";
 
 // Resend's default limit is 2 requests a second; keep sends below it.
 const SEND_SPACING_MS = 600;
@@ -33,8 +34,15 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** One client's claims, this week's activity on them, and their document requests. */
-export async function loadClientDigestData(clientId: string, now: Date): Promise<DigestData> {
+/**
+ * One client's claims, this week's activity on them, and their document
+ * requests; only their sites' claims for a location user (fix 32).
+ */
+export async function loadClientDigestData(
+  clientId: string,
+  now: Date,
+  onlyLocations?: readonly string[],
+): Promise<DigestData> {
   const claims = await fetchAll<DigestClaim>((from, to) =>
     supabaseAdmin
       .from("claims")
@@ -64,7 +72,7 @@ export async function loadClientDigestData(clientId: string, now: Date): Promise
       .range(from, to),
   );
 
-  return scopeDigestDataToClient(clientId, { claims, activity, documentRequests });
+  return scopeDigestDataToClient(clientId, { claims, activity, documentRequests }, onlyLocations);
 }
 
 /** Every client's rows: what an agency admin sees. Only for the admin's own test digest. */
@@ -150,12 +158,20 @@ export async function runWeeklyDigest(now: Date = new Date()): Promise<WeeklyDig
   if (!(await isWeeklyDigestEnabled())) return result;
   result.enabled = true;
 
-  const { data: logins, error: loginsError } = await supabaseAdmin
-    .from("clients")
-    .select("id, user_id, name, company_name")
-    .not("user_id", "is", null)
-    .order("id");
+  // Every login of every company (fix 32), each scoped to what it may see.
+  const { data: members, error: loginsError } = await supabaseAdmin
+    .from("client_users")
+    .select("user_id, client_id, role, location_ids, clients(name, company_name)")
+    .order("client_id")
+    .order("user_id");
   if (loginsError) throw new Error(`Couldn't load client logins: ${loginsError.message}`);
+  const logins = (members ?? []).map((m) => ({
+    id: m.client_id,
+    user_id: m.user_id,
+    name: m.clients?.name ?? "",
+    company_name: m.clients?.company_name ?? null,
+    onlyLocations: isCompanyWide(m.role) ? undefined : (m.location_ids ?? []),
+  }));
 
   const { data: optOuts, error: prefsError } = await supabaseAdmin
     .from("user_notification_prefs")
@@ -171,7 +187,7 @@ export async function runWeeklyDigest(now: Date = new Date()): Promise<WeeklyDig
   if (runsError) throw new Error(`Couldn't load this week's runs: ${runsError.message}`);
   const alreadyDone = new Set((done ?? []).map((r) => r.user_id));
 
-  // A login linked to more than one client row gets one digest, for the first row.
+  // client_users.user_id is unique, so each login gets one digest.
   const seen = new Set<string>();
   let sentBefore = false;
 
@@ -217,7 +233,7 @@ export async function runWeeklyDigest(now: Date = new Date()): Promise<WeeklyDig
     let status: DigestRunStatus;
     let detail: string;
     try {
-      const data = await loadClientDigestData(login.id, now);
+      const data = await loadClientDigestData(login.id, now, login.onlyLocations);
       const email = buildDigest(data, {
         now,
         recipientName: login.company_name || login.name,

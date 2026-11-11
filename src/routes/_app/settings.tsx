@@ -2,10 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Building2, Loader2, Mail, Send } from "lucide-react";
+import { Building2, Loader2, Mail, MapPin, Send, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { TeamLocations, TeamUsers } from "@/components/settings/team-settings";
+import { useAuth } from "@/hooks/use-auth";
+import { CLIENT_USER_ROLE } from "@/lib/client-users";
 import { formatDate } from "@/lib/dates";
 import { DIGEST_RUN_STATUSES } from "@/lib/digest";
 import {
@@ -33,8 +36,7 @@ function errorMessage(err: unknown, fallback: string) {
   return err instanceof Error && err.message ? err.message : fallback;
 }
 
-// One card per section. The page is a stack of these so later sections
-// (a Users section is planned) slot in below.
+// One card per section; the page is a stack of these.
 function SettingsSection({
   icon,
   title,
@@ -96,6 +98,9 @@ function SwitchRow({
 
 function SettingsPage() {
   const queryClient = useQueryClient();
+  // Only decides which sections to show; the server checks again.
+  const { clientRole } = useAuth();
+  const isClientAdmin = clientRole === CLIENT_USER_ROLE.clientAdmin;
   const getSettings = useServerFn(fetchNotificationSettings);
   const savePreference = useServerFn(updateWeeklyDigestPreference);
   const saveAgency = useServerFn(updateAgencyWeeklyDigest);
@@ -152,7 +157,11 @@ function SettingsPage() {
     <div className="space-y-6 max-w-3xl">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-navy">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">Your email notifications.</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          {isClientAdmin
+            ? "Your email notifications, and who at your company can use ClaimsQR."
+            : "Your email notifications."}
+        </p>
       </div>
 
       {isLoading ? (
@@ -179,6 +188,25 @@ function SettingsPage() {
               onChange={(value) => preference.mutate(value)}
             />
           </SettingsSection>
+
+          {isClientAdmin && (
+            <>
+              <SettingsSection
+                icon={<Users className="h-5 w-5" />}
+                title="Users"
+                description="Everyone at your company who can sign in, and what they can see."
+              >
+                <TeamUsers />
+              </SettingsSection>
+              <SettingsSection
+                icon={<MapPin className="h-5 w-5" />}
+                title="Locations"
+                description="Your sites. Claims can be filed under a location."
+              >
+                <TeamLocations />
+              </SettingsSection>
+            </>
+          )}
 
           {agency && (
             <SettingsSection

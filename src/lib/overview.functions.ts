@@ -11,6 +11,7 @@ import { fetchAll } from "@/lib/fetch-all";
 import type {
   AgencyClaim,
   AgencyClient,
+  AgencyLocation,
   AgencyOverview,
   AgencyPolicy,
   OverviewScope,
@@ -19,21 +20,31 @@ import type {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // "YYYY-MM-DD" text sorts in date order, and the policy is in force on its expiry day.
-function computePolicyStatus(effectiveDate: string | null, expiryDate: string | null): PolicyStatus {
+function computePolicyStatus(
+  effectiveDate: string | null,
+  expiryDate: string | null,
+): PolicyStatus {
   const today = todayIso();
   if (effectiveDate && today < effectiveDate.slice(0, 10)) return POLICY_STATUS.inactive;
   if (expiryDate && today > expiryDate.slice(0, 10)) return POLICY_STATUS.inactive;
   return POLICY_STATUS.active;
 }
 
-function displayName(client: { name?: string | null; company_name?: string | null } | null | undefined): string {
+function displayName(
+  client: { name?: string | null; company_name?: string | null } | null | undefined,
+): string {
   return client?.company_name || client?.name || "";
 }
 
 type ClaimRow = Tables<"claims"> & {
   lines_of_business: { name: string } | null;
   causes_of_loss: { name: string } | null;
+  client_locations: { name: string } | null;
 };
+
+type PolicyRow = Tables<"policies"> & { client_locations: { name: string } | null };
+
+const CLAIM_SELECT = "*, lines_of_business(name), causes_of_loss(name), client_locations(name)";
 
 function toClaim(row: ClaimRow, clientName: string): AgencyClaim {
   return {
@@ -66,31 +77,39 @@ function toClaim(row: ClaimRow, clientName: string): AgencyClaim {
     employee_name: row.employee_name ?? null,
     driver_name: row.driver_name ?? null,
     vehicles_involved: row.vehicles_involved ?? null,
+    location_id: row.location_id ?? null,
+    location_name: row.client_locations?.name ?? null,
   };
 }
 
 // Every query here runs with the caller's own token, so RLS does the scoping:
 // an agency_admin gets every client's rows, a client only gets their own.
-async function getScopedOverview(supabase: SupabaseClient<Database>, scope: OverviewScope): Promise<AgencyOverview> {
-  const [clientRows, policyRows, claimRows] = await Promise.all([
+async function getScopedOverview(
+  supabase: SupabaseClient<Database>,
+  scope: OverviewScope,
+): Promise<AgencyOverview> {
+  const [clientRows, policyRows, claimRows, locationRows] = await Promise.all([
     fetchAll<Tables<"clients">>((from, to) =>
       supabase.from("clients").select("*").order("name").order("id").range(from, to),
     ),
     scope === "claims"
       ? Promise.resolve([])
-      : fetchAll<Tables<"policies">>((from, to) =>
-          supabase.from("policies").select("*").order("id").range(from, to),
+      : fetchAll<PolicyRow>((from, to) =>
+          supabase.from("policies").select("*, client_locations(name)").order("id").range(from, to),
         ),
     scope === "policies"
       ? Promise.resolve([])
       : fetchAll<ClaimRow>((from, to) =>
           supabase
             .from("claims")
-            .select("*, lines_of_business(name), causes_of_loss(name)")
+            .select(CLAIM_SELECT)
             .order("date_of_loss", { ascending: false, nullsFirst: false })
             .order("id")
             .range(from, to),
         ),
+    fetchAll<Tables<"client_locations">>((from, to) =>
+      supabase.from("client_locations").select("*").order("name").order("id").range(from, to),
+    ),
   ]);
 
   const clientNames = new Map(clientRows.map((c) => [c.id, displayName(c)]));
@@ -122,12 +141,21 @@ async function getScopedOverview(supabase: SupabaseClient<Database>, scope: Over
     expiry_date: p.expiration_date,
     premium: p.premium,
     experience_mod: p.experience_mod ?? null,
+    location_id: p.location_id ?? null,
+    location_name: p.client_locations?.name ?? null,
     status: computePolicyStatus(p.effective_date, p.expiration_date),
   }));
 
   const claims = claimRows.map((c) => toClaim(c, clientNames.get(c.client_id) ?? ""));
 
-  return { clients, policies, claims };
+  const locations: AgencyLocation[] = locationRows.map((l) => ({
+    id: l.id,
+    client_id: l.client_id,
+    name: l.name,
+    address: l.address,
+  }));
+
+  return { clients, policies, claims, locations };
 }
 
 const ScopeSchema = z.object({ scope: z.enum(["all", "claims", "policies"]).optional() });
@@ -147,7 +175,7 @@ export const fetchClaimDetail = createServerFn({ method: "GET" })
 
     const { data: claim } = await context.supabase
       .from("claims")
-      .select("*, clients(name, company_name), lines_of_business(name), causes_of_loss(name)")
+      .select(`${CLAIM_SELECT}, clients(name, company_name)`)
       .eq("id", data.claimId)
       .maybeSingle();
     if (!claim) return null;

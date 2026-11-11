@@ -21,7 +21,7 @@ import {
   type ClaimStatus,
 } from "@/lib/claim-status";
 import { calendarYear } from "@/lib/dates";
-import type { AgencyClaim } from "@/lib/overview.types";
+import { claimLocationLabel, type AgencyClaim } from "@/lib/overview.types";
 import { WAITING_ON_VALUES, claimWaitingOn, lastUpdateAt } from "@/lib/waiting-on";
 
 export const CLAIMS_PAGE_SIZE = 25;
@@ -72,8 +72,8 @@ export interface ClaimsSearch {
   year?: number;
   carrier?: string;
   /**
-   * For now the claim's loss_location text. Fix 32 switches this to a real
-   * location, so it stays a plain string.
+   * The claim's site name (fix 32), or its loss_location text when no site is
+   * set; see claimLocationLabel. A name, so it survives in saved views.
    */
   location?: string;
   sort?: ClaimSortKey;
@@ -151,6 +151,7 @@ export type ClaimListItem = Pick<
   | "driver_name"
   | "vehicles_involved"
   | "loss_location"
+  | "location_name"
   | "status"
   | "date_of_loss"
   | "closed_date"
@@ -181,6 +182,7 @@ function searchText(c: ClaimListItem): string {
     c.driver_name,
     c.vehicles_involved,
     c.loss_location,
+    c.location_name,
     c.description,
     CLAIM_STATUS_LABELS[c.status],
   ]
@@ -212,7 +214,7 @@ export function filterClaims<T extends ClaimListItem>(
     if (!matchesText(c.line_of_business, line)) return false;
     if (year && calendarYear(c.date_of_loss) !== year) return false;
     if (!matchesText(c.carrier, carrier)) return false;
-    if (!matchesText(c.loss_location, location)) return false;
+    if (!matchesText(claimLocationLabel(c), location)) return false;
     if (words.length === 0) return true;
     const text = searchText(c);
     return words.every((word) => text.includes(word));
@@ -256,7 +258,7 @@ export function claimFilterOptions(claims: ClaimListItem[]): ClaimFilterOptions 
     lines: distinctText(claims.map((c) => c.line_of_business)),
     years: [...years].sort((a, b) => b - a),
     carriers: distinctText(claims.map((c) => c.carrier)),
-    locations: distinctText(claims.map((c) => c.loss_location)),
+    locations: distinctText(claims.map(claimLocationLabel)),
   };
 }
 

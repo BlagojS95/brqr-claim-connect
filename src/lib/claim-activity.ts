@@ -62,12 +62,14 @@ export interface ActivityActor {
   isAgency: boolean;
   clientName?: string | null;
   email?: string | null;
+  /** The person's own name, for companies with several logins (fix 32). */
+  userName?: string | null;
 }
 
 /**
  * Who to show next to an entry. No actor (service role, import, backfill) is
  * "System"; agency staff show as the agency; a client shows as their client
- * name, falling back to their login email.
+ * name plus who at the company wrote it, falling back to their login email.
  */
 export function activityAuthorLabel(
   actorId: string | null | undefined,
@@ -77,7 +79,12 @@ export function activityAuthorLabel(
   if (!actor) return "Unknown user";
   const email = actor.email?.trim();
   if (actor.isAgency) return email ? `BRQR Agency (${email})` : "BRQR Agency";
-  return actor.clientName?.trim() || email || "Client";
+  const company = actor.clientName?.trim();
+  const person = actor.userName?.trim() || email;
+  if (company && person && person.toLowerCase() !== company.toLowerCase()) {
+    return `${company} (${person})`;
+  }
+  return company || email || "Client";
 }
 
 /** Body for an activity row written when a notification outbox row finishes. */

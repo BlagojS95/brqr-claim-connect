@@ -19,7 +19,7 @@ import {
   type ClaimsSearch,
 } from "@/lib/claims-list";
 import { formatDate } from "@/lib/dates";
-import type { AgencyClaim } from "@/lib/overview.types";
+import { claimLocationLabel, type AgencyClaim } from "@/lib/overview.types";
 import { WAITING_ON_LABELS } from "@/lib/waiting-on";
 import type { ExportCell, ExportColumn, ExportTable } from "@/lib/exports/table";
 
@@ -33,6 +33,8 @@ export type ExportClaim = Pick<
   | "claim_type"
   | "line_of_business"
   | "cause_of_loss"
+  | "loss_location"
+  | "location_name"
   | "date_of_loss"
   | "date_reported"
   | "closed_date"
@@ -63,6 +65,8 @@ const CLAIM_COLUMNS: ClaimColumn[] = [
   { label: "Type", kind: "text", value: (c) => text(c.claim_type) },
   { label: "Line of business", kind: "text", value: (c) => text(c.line_of_business) },
   { label: "Cause of loss", kind: "text", value: (c) => text(c.cause_of_loss) },
+  // The client's site (fix 32), or the loss location text when none is set.
+  { label: "Location", kind: "text", value: (c) => text(claimLocationLabel(c)) },
   { label: "Date of loss", kind: "date", value: (c) => date(c.date_of_loss) },
   { label: "Reported", kind: "date", value: (c) => date(c.date_reported) },
   { label: "Closed", kind: "date", value: (c) => date(c.closed_date) },

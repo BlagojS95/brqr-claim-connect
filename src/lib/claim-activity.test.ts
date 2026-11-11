@@ -41,13 +41,23 @@ describe("activityAuthorLabel", () => {
     expect(activityAuthorLabel("u1", { isAgency: true })).toBe("BRQR Agency");
   });
   it("shows a client by name, then email", () => {
-    expect(
-      activityAuthorLabel("u2", { isAgency: false, clientName: "Acme", email: "a@x.com" }),
-    ).toBe("Acme");
+    expect(activityAuthorLabel("u2", { isAgency: false, clientName: "Acme" })).toBe("Acme");
     expect(activityAuthorLabel("u2", { isAgency: false, clientName: " ", email: "a@x.com" })).toBe(
       "a@x.com",
     );
     expect(activityAuthorLabel("u2", { isAgency: false })).toBe("Client");
+  });
+  it("adds who at the company wrote it (fix 32)", () => {
+    expect(
+      activityAuthorLabel("u3", { isAgency: false, clientName: "Acme", userName: "Jane Roe" }),
+    ).toBe("Acme (Jane Roe)");
+    expect(
+      activityAuthorLabel("u3", { isAgency: false, clientName: "Acme", email: "jane@acme.com" }),
+    ).toBe("Acme (jane@acme.com)");
+    // The first login is named after the company; don't repeat it.
+    expect(
+      activityAuthorLabel("u2", { isAgency: false, clientName: "Acme", userName: "acme" }),
+    ).toBe("Acme");
   });
   it("falls back when the user can't be found", () => {
     expect(activityAuthorLabel("gone", undefined)).toBe("Unknown user");

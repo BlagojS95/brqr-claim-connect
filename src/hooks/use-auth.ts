@@ -9,6 +9,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
+import type { ClientUserRole } from "@/lib/client-users";
 
 export type AppRole = "agency_admin" | "client";
 
@@ -18,6 +19,10 @@ export interface AuthState {
   user: User | null;
   role: AppRole | null;
   clientId: string | null;
+  /** The client user's access within their company (fix 32); null for agency staff. */
+  clientRole: ClientUserRole | null;
+  /** A location user's locations; empty for everyone else. */
+  locationIds: string[];
 }
 
 const INITIAL_STATE: AuthState = {
@@ -26,6 +31,8 @@ const INITIAL_STATE: AuthState = {
   user: null,
   role: null,
   clientId: null,
+  clientRole: null,
+  locationIds: [],
 };
 
 // What a session change means for the role/client lookup, given the user id it
@@ -41,15 +48,25 @@ export function classifySessionChange(
   return nextUserId ? "new-user" : "signed-out";
 }
 
-async function loadRoleAndClient(user: User): Promise<Pick<AuthState, "role" | "clientId">> {
-  const [{ data: roles }, { data: client }] = await Promise.all([
+// Only used to choose what the UI shows; the server and RLS check access again.
+async function loadRoleAndClient(
+  user: User,
+): Promise<Pick<AuthState, "role" | "clientId" | "clientRole" | "locationIds">> {
+  const [{ data: roles }, { data: member }] = await Promise.all([
     supabase.from("user_roles").select("role").eq("user_id", user.id),
-    supabase.from("clients").select("id").eq("user_id", user.id).maybeSingle(),
+    // Every login of a company has a client_users row (fix 32).
+    supabase
+      .from("client_users")
+      .select("client_id, role, location_ids")
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
   const isAdmin = roles?.some((r) => r.role === "agency_admin");
   return {
     role: isAdmin ? "agency_admin" : "client",
-    clientId: client?.id ?? null,
+    clientId: member?.client_id ?? null,
+    clientRole: isAdmin ? null : (member?.role ?? null),
+    locationIds: member?.location_ids ?? [],
   };
 }
 

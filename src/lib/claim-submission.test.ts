@@ -39,7 +39,17 @@ const CAUSES: Record<string, { id: string; active: boolean }> = {
 };
 
 // In-memory stand-in for the claims, documents and notification_outbox tables.
-function fakeDb(ownClientId = CLIENT) {
+const LOC_HQ = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const LOC_YARD = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+const OTHER_CLIENT_LOC = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+const LOCATIONS: Record<string, string> = {
+  [LOC_HQ]: CLIENT,
+  [LOC_YARD]: CLIENT,
+  [OTHER_CLIENT_LOC]: OTHER_CLIENT,
+};
+
+// onlyLocations: the caller is a location user for these sites.
+function fakeDb(ownClientId = CLIENT, onlyLocations?: string[]) {
   const claims: ClaimInsert[] = [];
   const documents: DocumentInsert[] = [];
   const outbox: (OutboxRow & { last_error: string | null })[] = [];
@@ -48,7 +58,9 @@ function fakeDb(ownClientId = CLIENT) {
     async assertCanSubmitFor(clientId) {
       if (clientId !== ownClientId)
         throw new Error("You can only report claims for your own account");
+      return onlyLocations ? { only: onlyLocations } : undefined;
     },
+    getLocation: async (id, clientId) => (LOCATIONS[id] === clientId ? { id } : null),
     getLine: async (id) => LINES[id] ?? null,
     getCauseOfLoss: async (id) => CAUSES[id] ?? null,
     getPolicy: async (id, clientId) =>
@@ -464,6 +476,40 @@ describe("duplicate check on submit (fix 38)", () => {
       checkDuplicatesCore({ ...probe, clientId: OTHER_CLIENT }, db.deps),
     ).rejects.toThrow("your own account");
     expect(db.claims).toHaveLength(1);
+  });
+});
+
+describe("locations (fix 32)", () => {
+  it("saves the location a company user picks, or none", async () => {
+    const db = fakeDb();
+    await submitClaimCore(input({ locationId: LOC_YARD }), db.deps);
+    expect(db.claims[0].location_id).toBe(LOC_YARD);
+
+    const db2 = fakeDb();
+    await submitClaimCore(input(), db2.deps);
+    expect(db2.claims[0].location_id).toBeNull();
+  });
+
+  it("refuses another client's location", async () => {
+    const db = fakeDb();
+    await expect(submitClaimCore(input({ locationId: OTHER_CLIENT_LOC }), db.deps)).rejects.toThrow(
+      "That location doesn't belong to this client",
+    );
+    expect(db.claims).toHaveLength(0);
+  });
+
+  it("makes a location user pick one of their own locations", async () => {
+    const db = fakeDb(CLIENT, [LOC_HQ]);
+    await expect(submitClaimCore(input(), db.deps)).rejects.toThrow(
+      "Choose the location this claim is for",
+    );
+    await expect(submitClaimCore(input({ locationId: LOC_YARD }), db.deps)).rejects.toThrow(
+      "You can only report claims for your own locations",
+    );
+    expect(db.claims).toHaveLength(0);
+
+    await submitClaimCore(input({ locationId: LOC_HQ }), db.deps);
+    expect(db.claims[0].location_id).toBe(LOC_HQ);
   });
 });
 

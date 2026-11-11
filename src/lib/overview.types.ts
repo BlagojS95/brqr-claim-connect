@@ -29,6 +29,9 @@ export interface AgencyPolicy {
   premium: number | null;
   // Workers comp experience mod for this term (fix 36), when stored.
   experience_mod: number | null;
+  // The client's site (fix 32); null = company-wide.
+  location_id: string | null;
+  location_name: string | null;
   status: PolicyStatus;
 }
 
@@ -66,6 +69,9 @@ export interface AgencyClaim {
   employee_name: string | null;
   driver_name: string | null;
   vehicles_involved: string | null;
+  // The client's site from client_locations (fix 32), when set.
+  location_id: string | null;
+  location_name: string | null;
   // Only filled by fetchClaimDetail; the list views don't need it.
   loss_details?: LossDetails;
 }
@@ -74,6 +80,25 @@ export interface AgencyOverview {
   clients: AgencyClient[];
   policies: AgencyPolicy[];
   claims: AgencyClaim[];
+  /** Every site of every client the caller can see (fix 32), A to Z. */
+  locations: AgencyLocation[];
+}
+
+export interface AgencyLocation {
+  id: string;
+  client_id: string;
+  name: string;
+  address: string | null;
+}
+
+/**
+ * Where a claim happened, for filters and charts: the client's site when one
+ * is set, otherwise the free-text loss location.
+ */
+export function claimLocationLabel(
+  claim: Pick<AgencyClaim, "location_name" | "loss_location">,
+): string | null {
+  return claim.location_name || claim.loss_location;
 }
 
 export type OverviewScope = "all" | "claims" | "policies";

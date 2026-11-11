@@ -40,6 +40,8 @@ export interface DigestClaim {
   is_notice_only: boolean;
   date_of_loss: string | null;
   created_at: string;
+  /** The client's site (fix 32), for a location user's digest. */
+  location_id?: string | null;
   /** Only shown when the digest covers more than one client (the admin test digest). */
   client_name?: string | null;
 }
@@ -70,8 +72,20 @@ export interface DigestData {
  * service role, which bypasses RLS, so this is the second line of defence
  * after the client_id filter on the queries themselves.
  */
-export function scopeDigestDataToClient(clientId: string, data: DigestData): DigestData {
-  const claims = data.claims.filter((c) => c.client_id === clientId);
+/**
+ * One client's rows. With onlyLocations (a location user, fix 32), only claims
+ * at those sites and the activity and requests on them.
+ */
+export function scopeDigestDataToClient(
+  clientId: string,
+  data: DigestData,
+  onlyLocations?: readonly string[],
+): DigestData {
+  const claims = data.claims.filter(
+    (c) =>
+      c.client_id === clientId &&
+      (!onlyLocations || (!!c.location_id && onlyLocations.includes(c.location_id))),
+  );
   const ids = new Set(claims.map((c) => c.id));
   return {
     claims,

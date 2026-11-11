@@ -38,15 +38,16 @@ export function totalsByCause<T extends ClaimAmounts & { cause_of_loss: string |
 }
 
 /**
- * Totals per loss location. "Warehouse 3" and " warehouse  3 " are one
- * location, shown with the first spelling seen; blanks are "Not given".
+ * Totals per location: the client's site (fix 32) when set, otherwise the
+ * loss location text. "Warehouse 3" and " warehouse  3 " are one location,
+ * shown with the first spelling seen; blanks are "Not given".
  */
-export function totalsByLocation<T extends ClaimAmounts & { loss_location: string | null }>(
-  claims: readonly T[],
-): BreakdownRow[] {
+export function totalsByLocation<
+  T extends ClaimAmounts & { loss_location: string | null; location_name?: string | null },
+>(claims: readonly T[]): BreakdownRow[] {
   const labels = new Map<string, string>();
   const groups = totalsBy(claims, (c) => {
-    const text = collapse(c.loss_location);
+    const text = collapse(c.location_name || c.loss_location);
     if (!text) return NOT_GIVEN;
     const key = text.toLowerCase();
     if (!labels.has(key)) labels.set(key, text);

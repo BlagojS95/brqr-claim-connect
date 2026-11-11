@@ -66,6 +66,9 @@ export const SubmitClaimSchema = z.object({
   thirdPartyContact: optionalText(500),
   // Optional pick from the causes_of_loss lookup (fix 35).
   causeOfLossId: z.string().uuid("Unknown cause of loss").nullish(),
+  // The client's site this claim belongs to (fix 32). Required for a
+  // location user; optional for everyone else.
+  locationId: z.string().uuid("Unknown location").nullish(),
   documents: z
     .array(
       z.object({
@@ -164,7 +167,14 @@ export interface ClaimInsert extends LossDetails {
   carrier: string | null;
   status: ClaimStatus;
   cause_of_loss_id: string | null;
+  location_id: string | null;
 }
+
+/**
+ * Which of the client's locations the caller may report for (fix 32):
+ * undefined = any (agency admin, company-wide user); otherwise only these.
+ */
+export type SubmitterLocations = { only: readonly string[] } | undefined;
 
 export interface DocumentInsert {
   claim_id: string;
@@ -176,8 +186,11 @@ export interface DocumentInsert {
 export interface SubmitClaimDeps {
   // Agency calendar date; the column default is CURRENT_DATE in UTC, a day ahead on US evenings.
   today(): string;
-  // Throws unless the caller is an agency admin or the login linked to clientId.
-  assertCanSubmitFor(clientId: string): Promise<void>;
+  // Throws unless the caller is an agency admin or one of clientId's users;
+  // a location user gets back the locations they may report for.
+  assertCanSubmitFor(clientId: string): Promise<SubmitterLocations | void>;
+  // The location if it belongs to clientId.
+  getLocation(id: string, clientId: string): Promise<{ id: string } | null>;
   getLine(id: string): Promise<{ id: string; name: string; code: string } | null>;
   getCauseOfLoss(id: string): Promise<{ id: string; active: boolean } | null>;
   getPolicy(
@@ -227,11 +240,35 @@ export type SubmitClaimResult =
   | { claimId: string; duplicates: [] }
   | { claimId: null; duplicates: DuplicateMatch[] };
 
+/**
+ * The location to save on the claim, or a message for the user. A location
+ * user must pick one of their own sites; others may leave it empty.
+ */
+export async function claimLocationFor(
+  input: Pick<SubmitClaimInput, "clientId" | "locationId">,
+  allowed: SubmitterLocations | void,
+  getLocation: SubmitClaimDeps["getLocation"],
+): Promise<{ locationId: string | null } | { error: string }> {
+  const wanted = input.locationId ?? null;
+  if (allowed) {
+    if (!wanted) return { error: "Choose the location this claim is for" };
+    if (!allowed.only.includes(wanted)) {
+      return { error: "You can only report claims for your own locations" };
+    }
+  }
+  if (!wanted) return { locationId: null };
+  const location = await getLocation(wanted, input.clientId);
+  if (!location) return { error: "That location doesn't belong to this client" };
+  return { locationId: location.id };
+}
+
 export async function submitClaimCore(
   input: SubmitClaimInput,
   deps: SubmitClaimDeps,
 ): Promise<SubmitClaimResult> {
-  await deps.assertCanSubmitFor(input.clientId);
+  const allowedLocations = await deps.assertCanSubmitFor(input.clientId);
+  const location = await claimLocationFor(input, allowedLocations, deps.getLocation);
+  if ("error" in location) throw unprocessableError(location.error);
 
   const line = await deps.getLine(input.lineOfBusinessId);
   if (!line) throw unprocessableError("Unknown line of business");
@@ -298,6 +335,7 @@ export async function submitClaimCore(
     carrier: policy?.carrier ?? null,
     status: input.isNotice ? CLAIM_STATUS.notice : CLAIM_STATUS.submitted,
     cause_of_loss_id: cause?.id ?? null,
+    location_id: location.locationId,
     ...lossDetails,
   });
 

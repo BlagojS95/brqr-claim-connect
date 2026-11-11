@@ -85,7 +85,7 @@ describe("runWeeklyDigest", () => {
     expect(result.enabled).toBe(false);
     expect(result.weekStart).toBe("2026-11-09");
     expect(sendViaResend).not.toHaveBeenCalled();
-    expect(calls.clients).toBeUndefined();
+    expect(calls.client_users).toBeUndefined();
     expect(calls.digest_runs).toBeUndefined();
   });
 });
