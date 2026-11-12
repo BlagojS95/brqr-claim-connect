@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { ClaimLocationControl } from "@/components/claim/claim-location-control";
+import { ClaimReportFlags } from "@/components/claim/claim-report-flags";
+import { WC_CLAIM_KIND_LABELS } from "@/lib/executive-report";
 import { isCompanyWide } from "@/lib/client-users";
 import {
   incurredAmount,
@@ -251,6 +253,21 @@ function ClaimDetail() {
           label="Waiting on"
           value={<WaitingOnControl claim={claim} editable={role === "agency_admin"} />}
         />
+        {role === "agency_admin" ? (
+          <Field label="For reports" value={<ClaimReportFlags claim={claim} />} />
+        ) : (
+          (claim.is_litigated || claim.wc_claim_kind) && (
+            <Field
+              label="Claim details"
+              value={[
+                claim.is_litigated ? "In litigation" : null,
+                claim.wc_claim_kind ? WC_CLAIM_KIND_LABELS[claim.wc_claim_kind] : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            />
+          )
+        )}
         <Field
           label="Location"
           value={

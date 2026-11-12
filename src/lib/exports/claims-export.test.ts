@@ -23,6 +23,8 @@ const base: AgencyClaim = {
   adjuster_name: null,
   policy_number: null,
   policy_id: null,
+  is_litigated: false,
+  wc_claim_kind: null,
   description: null,
   client_id: "client-1",
   client_name: "Acme Roofing",

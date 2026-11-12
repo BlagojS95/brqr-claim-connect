@@ -42,7 +42,7 @@ export interface PdfReportOptions {
 
 export async function createPdfReport(
   options: PdfReportOptions,
-): Promise<PdfReport & { save: (fileName: string) => void }> {
+): Promise<PdfReport & { save: (fileName: string) => void; toArrayBuffer: () => ArrayBuffer }> {
   const [{ jsPDF }, { autoTable }] = await Promise.all([
     import("jspdf"),
     import("jspdf-autotable"),
@@ -91,7 +91,12 @@ export async function createPdfReport(
     drawFrame(doc, options, pageWidth, pageHeight);
     downloadBlob(doc.output("blob"), fileName);
   };
-  return { ...report, save };
+  // For PDFs made on the server (fix 46): the finished file's bytes.
+  const toArrayBuffer = () => {
+    drawFrame(doc, options, pageWidth, pageHeight);
+    return doc.output("arraybuffer");
+  };
+  return { ...report, save, toArrayBuffer };
 }
 
 function drawFrame(doc: jsPDF, options: PdfReportOptions, pageWidth: number, pageHeight: number) {

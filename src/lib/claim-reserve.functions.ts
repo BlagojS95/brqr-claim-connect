@@ -38,3 +38,23 @@ export const updateClaimRecovery = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+const ReportFlagsSchema = z.object({
+  claimId: z.string().uuid(),
+  isLitigated: z.boolean(),
+  wcClaimKind: z.enum(["lost_time", "medical_only"]).nullable(),
+});
+
+// For the executive report (fix 46): litigation, and lost time vs medical
+// only on workers comp claims. Agency staff only, like the reserve.
+export const updateClaimReportFlags = createServerFn({ method: "POST" })
+  .middleware([requireAgencyAdmin])
+  .inputValidator(parseInput(ReportFlagsSchema))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("claims")
+      .update({ is_litigated: data.isLitigated, wc_claim_kind: data.wcClaimKind })
+      .eq("id", data.claimId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

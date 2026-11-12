@@ -6,6 +6,7 @@ export const REPORT_TABS = {
   lossSummary: "loss-summary",
   lossRuns: "loss-runs",
   renewalPack: "renewal-pack",
+  executiveReport: "executive-report",
 } as const;
 
 export type ReportTab = (typeof REPORT_TABS)[keyof typeof REPORT_TABS];

@@ -18,18 +18,21 @@ export type Database = {
         Row: {
           broker_claims_email: string
           id: number
+          monthly_report_enabled: boolean
           updated_at: string
           weekly_digest_enabled: boolean
         }
         Insert: {
           broker_claims_email?: string
           id?: number
+          monthly_report_enabled?: boolean
           updated_at?: string
           weekly_digest_enabled?: boolean
         }
         Update: {
           broker_claims_email?: string
           id?: number
+          monthly_report_enabled?: boolean
           updated_at?: string
           weekly_digest_enabled?: boolean
         }
@@ -155,6 +158,41 @@ export type Database = {
           },
         ]
       }
+      claim_reserve_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          claim_id: string
+          id: string
+          new_reserve: number | null
+          old_reserve: number | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          claim_id: string
+          id?: string
+          new_reserve?: number | null
+          old_reserve?: number | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          claim_id?: string
+          id?: string
+          new_reserve?: number | null
+          old_reserve?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_reserve_history_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claim_internal_notes: {
         Row: {
           body: string
@@ -257,6 +295,7 @@ export type Database = {
           description: string | null
           fnol_sent_date: string | null
           id: string
+          is_litigated: boolean
           is_notice_only: boolean
           last_activity_at: string | null
           last_follow_up: string | null
@@ -272,6 +311,7 @@ export type Database = {
           reserve_amount: number | null
           status: Database["public"]["Enums"]["claim_status"]
           waiting_on: Database["public"]["Enums"]["claim_waiting_on"] | null
+          wc_claim_kind: string | null
           date_reported_to_employer: string | null
           driver_name: string | null
           employee_job_title: string | null
@@ -309,6 +349,7 @@ export type Database = {
           description?: string | null
           fnol_sent_date?: string | null
           id?: string
+          is_litigated?: boolean
           is_notice_only?: boolean
           last_activity_at?: string | null
           last_follow_up?: string | null
@@ -322,6 +363,7 @@ export type Database = {
           reserve_amount?: number | null
           status?: Database["public"]["Enums"]["claim_status"]
           waiting_on?: Database["public"]["Enums"]["claim_waiting_on"] | null
+          wc_claim_kind?: string | null
           date_reported_to_employer?: string | null
           driver_name?: string | null
           employee_job_title?: string | null
@@ -359,6 +401,7 @@ export type Database = {
           description?: string | null
           fnol_sent_date?: string | null
           id?: string
+          is_litigated?: boolean
           is_notice_only?: boolean
           last_activity_at?: string | null
           last_follow_up?: string | null
@@ -372,6 +415,7 @@ export type Database = {
           reserve_amount?: number | null
           status?: Database["public"]["Enums"]["claim_status"]
           waiting_on?: Database["public"]["Enums"]["claim_waiting_on"] | null
+          wc_claim_kind?: string | null
           date_reported_to_employer?: string | null
           driver_name?: string | null
           employee_job_title?: string | null
@@ -881,6 +925,41 @@ export type Database = {
           week_start?: string
         }
         Relationships: []
+      }
+      report_schedules: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          large_loss_threshold: number
+          last_sent_month: string | null
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          large_loss_threshold?: number
+          last_sent_month?: string | null
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          large_loss_threshold?: number
+          last_sent_month?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_schedules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       saved_claim_views: {
         Row: {

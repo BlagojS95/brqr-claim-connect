@@ -14,6 +14,13 @@ import { fetchSharedReport } from "@/lib/shared-reports.functions";
 import { LossSummarySnapshotSchema, SHARED_REPORT_KIND } from "@/lib/shared-reports";
 import { LossSummaryExport } from "@/components/reports/loss-summary-export";
 import { LossSummaryTable } from "@/components/reports/loss-summary-table";
+import { ExecutiveReportView } from "@/components/reports/executive-report-view";
+import { Button } from "@/components/ui/button";
+import { downloadSharedExecutiveReport } from "@/lib/executive-report.functions";
+import { downloadBase64 } from "@/lib/exports/download";
+import type { ExecutiveReport } from "@/lib/executive-report";
+import { FileText } from "lucide-react";
+import { toast } from "sonner";
 import claimsQrLogoWhite from "@/assets/claims-qr-logo-white.png";
 
 // A shared, read-only report (fixes 44 and 46). No sign-in: the token in the
@@ -57,6 +64,12 @@ function SharedReportPage() {
           <Unavailable />
         ) : data.kind === SHARED_REPORT_KIND.lossSummary ? (
           <SharedLossSummary snapshot={data.snapshot} expiresAt={data.expiresAt} />
+        ) : data.kind === SHARED_REPORT_KIND.executiveReport ? (
+          <SharedExecutiveReport
+            token={token}
+            snapshot={data.snapshot}
+            expiresAt={data.expiresAt}
+          />
         ) : (
           <Unavailable />
         )}
@@ -115,6 +128,60 @@ function SharedLossSummary({ snapshot, expiresAt }: { snapshot: unknown; expires
           linkClaims={false}
         />
       )}
+      <p className="text-xs text-muted-foreground">
+        Prepared by BRQR Insurance Agency with ClaimsQR. Figures are as of the valuation date and
+        may have changed since.
+      </p>
+    </>
+  );
+}
+
+function isExecutiveReport(value: unknown): value is ExecutiveReport {
+  const r = value as Partial<ExecutiveReport> | null;
+  return !!r && r.version === 1 && !!r.headline && !!r.period && !!r.comparison;
+}
+
+function SharedExecutiveReport({
+  token,
+  snapshot,
+  expiresAt,
+}: {
+  token: string;
+  snapshot: unknown;
+  expiresAt: string;
+}) {
+  const getPdf = useServerFn(downloadSharedExecutiveReport);
+  const [busy, setBusy] = useState(false);
+  if (!isExecutiveReport(snapshot)) return <Unavailable />;
+
+  const download = async () => {
+    setBusy(true);
+    try {
+      const file = await getPdf({ data: { token } });
+      if (!file) throw new Error("This link is no longer available");
+      downloadBase64(file.base64, file.fileName);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't create the PDF");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-navy">Executive Loss Report</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Link expires {new Date(expiresAt).toLocaleDateString("en-US", { dateStyle: "medium" })}
+          </p>
+        </div>
+        <Button variant="outline" size="sm" disabled={busy} onClick={() => void download()}>
+          <FileText className="h-4 w-4" aria-hidden />
+          {busy ? "Creating PDF…" : "Download PDF"}
+        </Button>
+      </div>
+      <ExecutiveReportView report={snapshot} />
       <p className="text-xs text-muted-foreground">
         Prepared by BRQR Insurance Agency with ClaimsQR. Figures are as of the valuation date and
         may have changed since.

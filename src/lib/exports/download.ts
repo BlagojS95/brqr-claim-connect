@@ -80,3 +80,11 @@ export async function downloadXlsx(sheets: XlsxSheet[], fileName: string): Promi
   ).toBlob();
   downloadBlob(blob, fileName);
 }
+
+/** Saves a file the server built (fix 46: the executive report PDF). */
+export function downloadBase64(base64: string, fileName: string, type = "application/pdf"): void {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  downloadBlob(new Blob([bytes], { type }), fileName);
+}

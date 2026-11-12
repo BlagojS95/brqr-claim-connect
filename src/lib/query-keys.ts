@@ -26,6 +26,8 @@ export const queryKeys = {
   clientTeam: ["client-team"] as const,
   // Report share links (fixes 44 and 46) the user may manage.
   sharedReports: ["shared-reports"] as const,
+  // The signed-in user's monthly executive report schedule for a client (fix 46).
+  reportSchedule: (clientId: string) => ["report-schedule", clientId] as const,
 };
 
 export interface CauseOfLossOption {

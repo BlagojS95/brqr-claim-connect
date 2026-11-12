@@ -1,4 +1,4 @@
--- Row-level security check (fixes 15, 32 and 44).
+-- Row-level security check (fixes 15, 32, 44 and 46).
 --
 -- Builds two TEST companies with users of every kind, then checks what each one
 -- can read and write through RLS, by switching to the `authenticated` role with
@@ -60,6 +60,9 @@ BEGIN
   INSERT INTO public.shared_reports (token_hash, kind, client_id, title, snapshot, expires_at) VALUES
     (repeat('a', 64), 'loss_summary', a, 'TEST A share', '{}', now() + interval '14 days'),
     (repeat('b', 64), 'loss_summary', b, 'TEST B share', '{}', now() + interval '14 days');
+  -- Reserve changes are logged by a trigger (fix 46); monthly report schedules.
+  UPDATE public.claims SET reserve_amount = 100 WHERE id IN (c_a1, c_a2, c_b1);
+  INSERT INTO public.report_schedules (client_id, user_id) VALUES (a, u_a_admin), (b, u_b);
 
   ids := ARRAY[a, b];
 
@@ -82,6 +85,23 @@ BEGIN
   INSERT INTO rls_expect SELECT 'A admin', 'company users', 3, count(*) FROM public.client_users WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'A admin', 'clients', 1, count(*) FROM public.clients WHERE id = ANY (ids);
   INSERT INTO rls_expect SELECT 'A admin', 'share links (own only)', 1, count(*) FROM public.shared_reports WHERE client_id = ANY (ids);
+  INSERT INTO rls_expect SELECT 'A admin', 'reserve history', 2, count(*) FROM public.claim_reserve_history WHERE claim_id IN (c_a1, c_a2, c_a0, c_b1);
+  INSERT INTO rls_expect SELECT 'A admin', 'report schedules (own only)', 1, count(*) FROM public.report_schedules WHERE client_id = ANY (ids);
+  BEGIN
+    INSERT INTO public.report_schedules (client_id, user_id) VALUES (b, u_a_admin);
+    INSERT INTO rls_expect VALUES ('A admin', 'cannot write schedules directly', 0, 1);
+  EXCEPTION WHEN insufficient_privilege OR check_violation THEN
+    INSERT INTO rls_expect VALUES ('A admin', 'cannot write schedules directly', 0, 0);
+  END;
+  BEGIN
+    INSERT INTO public.claim_reserve_history (claim_id, new_reserve) VALUES (c_a1, 1);
+    INSERT INTO rls_expect VALUES ('A admin', 'cannot forge reserve history', 0, 1);
+  EXCEPTION WHEN insufficient_privilege OR check_violation THEN
+    INSERT INTO rls_expect VALUES ('A admin', 'cannot forge reserve history', 0, 0);
+  END;
+  UPDATE public.claims SET is_litigated = true WHERE id = c_a1;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  INSERT INTO rls_expect VALUES ('A admin', 'cannot set litigated', 0, n);
   BEGIN
     INSERT INTO public.shared_reports (token_hash, kind, client_id, title, snapshot, expires_at)
       VALUES (repeat('c', 64), 'loss_summary', a, 'TEST forged', '{}', now() + interval '1 day');
@@ -139,6 +159,7 @@ BEGIN
   INSERT INTO rls_expect SELECT 'A location', 'claims', 1, count(*) FROM public.claims WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'A location', 'sees L1 claim', 1, count(*) FROM public.claims WHERE id = c_a1;
   INSERT INTO rls_expect SELECT 'A location', 'share links', 0, count(*) FROM public.shared_reports WHERE client_id = ANY (ids);
+  INSERT INTO rls_expect SELECT 'A location', 'reserve history (L1 only)', 1, count(*) FROM public.claim_reserve_history WHERE claim_id IN (c_a1, c_a2, c_a0, c_b1);
   INSERT INTO rls_expect SELECT 'A location', 'policies (company-wide only)', 1, count(*) FROM public.policies WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'A location', 'documents', 1, count(*) FROM public.documents WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'A location', 'activity (L1 reported + upload)', 2, count(*) FROM public.claim_activity WHERE claim_id IN (c_a1, c_a2, c_a0, c_b1);
@@ -213,6 +234,8 @@ BEGIN
   INSERT INTO rls_expect SELECT 'B admin', 'A loss runs', 0, count(*) FROM public.loss_runs WHERE client_id = a;
   INSERT INTO rls_expect SELECT 'B admin', 'share links (own only)', 1, count(*) FROM public.shared_reports WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'B admin', 'A share snapshot', 0, count(*) FROM public.shared_reports WHERE client_id = a;
+  INSERT INTO rls_expect SELECT 'B admin', 'reserve history (own only)', 1, count(*) FROM public.claim_reserve_history WHERE claim_id IN (c_a1, c_a2, c_a0, c_b1);
+  INSERT INTO rls_expect SELECT 'B admin', 'report schedules (own only)', 1, count(*) FROM public.report_schedules WHERE client_id = ANY (ids);
   BEGIN
     INSERT INTO public.claims (client_id, claim_type) VALUES (a, 'TEST');
     INSERT INTO rls_expect VALUES ('B admin', 'cannot report for A', 0, 1);
@@ -234,6 +257,8 @@ BEGIN
   INSERT INTO rls_expect SELECT 'agency', 'claims (4 + one reported at L1 above)', 5, count(*) FROM public.claims WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'agency', 'client users', 4, count(*) FROM public.client_users WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'agency', 'share links', 2, count(*) FROM public.shared_reports WHERE client_id = ANY (ids);
+  INSERT INTO rls_expect SELECT 'agency', 'reserve history', 3, count(*) FROM public.claim_reserve_history WHERE claim_id IN (c_a1, c_a2, c_a0, c_b1);
+  INSERT INTO rls_expect SELECT 'agency', 'report schedules', 2, count(*) FROM public.report_schedules WHERE client_id = ANY (ids);
   RESET ROLE;
 
   -- Anonymous sees nothing.
@@ -251,6 +276,12 @@ BEGIN
     n := 0;
   END;
   INSERT INTO rls_expect VALUES ('anon', 'share links', 0, n);
+  BEGIN
+    SELECT count(*) INTO n FROM public.claim_reserve_history WHERE claim_id IN (c_a1, c_a2, c_a0, c_b1);
+  EXCEPTION WHEN insufficient_privilege THEN
+    n := 0;
+  END;
+  INSERT INTO rls_expect VALUES ('anon', 'reserve history', 0, n);
   RESET ROLE;
 
   SELECT count(*) INTO checks FROM rls_expect;

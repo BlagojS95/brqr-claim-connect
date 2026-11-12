@@ -56,6 +56,11 @@ export function toClaim(row: ClaimRow, clientName: string): AgencyClaim {
     paid_amount: row.paid_amount,
     reserve_amount: row.reserve_amount,
     recovery_amount: row.recovery_amount ?? null,
+    is_litigated: row.is_litigated ?? false,
+    wc_claim_kind:
+      row.wc_claim_kind === "lost_time" || row.wc_claim_kind === "medical_only"
+        ? row.wc_claim_kind
+        : null,
     adjuster_name: row.adjuster_name,
     policy_number: row.policy_number,
     policy_id: row.policy_id ?? null,

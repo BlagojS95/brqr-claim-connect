@@ -2,6 +2,7 @@ import type { ClaimStatus } from "@/lib/claim-status";
 import type { Database } from "@/integrations/supabase/types";
 
 export type WaitingOn = Database["public"]["Enums"]["claim_waiting_on"];
+export type WcClaimKind = "lost_time" | "medical_only";
 import type { PolicyStatus } from "@/lib/policy-status";
 import type { LossDetails } from "@/lib/claim-submission";
 
@@ -51,6 +52,10 @@ export interface AgencyClaim {
   reserve_amount: number | null;
   // Subrogation, salvage and other money back (fix 39).
   recovery_amount: number | null;
+  // For the executive report (fix 46); set by agency staff on the claim page.
+  is_litigated: boolean;
+  /** Workers comp only: "lost_time" or "medical_only"; null when not set. */
+  wc_claim_kind: WcClaimKind | null;
   adjuster_name: string | null;
   policy_number: string | null;
   // The policy the claim was filed on, when known (see policy-claims.ts).

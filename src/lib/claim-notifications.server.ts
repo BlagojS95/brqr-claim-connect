@@ -131,7 +131,12 @@ export function notificationRecipient(): string {
 export async function sendViaResend(
   subject: string,
   html: string,
-  options: { to?: string; text?: string } = {},
+  options: {
+    to?: string;
+    text?: string;
+    /** Files to attach, content as base64 (fix 46: the report PDF). */
+    attachments?: { filename: string; content: string }[];
+  } = {},
 ) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error("Missing RESEND_API_KEY environment variable");
@@ -148,6 +153,7 @@ export async function sendViaResend(
       subject,
       html,
       ...(options.text ? { text: options.text } : {}),
+      ...(options.attachments?.length ? { attachments: options.attachments } : {}),
     }),
   });
 
