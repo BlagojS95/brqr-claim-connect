@@ -20,6 +20,7 @@ import {
   InviteClientUserSchema,
   isCompanyWide,
   LocationSchema,
+  locationNameTaken,
   teamChangeError,
   UpdateClientUserSchema,
   type ClientTeam,
@@ -27,6 +28,20 @@ import {
 } from "@/lib/client-users";
 
 const ONLY_ADMINS = "Only your company's admin can manage users and locations";
+
+// Migration 20261113000100 makes the database's unique index ignore capitals
+// too (closing the race between two saves); this check gives the friendly
+// message.
+async function refuseDuplicateLocation(clientId: string, name: string, exceptId?: string) {
+  const { data, error } = await supabaseAdmin
+    .from("client_locations")
+    .select("id, name")
+    .eq("client_id", clientId);
+  if (error) throw new Error(`Couldn't check your locations: ${error.message}`);
+  if (locationNameTaken(data ?? [], name, exceptId)) {
+    unprocessable(`There's already a location called ${name}`);
+  }
+}
 
 async function requireClientAdmin(userId: string): Promise<ClientMembership> {
   const member = await getClientMembership(userId);
@@ -189,6 +204,7 @@ export const createClientLocation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await loadDevVars();
     const member = await requireClientAdmin(context.userId);
+    await refuseDuplicateLocation(member.clientId, data.name);
     // Caller's token: RLS checks again that they manage this client.
     const { data: row, error } = await context.supabase
       .from("client_locations")
@@ -208,6 +224,7 @@ export const updateClientLocation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await loadDevVars();
     const member = await requireClientAdmin(context.userId);
+    await refuseDuplicateLocation(member.clientId, data.name, data.id);
     const { data: rows, error } = await context.supabase
       .from("client_locations")
       .update({ name: data.name, address: data.address })

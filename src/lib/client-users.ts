@@ -76,6 +76,22 @@ export const LocationSchema = z.object({
     .transform((v) => v || null),
 });
 
+/**
+ * Whether a company already has a location with this name, ignoring capitals
+ * and spaces at the ends, so "Dayton Yard" and "dayton yard" can't both exist.
+ * `exceptId` is the location being renamed.
+ */
+export function locationNameTaken(
+  existing: { id: string; name: string }[],
+  name: string,
+  exceptId?: string,
+): boolean {
+  const key = name.trim().toLocaleLowerCase("en-US");
+  return existing.some(
+    (l) => l.id !== exceptId && l.name.trim().toLocaleLowerCase("en-US") === key,
+  );
+}
+
 export interface ClientUserSummary {
   userId: string;
   name: string | null;
