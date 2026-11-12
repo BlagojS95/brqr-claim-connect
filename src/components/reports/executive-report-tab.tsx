@@ -38,7 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
-const field = "flex flex-col gap-1";
+const field = "flex flex-col gap-1 min-w-0";
 const labelClass = "text-xs uppercase tracking-wide text-muted-foreground";
 const selectClass =
   "h-10 md:h-9 rounded-md border border-input bg-background px-3 text-base md:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -131,7 +131,7 @@ export function ExecutiveReportTab() {
       </div>
 
       <form
-        className="rounded-lg border border-border bg-card p-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+        className="rounded-lg border border-border bg-card p-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
         onSubmit={(e) => {
           e.preventDefault();
           if (ready) run.mutate();
