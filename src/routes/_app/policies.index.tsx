@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -6,11 +6,19 @@ import { formatDate } from "@/lib/dates";
 import { POLICY_STATUS, type PolicyStatus } from "@/lib/policy-status";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { overviewQueryOptions } from "@/lib/query-keys";
-import { Shield, Calendar, Building2, Search, DollarSign, MapPin } from "lucide-react";
+import {
+  Shield,
+  Calendar,
+  Building2,
+  Search,
+  DollarSign,
+  MapPin,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export const Route = createFileRoute("/_app/policies")({
+export const Route = createFileRoute("/_app/policies/")({
   head: () => ({ meta: [{ title: "Policies | ClaimsQR" }] }),
   component: PoliciesPage,
 });
@@ -133,9 +141,13 @@ function PolicyCard({ p }: { p: PolicyRow }) {
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
       : "bg-slate-100 text-slate-600 border-slate-200";
 
+  // The whole card opens the policy's page (fix 42).
   return (
-    <div
-      className={`rounded-lg border border-border bg-card p-5 space-y-3 ${p.status === POLICY_STATUS.inactive ? "opacity-80" : ""}`}
+    <Link
+      to="/policies/$policyId"
+      params={{ policyId: p.id }}
+      aria-label={`${p.policy_type ?? "Policy"} ${p.policy_number}: view policy and claims`}
+      className={`block rounded-lg border border-border bg-card p-5 space-y-3 transition-colors hover:border-navy/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${p.status === POLICY_STATUS.inactive ? "opacity-80" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -180,6 +192,9 @@ function PolicyCard({ p }: { p: PolicyRow }) {
           </div>
         )}
       </div>
-    </div>
+      <div className="flex items-center justify-end gap-1 text-xs font-medium text-navy">
+        View claims <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+      </div>
+    </Link>
   );
 }

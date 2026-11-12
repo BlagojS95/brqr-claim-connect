@@ -11,6 +11,8 @@ export const queryKeys = {
   overviewAll: ["overview"] as const,
   overview: (scope: OverviewScope) => ["overview", scope] as const,
   claim: (claimId: string) => ["claim", claimId] as const,
+  // The policy detail page (fix 42): the policy, its claims and totals.
+  policy: (policyId: string) => ["policy", policyId] as const,
   // Under the claim's own key, so invalidating claim(id) also refreshes the log.
   claimActivity: (claimId: string) => ["claim", claimId, "activity"] as const,
   // Home's "Needs your attention" list (fix 29), from fetchAttentionQueue.

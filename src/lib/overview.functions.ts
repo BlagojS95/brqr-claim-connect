@@ -8,6 +8,7 @@ import { todayIso } from "@/lib/dates";
 import { LINE_OF_BUSINESS_NAMES } from "@/lib/line-of-business";
 import { POLICY_STATUS, type PolicyStatus } from "@/lib/policy-status";
 import { fetchAll } from "@/lib/fetch-all";
+import { isClaimOnPolicy, policyTotals, type PolicyTotals } from "@/lib/policy-claims";
 import type {
   AgencyClaim,
   AgencyClient,
@@ -65,6 +66,7 @@ function toClaim(row: ClaimRow, clientName: string): AgencyClaim {
     recovery_amount: row.recovery_amount ?? null,
     adjuster_name: row.adjuster_name,
     policy_number: row.policy_number,
+    policy_id: row.policy_id ?? null,
     description: row.description,
     client_id: row.client_id,
     client_name: clientName,
@@ -79,6 +81,25 @@ function toClaim(row: ClaimRow, clientName: string): AgencyClaim {
     vehicles_involved: row.vehicles_involved ?? null,
     location_id: row.location_id ?? null,
     location_name: row.client_locations?.name ?? null,
+  };
+}
+
+function toPolicy(p: PolicyRow, clientName: string): AgencyPolicy {
+  return {
+    id: p.id,
+    client_id: p.client_id,
+    client_name: clientName,
+    policy_number: p.policy_number,
+    carrier: p.carrier,
+    policy_type: p.policy_type,
+    line_of_business_id: p.line_of_business_id ?? null,
+    effective_date: p.effective_date,
+    expiry_date: p.expiration_date,
+    premium: p.premium,
+    experience_mod: p.experience_mod ?? null,
+    location_id: p.location_id ?? null,
+    location_name: p.client_locations?.name ?? null,
+    status: computePolicyStatus(p.effective_date, p.expiration_date),
   };
 }
 
@@ -129,22 +150,9 @@ async function getScopedOverview(
     claims_count: claimCounts.get(c.id) ?? 0,
   }));
 
-  const policies: AgencyPolicy[] = policyRows.map((p) => ({
-    id: p.id,
-    client_id: p.client_id,
-    client_name: clientNames.get(p.client_id) ?? "",
-    policy_number: p.policy_number,
-    carrier: p.carrier,
-    policy_type: p.policy_type,
-    line_of_business_id: p.line_of_business_id ?? null,
-    effective_date: p.effective_date,
-    expiry_date: p.expiration_date,
-    premium: p.premium,
-    experience_mod: p.experience_mod ?? null,
-    location_id: p.location_id ?? null,
-    location_name: p.client_locations?.name ?? null,
-    status: computePolicyStatus(p.effective_date, p.expiration_date),
-  }));
+  const policies: AgencyPolicy[] = policyRows.map((p) =>
+    toPolicy(p, clientNames.get(p.client_id) ?? ""),
+  );
 
   const claims = claimRows.map((c) => toClaim(c, clientNames.get(c.client_id) ?? ""));
 
@@ -201,4 +209,46 @@ export const fetchClaimDetail = createServerFn({ method: "GET" })
         third_party_contact: row.third_party_contact ?? null,
       },
     };
+  });
+
+export interface PolicyDetail {
+  policy: AgencyPolicy;
+  /** The claims against the policy, newest loss first. */
+  claims: AgencyClaim[];
+  /** Computed here from those claims (fix 42), never in the browser. */
+  totals: PolicyTotals;
+}
+
+// The policy detail page (fix 42). Caller's token: RLS decides whether the
+// policy and which of its client's claims this user may see (a location user
+// only gets their sites' claims), so a policy they can't see is "not found".
+export const fetchPolicyDetail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(parseInput(z.object({ policyId: z.string() })))
+  .handler(async ({ data, context }): Promise<PolicyDetail | null> => {
+    if (!UUID_RE.test(data.policyId)) return null;
+
+    const { data: row } = await context.supabase
+      .from("policies")
+      .select("*, client_locations(name), clients(name, company_name)")
+      .eq("id", data.policyId)
+      .maybeSingle();
+    if (!row) return null;
+    const { clients: clientRow, ...policyRow } = row;
+    const clientName = displayName(clientRow);
+    const policy = toPolicy(policyRow, clientName);
+
+    const claimRows = await fetchAll<ClaimRow>((from, to) =>
+      context.supabase
+        .from("claims")
+        .select(CLAIM_SELECT)
+        .eq("client_id", policy.client_id)
+        .order("date_of_loss", { ascending: false, nullsFirst: false })
+        .order("id")
+        .range(from, to),
+    );
+    const claims = claimRows
+      .map((c) => toClaim(c, clientName))
+      .filter((c) => isClaimOnPolicy(c, policy));
+    return { policy, claims, totals: policyTotals(claims) };
   });

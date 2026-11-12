@@ -53,6 +53,8 @@ export interface AgencyClaim {
   recovery_amount: number | null;
   adjuster_name: string | null;
   policy_number: string | null;
+  // The policy the claim was filed on, when known (see policy-claims.ts).
+  policy_id: string | null;
   description: string | null;
   client_id: string;
   client_name: string;
