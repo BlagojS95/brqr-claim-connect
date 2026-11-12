@@ -21,8 +21,9 @@ import {
 
 export const EXECUTIVE_REPORT_TITLE = "Executive Loss Report";
 
+// Plain "-": the PDF's built-in Helvetica has no U+2212 minus sign and garbles it.
 const pct = (n: number | null) =>
-  n === null ? "—" : `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)}%`;
+  n === null ? "—" : `${n > 0 ? "+" : n < 0 ? "-" : ""}${Math.abs(n).toFixed(1)}%`;
 const range = (r: { from: string; to: string }) => `${formatDate(r.from)} – ${formatDate(r.to)}`;
 const claimNo = (r: ReportClaimRow) => r.claimNumber?.trim() || "Pending";
 
@@ -185,7 +186,7 @@ export async function renderExecutiveReportPdf(report: ExecutiveReport): Promise
         r.line,
         pdfMoney(r.from),
         pdfMoney(r.to),
-        `${r.change > 0 ? "+" : "−"}${pdfMoney(Math.abs(r.change))}`,
+        `${r.change > 0 ? "+" : "-"}${pdfMoney(Math.abs(r.change))}`,
       ]),
       [2, 3, 4],
     );
