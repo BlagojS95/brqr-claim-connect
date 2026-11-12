@@ -28,6 +28,8 @@ const base: ClaimListItem = {
   vehicles_involved: null,
   loss_location: null,
   location_name: null,
+  cause_of_loss: null,
+  policy_number: null,
   status: CLAIM_STATUS.open,
   date_of_loss: null,
   closed_date: null,
@@ -452,5 +454,55 @@ describe("status=open", () => {
     ];
     expect(filterClaims(rows, { status: CLAIM_STATUS.open }).map((c) => c.id)).toEqual(["o", "r"]);
     expect(filterClaims(rows, { status: CLAIM_STATUS.reopened }).map((c) => c.id)).toEqual(["r"]);
+  });
+});
+
+describe("Insights click-through filters (fix 45)", () => {
+  const claims = [
+    {
+      ...base,
+      claim_number: "A",
+      cause_of_loss: "Fire",
+      policy_number: "GL 1001",
+      date_of_loss: "2026-03-15",
+    },
+    {
+      ...base,
+      claim_number: "B",
+      cause_of_loss: "fire ",
+      policy_number: "gl1001",
+      date_of_loss: "2025-03-15",
+    },
+    {
+      ...base,
+      claim_number: "C",
+      cause_of_loss: "Theft",
+      policy_number: "AU-9",
+      date_of_loss: null,
+    },
+  ];
+  const numbers = (search: Parameters<typeof filterClaims>[1]) =>
+    filterClaims(claims, search).map((c) => c.claim_number);
+
+  it("parses cause, policy and a real date range, dropping bad dates", () => {
+    expect(
+      parseClaimsSearch({
+        cause: " Fire ",
+        policy: "GL 1001",
+        from: "2026-01-01",
+        to: "2026-02-30",
+      }),
+    ).toEqual({ cause: "Fire", policy: "GL 1001", from: "2026-01-01" });
+  });
+
+  it("filters by cause ignoring case and by policy ignoring spaces", () => {
+    expect(numbers({ cause: "FIRE" })).toEqual(["A", "B"]);
+    expect(numbers({ policy: "GL1001" })).toEqual(["A", "B"]);
+  });
+
+  it("keeps claims whose date of loss is in the range, both ends included", () => {
+    expect(numbers({ from: "2026-03-15", to: "2026-03-15" })).toEqual(["A"]);
+    expect(numbers({ from: "2025-01-01" })).toEqual(["A", "B"]);
+    expect(numbers({ to: "2025-12-31" })).toEqual(["B"]);
   });
 });

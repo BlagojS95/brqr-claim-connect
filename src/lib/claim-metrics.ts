@@ -85,6 +85,33 @@ export function summarize(claims: ClaimAmounts[]): YearSummary {
   return { claims: claims.length, paid: totalPaid(claims), incurred: totalIncurred(claims) };
 }
 
+export interface ClaimTotals {
+  claims: number;
+  open: number;
+  closed: number;
+  paid: number;
+  reserve: number;
+  incurred: number;
+}
+
+/**
+ * Headline figures for a set of claims. Insights (fix 45) and the executive
+ * report (fix 46) both use this for the same period, so their numbers match.
+ */
+export function claimTotals(claims: readonly (ClaimStatusFields & ClaimAmounts)[]): ClaimTotals {
+  let open = 0;
+  let closed = 0;
+  let paid = 0;
+  let reserve = 0;
+  for (const claim of claims) {
+    if (isOpen(claim)) open += 1;
+    if (statusBucket(claim) === CLAIM_STATUS.closed) closed += 1;
+    paid += paidAmount(claim);
+    reserve += reserveAmount(claim);
+  }
+  return { claims: claims.length, open, closed, paid, reserve, incurred: paid + reserve };
+}
+
 // Open claims are still developing, so only closed claims give a real average.
 export function avgClosedCost(claims: (ClaimStatusFields & ClaimAmounts)[]): number | null {
   const closed = claims.filter((claim) => statusBucket(claim) === CLAIM_STATUS.closed);

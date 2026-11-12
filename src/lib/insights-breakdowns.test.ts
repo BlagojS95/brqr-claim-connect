@@ -49,8 +49,15 @@ describe("totalsByCause", () => {
       count: 2,
       incurred: 175,
       paid: 100,
+      filter: { cause: "Fire or smoke" },
     });
-    expect(rows["Vandalism"]).toEqual({ name: "Vandalism", count: 1, incurred: 10, paid: 10 });
+    expect(rows["Vandalism"]).toEqual({
+      name: "Vandalism",
+      count: 1,
+      incurred: 10,
+      paid: 10,
+      filter: { cause: "Vandalism" },
+    });
   });
 
   it("groups claims without a cause as Not given", () => {
@@ -71,8 +78,20 @@ describe("totalsByLocation", () => {
       claim({ loss_location: "Main St Store" }),
     ]);
     expect(byName(rows)).toEqual({
-      "Warehouse 3": { name: "Warehouse 3", count: 3, incurred: 12, paid: 12 },
-      "Main St Store": { name: "Main St Store", count: 1, incurred: 0, paid: 0 },
+      "Warehouse 3": {
+        name: "Warehouse 3",
+        count: 3,
+        incurred: 12,
+        paid: 12,
+        filter: { location: "Warehouse 3" },
+      },
+      "Main St Store": {
+        name: "Main St Store",
+        count: 1,
+        incurred: 0,
+        paid: 0,
+        filter: { location: "Main St Store" },
+      },
     });
   });
 

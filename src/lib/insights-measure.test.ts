@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { incurredAmount, paidAmount } from "@/lib/claim-metrics";
 import {
   INSIGHTS_MEASURES,
-  insightsChartCards,
+  measureNoun,
   parseInsightsMeasure,
   totalsBy,
 } from "@/lib/insights-measure";
@@ -20,11 +20,11 @@ describe("parseInsightsMeasure", () => {
   });
 });
 
-describe("insightsChartCards", () => {
-  it("names the charts after the measure", () => {
-    expect(insightsChartCards("count").carrier.title).toBe("Claims by Carrier");
-    expect(insightsChartCards("paid").carrier.title).toBe("Paid by Carrier");
-    expect(insightsChartCards("incurred").trend.title).toBe("Incurred Trend by Year");
+describe("measureNoun", () => {
+  it("names the measure for chart titles", () => {
+    expect(measureNoun("count")).toBe("Claims");
+    expect(measureNoun("paid")).toBe("Paid");
+    expect(measureNoun("incurred")).toBe("Incurred");
   });
 });
 

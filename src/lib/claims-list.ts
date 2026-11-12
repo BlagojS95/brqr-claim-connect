@@ -21,6 +21,8 @@ import {
   type ClaimStatus,
 } from "@/lib/claim-status";
 import { calendarYear } from "@/lib/dates";
+import { parseIsoDate } from "@/lib/insights-period";
+import { policyNumberKey } from "@/lib/policy-claims";
 import { claimLocationLabel, type AgencyClaim } from "@/lib/overview.types";
 import { WAITING_ON_VALUES, claimWaitingOn, lastUpdateAt } from "@/lib/waiting-on";
 
@@ -76,6 +78,14 @@ export interface ClaimsSearch {
    * set; see claimLocationLabel. A name, so it survives in saved views.
    */
   location?: string;
+  /** Cause of loss name (fix 45, from an Insights chart). */
+  cause?: string;
+  /** Policy number (fix 45). */
+  policy?: string;
+  /** Date of loss on or after this "YYYY-MM-DD" (fix 45: the Insights period). */
+  from?: string;
+  /** Date of loss on or before this "YYYY-MM-DD". */
+  to?: string;
   sort?: ClaimSortKey;
   dir?: SortDir;
   page?: number;
@@ -85,6 +95,14 @@ export interface ClaimsSearch {
 export const CLAIM_FILTER_KEYS = ["line", "year", "carrier", "location"] as const;
 
 export type ClaimFilterKey = (typeof CLAIM_FILTER_KEYS)[number];
+
+/**
+ * Filters an Insights chart click can add (fix 45). They have no select of
+ * their own; the list shows each as a chip that can be removed.
+ */
+export const CLAIM_EXTRA_FILTER_KEYS = ["cause", "policy", "from", "to"] as const;
+
+export type ClaimExtraFilterKey = (typeof CLAIM_EXTRA_FILTER_KEYS)[number];
 
 export const MAX_SEARCH_LENGTH = 200;
 export const MAX_FILTER_LENGTH = 200;
@@ -131,6 +149,14 @@ export function parseClaimsSearch(search: Record<string, unknown>): ClaimsSearch
   if (carrier) result.carrier = carrier;
   const location = filterText(search.location);
   if (location) result.location = location;
+  const cause = filterText(search.cause);
+  if (cause) result.cause = cause;
+  const policy = filterText(search.policy);
+  if (policy) result.policy = policy;
+  const from = parseIsoDate(search.from);
+  if (from) result.from = from;
+  const to = parseIsoDate(search.to);
+  if (to) result.to = to;
   if (isSortKey(search.sort)) result.sort = search.sort;
   if (isSortDir(search.dir)) result.dir = search.dir;
   const page = Number(search.page);
@@ -152,6 +178,8 @@ export type ClaimListItem = Pick<
   | "vehicles_involved"
   | "loss_location"
   | "location_name"
+  | "cause_of_loss"
+  | "policy_number"
   | "status"
   | "date_of_loss"
   | "closed_date"
@@ -206,7 +234,18 @@ function matchesText(value: string | null | undefined, wanted: string | undefine
  */
 export function filterClaims<T extends ClaimListItem>(
   claims: T[],
-  { status, q, line, year, carrier, location }: Pick<ClaimsSearch, "status" | "q" | ClaimFilterKey>,
+  {
+    status,
+    q,
+    line,
+    year,
+    carrier,
+    location,
+    cause,
+    policy,
+    from,
+    to,
+  }: Pick<ClaimsSearch, "status" | "q" | ClaimFilterKey | ClaimExtraFilterKey>,
 ): T[] {
   const words = searchWords(q);
   return claims.filter((c) => {
@@ -215,6 +254,12 @@ export function filterClaims<T extends ClaimListItem>(
     if (year && calendarYear(c.date_of_loss) !== year) return false;
     if (!matchesText(c.carrier, carrier)) return false;
     if (!matchesText(claimLocationLabel(c), location)) return false;
+    if (!matchesText(c.cause_of_loss, cause)) return false;
+    if (policy && policyNumberKey(c.policy_number) !== policyNumberKey(policy)) return false;
+    if (from || to) {
+      const day = c.date_of_loss?.slice(0, 10);
+      if (!day || (from && day < from) || (to && day > to)) return false;
+    }
     if (words.length === 0) return true;
     const text = searchText(c);
     return words.every((word) => text.includes(word));

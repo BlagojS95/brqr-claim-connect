@@ -30,6 +30,10 @@ export const SAVED_VIEW_KEYS = [
   "year",
   "carrier",
   "location",
+  "cause",
+  "policy",
+  "from",
+  "to",
   "sort",
   "dir",
 ] as const;
@@ -44,6 +48,7 @@ export interface SavedView {
 }
 
 const filterText = z.string().trim().min(1).max(MAX_FILTER_LENGTH);
+const isoDate = z.string().regex(/^d{4}-d{2}-d{2}$/);
 
 /** The shape of saved_claim_views.filters. Unknown keys are refused. */
 export const SavedViewFiltersSchema = z
@@ -54,6 +59,10 @@ export const SavedViewFiltersSchema = z
     year: z.number().int().min(MIN_FILTER_YEAR).max(MAX_FILTER_YEAR).optional(),
     carrier: filterText.optional(),
     location: filterText.optional(),
+    cause: filterText.optional(),
+    policy: filterText.optional(),
+    from: isoDate.optional(),
+    to: isoDate.optional(),
     sort: z.enum(CLAIM_SORT_KEYS).optional(),
     dir: z.enum(SORT_DIRS).optional(),
   })
@@ -97,6 +106,10 @@ function comparable(search: ClaimsSearch): string {
     f.year ?? "",
     filterKey(f.carrier),
     filterKey(f.location),
+    filterKey(f.cause),
+    filterKey(f.policy),
+    f.from ?? "",
+    f.to ?? "",
     sort,
     f.dir ?? defaultSortDir(sort),
   ]);

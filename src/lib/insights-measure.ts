@@ -32,25 +32,9 @@ export function isMoneyMeasure(measure: InsightsMeasure): boolean {
   return measure !== INSIGHTS_MEASURE.count;
 }
 
-export interface ChartCardSpec {
-  id: string;
-  title: string;
-  wide?: boolean;
-}
-
-/** The Insights chart cards for a measure, in display order. */
-export function insightsChartCards(measure: InsightsMeasure) {
-  const noun = measure === INSIGHTS_MEASURE.count ? "Claims" : INSIGHTS_MEASURE_LABELS[measure];
-  return {
-    lob: { id: "lob", title: `${noun} by Line of Business` },
-    status: { id: "status", title: `${noun} by Status` },
-    trend: { id: "trend", title: `${noun} Trend by Year` },
-    // Not driven by the measure: always compares the two amounts.
-    amountsByYear: { id: "amountsByYear", title: "Paid and Incurred by Year" },
-    carrier: { id: "carrier", title: `${noun} by Carrier`, wide: true },
-    cause: { id: "cause", title: `${noun} by Cause` },
-    location: { id: "location", title: `${noun} by Location` },
-  } satisfies Record<string, ChartCardSpec>;
+/** "Claims" for a count, otherwise the amount's name ("Paid", "Incurred"). */
+export function measureNoun(measure: InsightsMeasure): string {
+  return measure === INSIGHTS_MEASURE.count ? "Claims" : INSIGHTS_MEASURE_LABELS[measure];
 }
 
 export interface MeasureTotals {

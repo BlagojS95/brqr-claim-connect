@@ -30,6 +30,7 @@ import type { AgencyClaim } from "@/lib/overview.types";
 import { overviewQueryOptions } from "@/lib/query-keys";
 import { ClaimFiltersControl } from "@/components/claims/claim-filters";
 import { ExportMenu } from "@/components/claims/export-menu";
+import { ExtraFilterChips } from "@/components/claims/extra-filter-chips";
 import { SavedViewsBar } from "@/components/claims/saved-views-bar";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,8 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_app/claims/")({
   // status, q, sort, dir and page live in the URL (fix 24), e.g. /claims?status=open,
-  // and so do the line, year, carrier and location filters (fix 31).
+  // and so do the line, year, carrier and location filters (fix 31) and the
+  // cause, policy and loss-date range an Insights chart click adds (fix 45).
   validateSearch: parseClaimsSearch,
   head: () => ({ meta: [{ title: "Claims | ClaimsQR" }] }),
   component: ClaimsList,
@@ -154,6 +156,19 @@ function ClaimsList() {
           }
         />
       </div>
+
+      <ExtraFilterChips
+        search={search}
+        onRemove={(keys) =>
+          navigate({
+            search: (prev) => ({
+              ...prev,
+              ...Object.fromEntries(keys.map((k) => [k, undefined])),
+              page: undefined,
+            }),
+          })
+        }
+      />
 
       <MobileSort
         sort={sort}
