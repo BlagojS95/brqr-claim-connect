@@ -61,7 +61,8 @@ function sheetData({ title, table }: XlsxSheet): SheetData {
       // Strings are written as text cells, never formulas, so there is no injection risk.
       return { value: String(cell), type: String, ...weight };
     });
-  for (const row of table.rows) data.push(cells(row, false));
+  const emphasis = new Set(table.emphasis ?? []);
+  table.rows.forEach((row, i) => data.push(cells(row, emphasis.has(i))));
   if (table.totals) data.push(cells(table.totals, true));
   return data;
 }

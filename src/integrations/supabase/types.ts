@@ -906,6 +906,56 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_reports: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          kind: string
+          revoked_at: string | null
+          revoked_by: string | null
+          snapshot: Json
+          title: string
+          token_hash: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          kind: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          snapshot: Json
+          title: string
+          token_hash: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          kind?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          snapshot?: Json
+          title?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_notification_prefs: {
         Row: {
           updated_at: string

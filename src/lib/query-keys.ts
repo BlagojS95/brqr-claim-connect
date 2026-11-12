@@ -24,6 +24,8 @@ export const queryKeys = {
   savedClaimViews: ["saved-claim-views"] as const,
   // Settings > Users & Locations (fix 32), for a client admin.
   clientTeam: ["client-team"] as const,
+  // Report share links (fixes 44 and 46) the user may manage.
+  sharedReports: ["shared-reports"] as const,
 };
 
 export interface CauseOfLossOption {

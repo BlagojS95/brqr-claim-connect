@@ -1,52 +1,54 @@
 import { useState } from "react";
 import { FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
-import { formatDate, todayIso } from "@/lib/dates";
+import { formatDate } from "@/lib/dates";
 import { downloadXlsx } from "@/lib/exports/download";
-import {
-  lossRunDetailTable,
-  lossRunGroupTable,
-  lossSummaryTable,
-  yearLabel,
-  type LossSummaryGroup,
-} from "@/lib/exports/loss-summary-export";
-import type { ExportTable } from "@/lib/exports/table";
 import { exportFileName } from "@/lib/exports/table";
-import type { AgencyClaim } from "@/lib/overview.types";
+import { lossSummaryExportTable, type LossSummary } from "@/lib/loss-summary";
 import { Button } from "@/components/ui/button";
 
 const TITLE = "Loss Summary";
 
-/** The client's name when every claim is theirs (a client's own report). */
-function singleClientName(groups: LossSummaryGroup<AgencyClaim>[]): string | undefined {
-  const names = new Set(groups.flatMap((g) => g.rows.map((c) => c.client_name)));
-  return names.size === 1 ? [...names][0] || undefined : undefined;
+export interface LossSummaryExportInfo {
+  /** "YYYY-MM-DD": today on Reports, the link's day on a shared report. */
+  valuedAsOf: string;
+  /** The client, when the report is one client's. */
+  client?: string;
+  /** What the report was filtered to, e.g. "Year 2026 · Business Auto". */
+  filters: string;
 }
 
 /**
- * PDF and Excel downloads of the Loss Summary (fix 34), built from the groups
- * on screen, so a search narrows the export the same way. Every PDF page and
- * the top of each sheet say what date the figures are valued as of.
+ * PDF and Excel downloads of the Loss Summary as shown (fix 44): the same
+ * rows, subtotals and grand total, every page and the top of the sheet
+ * stamped "Valued as of <date>".
  */
-export function LossSummaryExport({ groups }: { groups: LossSummaryGroup<AgencyClaim>[] }) {
+export function LossSummaryExport({
+  summary,
+  info,
+}: {
+  summary: LossSummary;
+  info: LossSummaryExportInfo;
+}) {
   const [busy, setBusy] = useState<"pdf" | "xlsx" | null>(null);
 
   const run = async (format: "pdf" | "xlsx") => {
-    const today = todayIso();
-    const valuedAs = `Valued as of ${formatDate(today)}`;
-    const client = singleClientName(groups);
+    const valuedAs = `Valued as of ${formatDate(info.valuedAsOf)}`;
+    const fileName = exportFileName("loss-summary", info.valuedAsOf, format);
     setBusy(format);
     try {
       if (format === "pdf") {
-        await downloadLossSummaryPdf(groups, { valuedAs, client, today });
+        await downloadLossSummaryPdf(summary, { ...info, valuedAs, fileName });
       } else {
-        const title = ["ClaimsQR " + TITLE, valuedAs, ...(client ? [client] : [])];
+        const title = [
+          `ClaimsQR ${TITLE}`,
+          valuedAs,
+          ...(info.client ? [info.client] : []),
+          info.filters,
+        ];
         await downloadXlsx(
-          [
-            { name: "Summary", title, table: lossSummaryTable(groups) },
-            { name: "Claims", title, table: lossRunDetailTable(groups) },
-          ],
-          exportFileName("loss-summary", today, "xlsx"),
+          [{ name: TITLE, title, table: lossSummaryExportTable(summary) }],
+          fileName,
         );
       }
     } catch (err) {
@@ -57,9 +59,9 @@ export function LossSummaryExport({ groups }: { groups: LossSummaryGroup<AgencyC
     }
   };
 
-  const disabled = busy !== null || groups.length === 0;
+  const disabled = busy !== null || summary.totals.claims === 0;
   return (
-    <div className="flex gap-2">
+    <>
       <Button variant="outline" size="sm" disabled={disabled} onClick={() => void run("pdf")}>
         <FileText className="h-4 w-4" aria-hidden />
         {busy === "pdf" ? "Creating…" : "PDF"}
@@ -68,60 +70,57 @@ export function LossSummaryExport({ groups }: { groups: LossSummaryGroup<AgencyC
         <FileSpreadsheet className="h-4 w-4" aria-hidden />
         {busy === "xlsx" ? "Creating…" : "Excel"}
       </Button>
-    </div>
+    </>
   );
 }
 
 async function downloadLossSummaryPdf(
-  groups: LossSummaryGroup[],
-  { valuedAs, client, today }: { valuedAs: string; client?: string; today: string },
+  summary: LossSummary,
+  info: LossSummaryExportInfo & { valuedAs: string; fileName: string },
 ) {
-  const { createPdfReport, pdfMoney, PDF_NAVY, PDF_MARGIN, PDF_TOP } =
+  const { createPdfReport, pdfMoney, PDF_LIGHT, PDF_MARGIN, PDF_MUTED, PDF_NAVY, PDF_TOP } =
     await import("@/lib/exports/pdf");
-  const report = await createPdfReport({ title: TITLE, valuedAs, subtitle: client });
+  const report = await createPdfReport({
+    title: TITLE,
+    valuedAs: info.valuedAs,
+    subtitle: info.client,
+    orientation: "landscape",
+  });
   const { doc } = report;
+  const table = lossSummaryExportTable(summary);
+  const emphasis = new Set(table.emphasis);
+  const cell = (value: string | number | null, i: number) =>
+    value === null
+      ? ""
+      : table.columns[i].kind === "money"
+        ? pdfMoney(Number(value))
+        : String(value);
 
-  const body = (table: ExportTable, rows: ExportTable["rows"]) =>
-    rows.map((row) =>
-      row.map((cell, i) =>
-        cell === null
-          ? ""
-          : table.columns[i].kind === "money"
-            ? pdfMoney(Number(cell))
-            : String(cell),
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...PDF_MUTED);
+  doc.text(info.filters, PDF_MARGIN, PDF_TOP + 4);
+
+  report.autoTable({
+    startY: PDF_TOP + 12,
+    head: [table.columns.map((c) => c.label)],
+    body: table.rows.map((row) => row.map(cell)),
+    foot: table.totals ? [table.totals.map(cell)] : undefined,
+    showFoot: "lastPage",
+    columnStyles: Object.fromEntries(
+      table.columns.flatMap((c, i) =>
+        c.kind === "money" ? [[i, { halign: "right" as const }]] : [],
       ),
-    );
-  const moneyColumns = (table: ExportTable) =>
-    Object.fromEntries(
-      table.columns.flatMap((col, i) =>
-        col.kind === "money" ? [[i, { halign: "right" as const }]] : [],
-      ),
-    );
-  const drawTable = (table: ExportTable, startY: number) =>
-    report.autoTable({
-      startY,
-      head: [table.columns.map((c) => c.label)],
-      body: body(table, table.rows),
-      foot: table.totals ? body(table, [table.totals]) : undefined,
-      showFoot: "lastPage",
-      columnStyles: moneyColumns(table),
-    });
+    ),
+    didParseCell: (data) => {
+      // Subtotal rows stand out like they do on the page.
+      if (data.section === "body" && emphasis.has(data.row.index)) {
+        data.cell.styles.fontStyle = "bold";
+        data.cell.styles.fillColor = PDF_LIGHT;
+        data.cell.styles.textColor = PDF_NAVY;
+      }
+    },
+  });
 
-  const heading = (text: string, y: number) => {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(...PDF_NAVY);
-    doc.text(text, PDF_MARGIN, y);
-  };
-
-  heading("Summary by year, line of business and carrier", PDF_TOP + 6);
-  drawTable(lossSummaryTable(groups), PDF_TOP + 14);
-
-  for (const group of groups) {
-    const y = report.ensureSpace(report.lastY() + 28, 70);
-    heading(`${group.lob} · ${yearLabel(group.year)} · ${group.carrier}`, y);
-    drawTable(lossRunGroupTable(group), y + 8);
-  }
-
-  report.save(exportFileName("loss-summary", today, "pdf"));
+  report.save(info.fileName);
 }

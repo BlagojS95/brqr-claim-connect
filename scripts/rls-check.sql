@@ -1,4 +1,4 @@
--- Row-level security check (fixes 15 and 32).
+-- Row-level security check (fixes 15, 32 and 44).
 --
 -- Builds two TEST companies with users of every kind, then checks what each one
 -- can read and write through RLS, by switching to the `authenticated` role with
@@ -56,6 +56,10 @@ BEGIN
   INSERT INTO public.policies (client_id, policy_number, location_id) VALUES
     (a, 'TEST-A-ALL', NULL), (a, 'TEST-A-L2', l2), (b, 'TEST-B', NULL);
   INSERT INTO public.loss_runs (client_id, year) VALUES (a, 1999), (b, 1999);
+  -- One share link per client (fix 44); only agency and client admins may see them.
+  INSERT INTO public.shared_reports (token_hash, kind, client_id, title, snapshot, expires_at) VALUES
+    (repeat('a', 64), 'loss_summary', a, 'TEST A share', '{}', now() + interval '14 days'),
+    (repeat('b', 64), 'loss_summary', b, 'TEST B share', '{}', now() + interval '14 days');
 
   ids := ARRAY[a, b];
 
@@ -77,6 +81,21 @@ BEGIN
   INSERT INTO rls_expect SELECT 'A admin', 'locations', 2, count(*) FROM public.client_locations WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'A admin', 'company users', 3, count(*) FROM public.client_users WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'A admin', 'clients', 1, count(*) FROM public.clients WHERE id = ANY (ids);
+  INSERT INTO rls_expect SELECT 'A admin', 'share links (own only)', 1, count(*) FROM public.shared_reports WHERE client_id = ANY (ids);
+  BEGIN
+    INSERT INTO public.shared_reports (token_hash, kind, client_id, title, snapshot, expires_at)
+      VALUES (repeat('c', 64), 'loss_summary', a, 'TEST forged', '{}', now() + interval '1 day');
+    INSERT INTO rls_expect VALUES ('A admin', 'cannot write share links directly', 0, 1);
+  EXCEPTION WHEN insufficient_privilege OR check_violation THEN
+    INSERT INTO rls_expect VALUES ('A admin', 'cannot write share links directly', 0, 0);
+  END;
+  BEGIN
+    UPDATE public.shared_reports SET expires_at = now() + interval '300 days' WHERE client_id = a;
+    GET DIAGNOSTICS n = ROW_COUNT;
+    INSERT INTO rls_expect VALUES ('A admin', 'cannot extend share links directly', 0, n);
+  EXCEPTION WHEN insufficient_privilege THEN
+    INSERT INTO rls_expect VALUES ('A admin', 'cannot extend share links directly', 0, 0);
+  END;
   BEGIN
     INSERT INTO public.client_locations (client_id, name) VALUES (a, 'TEST new A');
     INSERT INTO rls_expect VALUES ('A admin', 'can add own location', 1, 1);
@@ -104,6 +123,7 @@ BEGIN
   INSERT INTO rls_expect SELECT 'A company', 'documents', 3, count(*) FROM public.documents WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'A company', 'loss runs', 1, count(*) FROM public.loss_runs WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'A company', 'company users (own row only)', 1, count(*) FROM public.client_users WHERE client_id = ANY (ids);
+  INSERT INTO rls_expect SELECT 'A company', 'share links', 0, count(*) FROM public.shared_reports WHERE client_id = ANY (ids);
   BEGIN
     INSERT INTO public.client_locations (client_id, name) VALUES (a, 'TEST company adds');
     INSERT INTO rls_expect VALUES ('A company', 'cannot add location', 0, 1);
@@ -118,6 +138,7 @@ BEGIN
   SET LOCAL ROLE authenticated;
   INSERT INTO rls_expect SELECT 'A location', 'claims', 1, count(*) FROM public.claims WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'A location', 'sees L1 claim', 1, count(*) FROM public.claims WHERE id = c_a1;
+  INSERT INTO rls_expect SELECT 'A location', 'share links', 0, count(*) FROM public.shared_reports WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'A location', 'policies (company-wide only)', 1, count(*) FROM public.policies WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'A location', 'documents', 1, count(*) FROM public.documents WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'A location', 'activity (L1 reported + upload)', 2, count(*) FROM public.claim_activity WHERE claim_id IN (c_a1, c_a2, c_a0, c_b1);
@@ -190,6 +211,8 @@ BEGIN
   INSERT INTO rls_expect SELECT 'B admin', 'A locations', 0, count(*) FROM public.client_locations WHERE client_id = a;
   INSERT INTO rls_expect SELECT 'B admin', 'A users', 0, count(*) FROM public.client_users WHERE client_id = a;
   INSERT INTO rls_expect SELECT 'B admin', 'A loss runs', 0, count(*) FROM public.loss_runs WHERE client_id = a;
+  INSERT INTO rls_expect SELECT 'B admin', 'share links (own only)', 1, count(*) FROM public.shared_reports WHERE client_id = ANY (ids);
+  INSERT INTO rls_expect SELECT 'B admin', 'A share snapshot', 0, count(*) FROM public.shared_reports WHERE client_id = a;
   BEGIN
     INSERT INTO public.claims (client_id, claim_type) VALUES (a, 'TEST');
     INSERT INTO rls_expect VALUES ('B admin', 'cannot report for A', 0, 1);
@@ -210,6 +233,7 @@ BEGIN
   SET LOCAL ROLE authenticated;
   INSERT INTO rls_expect SELECT 'agency', 'claims (4 + one reported at L1 above)', 5, count(*) FROM public.claims WHERE client_id = ANY (ids);
   INSERT INTO rls_expect SELECT 'agency', 'client users', 4, count(*) FROM public.client_users WHERE client_id = ANY (ids);
+  INSERT INTO rls_expect SELECT 'agency', 'share links', 2, count(*) FROM public.shared_reports WHERE client_id = ANY (ids);
   RESET ROLE;
 
   -- Anonymous sees nothing.
@@ -221,6 +245,12 @@ BEGIN
     n := 0;
   END;
   INSERT INTO rls_expect VALUES ('anon', 'claims', 0, n);
+  BEGIN
+    SELECT count(*) INTO n FROM public.shared_reports WHERE client_id = ANY (ids);
+  EXCEPTION WHEN insufficient_privilege THEN
+    n := 0;
+  END;
+  INSERT INTO rls_expect VALUES ('anon', 'share links', 0, n);
   RESET ROLE;
 
   SELECT count(*) INTO checks FROM rls_expect;

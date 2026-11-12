@@ -16,6 +16,8 @@ export interface ExportTable {
   rows: ExportCell[][];
   /** The totals row, same width as the columns, or null when there is none. */
   totals: ExportCell[] | null;
+  /** Indexes into `rows` of subtotal rows, drawn bold (fix 44). */
+  emphasis?: number[];
 }
 
 // Cells starting with one of these are run as a formula by Excel, Sheets and
