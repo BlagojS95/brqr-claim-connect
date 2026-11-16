@@ -136,6 +136,8 @@ export async function sendViaResend(
     text?: string;
     /** Files to attach, content as base64 (fix 46: the report PDF). */
     attachments?: { filename: string; content: string }[];
+    /** Where replies go (fix 54: the agency claims inbox on carrier emails). */
+    replyTo?: string;
   } = {},
 ) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -154,6 +156,7 @@ export async function sendViaResend(
       html,
       ...(options.text ? { text: options.text } : {}),
       ...(options.attachments?.length ? { attachments: options.attachments } : {}),
+      ...(options.replyTo ? { reply_to: options.replyTo } : {}),
     }),
   });
 

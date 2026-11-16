@@ -626,6 +626,42 @@ export type Database = {
           },
         ]
       }
+      email_templates: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          key: string | null
+          name: string
+          sort_order: number
+          subject: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          key?: string | null
+          name: string
+          sort_order?: number
+          subject: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          key?: string | null
+          name?: string
+          sort_order?: number
+          subject?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       loss_run_requests: {
         Row: {
           admin_notes: string | null

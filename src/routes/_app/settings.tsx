@@ -2,11 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Building2, Loader2, Mail, MapPin, Send, Users } from "lucide-react";
+import { Building2, FileText, Loader2, Mail, MapPin, Send, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { TeamLocations, TeamUsers } from "@/components/settings/team-settings";
+import { EmailTemplatesSettings } from "@/components/settings/email-templates-settings";
 import { useAuth } from "@/hooks/use-auth";
 import { CLIENT_USER_ROLE } from "@/lib/client-users";
 import { formatDate } from "@/lib/dates";
@@ -99,7 +100,7 @@ function SwitchRow({
 function SettingsPage() {
   const queryClient = useQueryClient();
   // Only decides which sections to show; the server checks again.
-  const { clientRole } = useAuth();
+  const { clientRole, role } = useAuth();
   const isClientAdmin = clientRole === CLIENT_USER_ROLE.clientAdmin;
   const getSettings = useServerFn(fetchNotificationSettings);
   const savePreference = useServerFn(updateWeeklyDigestPreference);
@@ -286,6 +287,16 @@ function SettingsPage() {
             </SettingsSection>
           )}
         </>
+      )}
+
+      {role === "agency_admin" && (
+        <SettingsSection
+          icon={<FileText className="h-5 w-5" />}
+          title="Email templates"
+          description='Templates for "Email carrier" on a claim. Placeholders are filled in from the claim.'
+        >
+          <EmailTemplatesSettings />
+        </SettingsSection>
       )}
     </div>
   );

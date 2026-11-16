@@ -23,6 +23,7 @@ import { deleteClaimDocument, uploadClaimDocument } from "@/lib/claim-documents"
 import { StatusBadge } from "@/components/status-badge";
 import { ClaimActivityLog } from "@/components/claim-activity-log";
 import { ClaimContactsTable } from "@/components/claim-contacts-table";
+import { EmailCarrierButton } from "@/components/staff/email-carrier-dialog";
 import { ClaimInternalNotes } from "@/components/claim-internal-notes";
 import { ClaimRecoveryEditor, ClaimReserveEditor } from "@/components/claim-reserve-editor";
 import { ClaimOutcome } from "@/components/claim/claim-outcome";
@@ -365,7 +366,10 @@ function ClaimDetail() {
       )}
 
       <section className="rounded-lg border border-border bg-card p-6">
-        <h2 className="font-semibold text-navy mb-4">Contacts</h2>
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+          <h2 className="font-semibold text-navy">Contacts</h2>
+          {role === "agency_admin" && <EmailCarrierButton claimId={claim.id} />}
+        </div>
         <ClaimContactsTable
           claimId={claim.id}
           email={{
