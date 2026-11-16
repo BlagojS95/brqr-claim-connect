@@ -10,12 +10,13 @@ import {
   FolderArchive,
   LineChart,
   Settings,
+  ListChecks,
 } from "lucide-react";
 import claimsQrLogo from "@/assets/claims-qr-logo-white.png";
 import { supabase } from "@/integrations/supabase/client";
 import { clearSessionTimes } from "@/lib/session-expiry";
 import { cn } from "@/lib/utils";
-import { activeNavPath, HOME_PATH } from "@/lib/navigation";
+import { activeNavPath, HOME_PATH, STAFF_QUEUE_PATH } from "@/lib/navigation";
 import {
   INCIDENT_NOTICE_PATH,
   MobileBottomNav,
@@ -33,6 +34,8 @@ interface NavItem {
 
 const items: NavItem[] = [
   { to: HOME_PATH, label: "Home", icon: Home },
+  // Agency staff land here after signing in (fix 52).
+  { to: STAFF_QUEUE_PATH, label: "Work Queue", icon: ListChecks, adminOnly: true },
   { to: "/claims", label: "Claims", icon: FileText },
   { to: REPORT_NEW_CLAIM_PATH, label: "Report New Claim", icon: PlusCircle },
   { to: INCIDENT_NOTICE_PATH, label: "Incident Notice Only", icon: Bell },

@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { markSignedIn, readSessionTimes, sessionExpiryReason } from "@/lib/session-expiry";
+import { landingPath } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,18 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+// Agency staff start on the work queue (fix 52), clients on Home. This only
+// picks the first page; /admin/queue checks the role again on the server.
+async function landingPathFor(userId: string) {
+  const { data } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "agency_admin")
+    .maybeSingle();
+  return landingPath(!!data);
+}
+
 function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -20,10 +33,10 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       // An expired session is ended by the /_app guard; don't bounce it there and back.
       if (data.session && !sessionExpiryReason(readSessionTimes(), Date.now())) {
-        navigate({ to: "/home" });
+        navigate({ to: await landingPathFor(data.session.user.id) });
       }
     });
   }, [navigate]);
@@ -32,10 +45,10 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       markSignedIn();
-      navigate({ to: "/home" });
+      navigate({ to: await landingPathFor(data.user.id) });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Authentication failed");
     } finally {
@@ -61,19 +74,37 @@ function LoginPage() {
           <img src={claimsQrLogoNavy} alt="Claims QR" className="md:hidden h-10 w-auto" />
           <div>
             <h2 className="text-2xl font-bold text-navy">Sign in</h2>
-            <p className="text-sm text-muted-foreground mt-1">Enter your credentials to access your portal.</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Enter your credentials to access your portal.
+            </p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full bg-navy hover:bg-navy/90 text-navy-foreground">
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-navy hover:bg-navy/90 text-navy-foreground"
+          >
             {loading ? "Please wait…" : "Sign in"}
           </Button>
 
