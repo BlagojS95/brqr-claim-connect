@@ -9,6 +9,7 @@ export const CLAIM_ACTIVITY_KINDS = [
   "email",
   "follow_up",
   "note",
+  "claim_update",
 ] as const;
 
 export type ClaimActivityKind = (typeof CLAIM_ACTIVITY_KINDS)[number];
@@ -20,6 +21,7 @@ export const CLAIM_ACTIVITY_KIND = {
   email: "email",
   follow_up: "follow_up",
   note: "note",
+  claim_update: "claim_update",
 } as const satisfies Record<ClaimActivityKind, ClaimActivityKind>;
 
 export const CLAIM_ACTIVITY_LABELS: Record<ClaimActivityKind, string> = {
@@ -29,6 +31,7 @@ export const CLAIM_ACTIVITY_LABELS: Record<ClaimActivityKind, string> = {
   email: "Email",
   follow_up: "Follow-up",
   note: "Note",
+  claim_update: "Update",
 };
 
 export const MAX_ACTIVITY_NOTE_LENGTH = 2000;

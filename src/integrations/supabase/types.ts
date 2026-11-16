@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       agency_settings: {
         Row: {
+          first_contact_target_business_days: number
+          submit_target_business_days: number
           broker_claims_email: string
           id: number
           monthly_report_enabled: boolean
@@ -23,6 +25,8 @@ export type Database = {
           weekly_digest_enabled: boolean
         }
         Insert: {
+          first_contact_target_business_days?: number
+          submit_target_business_days?: number
           broker_claims_email?: string
           id?: number
           monthly_report_enabled?: boolean
@@ -30,6 +34,8 @@ export type Database = {
           weekly_digest_enabled?: boolean
         }
         Update: {
+          first_contact_target_business_days?: number
+          submit_target_business_days?: number
           broker_claims_email?: string
           id?: number
           monthly_report_enabled?: boolean
@@ -274,6 +280,9 @@ export type Database = {
       }
       claims: {
         Row: {
+          assigned_to: string | null
+          first_carrier_contact_at: string | null
+          submitted_to_carrier_at: string | null
           adjuster_email: string | null
           adjuster_name: string | null
           adjuster_phone: string | null
@@ -328,6 +337,9 @@ export type Database = {
           vehicles_involved: string | null
         }
         Insert: {
+          assigned_to?: string | null
+          first_carrier_contact_at?: string | null
+          submitted_to_carrier_at?: string | null
           adjuster_email?: string | null
           adjuster_name?: string | null
           adjuster_phone?: string | null
@@ -380,6 +392,9 @@ export type Database = {
           vehicles_involved?: string | null
         }
         Update: {
+          assigned_to?: string | null
+          first_carrier_contact_at?: string | null
+          submitted_to_carrier_at?: string | null
           adjuster_email?: string | null
           adjuster_name?: string | null
           adjuster_phone?: string | null
