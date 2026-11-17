@@ -21,6 +21,7 @@ import { fetchClaimDetail } from "@/lib/overview.functions";
 import { queryKeys } from "@/lib/query-keys";
 import { deleteClaimDocument, uploadClaimDocument } from "@/lib/claim-documents";
 import { StatusBadge } from "@/components/status-badge";
+import { ClaimQuickEditButton } from "@/components/staff/claim-quick-edit";
 import { ClaimActivityLog } from "@/components/claim-activity-log";
 import { ClaimContactsTable } from "@/components/claim-contacts-table";
 import { EmailCarrierButton } from "@/components/staff/email-carrier-dialog";
@@ -201,7 +202,10 @@ function ClaimDetail() {
           </p>
           <p className="text-xs text-muted-foreground mt-1">{claim.client_name}</p>
         </div>
-        <StatusBadge status={claim.status} />
+        <div className="flex items-center gap-2">
+          {role === "agency_admin" && <ClaimQuickEditButton claimId={claim.id} />}
+          <StatusBadge status={claim.status} />
+        </div>
       </div>
 
       {role === "client" && <RequestedFromYouCard claimId={claim.id} clientId={claim.client_id} />}

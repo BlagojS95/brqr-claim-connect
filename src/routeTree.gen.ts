@@ -22,6 +22,7 @@ import { Route as AppInsightsRouteImport } from './routes/_app/insights'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as SharedTokenRouteImport } from './routes/shared.$token'
+import { Route as AppAdminImportRouteImport } from './routes/_app/admin_.import'
 import { Route as AppClaimsIndexRouteImport } from './routes/_app/claims.index'
 import { Route as AppClaimsClaimIdRouteImport } from './routes/_app/claims.$claimId'
 import { Route as AppClaimsNewRouteImport } from './routes/_app/claims.new'
@@ -95,6 +96,11 @@ const SharedTokenRoute = SharedTokenRouteImport.update({
   path: '/shared/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppAdminImportRoute = AppAdminImportRouteImport.update({
+  id: '/admin_/import',
+  path: '/admin/import',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppClaimsIndexRoute = AppClaimsIndexRouteImport.update({
   id: '/claims/',
   path: '/claims/',
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/shared/$token': typeof SharedTokenRoute
+  '/admin/import': typeof AppAdminImportRoute
   '/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/claims/new': typeof AppClaimsNewRoute
   '/claims/notice': typeof AppClaimsNoticeRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/shared/$token': typeof SharedTokenRoute
+  '/admin/import': typeof AppAdminImportRoute
   '/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/claims/new': typeof AppClaimsNewRoute
   '/claims/notice': typeof AppClaimsNoticeRoute
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   '/_app/reports': typeof AppReportsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/shared/$token': typeof SharedTokenRoute
+  '/_app/admin_/import': typeof AppAdminImportRoute
   '/_app/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/_app/claims/new': typeof AppClaimsNewRoute
   '/_app/claims/notice': typeof AppClaimsNoticeRoute
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/shared/$token'
+    | '/admin/import'
     | '/claims/$claimId'
     | '/claims/new'
     | '/claims/notice'
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/shared/$token'
+    | '/admin/import'
     | '/claims/$claimId'
     | '/claims/new'
     | '/claims/notice'
@@ -264,6 +275,7 @@ export interface FileRouteTypes {
     | '/_app/reports'
     | '/_app/settings'
     | '/shared/$token'
+    | '/_app/admin_/import'
     | '/_app/claims/$claimId'
     | '/_app/claims/new'
     | '/_app/claims/notice'
@@ -380,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SharedTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/admin_/import': {
+      id: '/_app/admin_/import'
+      path: '/admin/import'
+      fullPath: '/admin/import'
+      preLoaderRoute: typeof AppAdminImportRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/claims/': {
       id: '/_app/claims/'
       path: '/claims'
@@ -445,6 +464,7 @@ interface AppRouteChildren {
   AppInsightsRoute: typeof AppInsightsRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppAdminImportRoute: typeof AppAdminImportRoute
   AppClaimsClaimIdRoute: typeof AppClaimsClaimIdRoute
   AppClaimsNewRoute: typeof AppClaimsNewRoute
   AppClaimsNoticeRoute: typeof AppClaimsNoticeRoute
@@ -459,6 +479,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInsightsRoute: AppInsightsRoute,
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppAdminImportRoute: AppAdminImportRoute,
   AppClaimsClaimIdRoute: AppClaimsClaimIdRoute,
   AppClaimsNewRoute: AppClaimsNewRoute,
   AppClaimsNoticeRoute: AppClaimsNoticeRoute,
