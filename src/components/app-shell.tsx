@@ -1,4 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   Home,
   FileText,
@@ -25,6 +26,8 @@ import {
 } from "@/components/mobile-nav";
 import { endViewAsBeforeSignOut, useAuth, type AppRole } from "@/hooks/use-auth";
 import { ViewAsBanner } from "@/components/staff/view-as";
+import { ClaimsAdvocateBlock, ClaimsAdvocateSheet } from "@/components/help/claims-advocate";
+import { useClaimsAdvocate } from "@/hooks/use-claims-advocate";
 
 interface NavItem {
   to: string;
@@ -51,6 +54,9 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { viewingAs } = useAuth();
+  // Client logins only (and staff viewing as a client); null otherwise (fix 59).
+  const advocate = useClaimsAdvocate();
+  const [helpOpen, setHelpOpen] = useState(false);
   const visible = items.filter((i) => !i.adminOnly || role === "agency_admin");
   const activePath = activeNavPath(
     pathname,
@@ -71,7 +77,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-64 flex-col bg-sidebar text-sidebar-foreground">
         <div className="p-6 border-b border-sidebar-border">
-          <img src={claimsQrLogo} alt="Claims QR" className="h-11 w-auto" />
+          <img src={claimsQrLogo} alt="ClaimsQR" className="h-11 w-auto" />
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {visible.map((item) => {
@@ -94,6 +100,13 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
             );
           })}
         </nav>
+        {advocate && (
+          <ClaimsAdvocateBlock
+            info={advocate}
+            tone="sidebar"
+            className="mx-3 px-3 py-3 border-t border-sidebar-border"
+          />
+        )}
         <button
           onClick={logout}
           className="m-3 flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-sidebar-accent/60"
@@ -104,9 +117,17 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden flex items-center justify-between p-4 bg-navy text-navy-foreground">
-          <img src={claimsQrLogo} alt="Claims QR" className="h-8 w-auto" />
+          <img src={claimsQrLogo} alt="ClaimsQR" className="h-8 w-auto" />
           {/* Every sidebar page and Sign out; the bottom bar holds the main five. */}
-          <MobileMenu items={visible} activePath={activePath} onSignOut={logout} />
+          <MobileMenu
+            items={visible}
+            activePath={activePath}
+            onSignOut={logout}
+            onHelp={advocate ? () => setHelpOpen(true) : undefined}
+          />
+          {advocate && (
+            <ClaimsAdvocateSheet info={advocate} open={helpOpen} onOpenChange={setHelpOpen} />
+          )}
         </header>
         <div className="flex-1 p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto">{children}</div>
 

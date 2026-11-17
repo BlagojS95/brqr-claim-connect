@@ -6,6 +6,7 @@ import {
   Activity,
   Building2,
   FileText,
+  LifeBuoy,
   Loader2,
   Mail,
   MapPin,
@@ -13,6 +14,8 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -20,6 +23,7 @@ import { TeamLocations, TeamUsers } from "@/components/settings/team-settings";
 import { ActivitySettings } from "@/components/settings/activity-settings";
 import { SecuritySettings } from "@/components/settings/security-settings";
 import { EmailTemplatesSettings } from "@/components/settings/email-templates-settings";
+import { AdvocateSettings } from "@/components/settings/advocate-settings";
 import { useAuth } from "@/hooks/use-auth";
 import { CLIENT_USER_ROLE } from "@/lib/client-users";
 import { AlertPreferences } from "@/components/settings/alert-preferences";
@@ -120,7 +124,7 @@ function SettingsPage() {
   const saveAgency = useServerFn(updateAgencyWeeklyDigest);
   const sendTest = useServerFn(sendMeTestDigest);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: SETTINGS_QUERY_KEY,
     queryFn: () => getSettings(),
   });
@@ -179,13 +183,9 @@ function SettingsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading settings…
-        </div>
+        <LoadingSkeleton variant="detail" label="Loading settings" />
       ) : error || !data ? (
-        <p className="text-sm text-destructive">
-          {errorMessage(error, "Couldn't load your settings.")}
-        </p>
+        <ErrorState title="We couldn't load your settings" error={error} onRetry={refetch} />
       ) : (
         <>
           <SettingsSection
@@ -318,6 +318,16 @@ function SettingsPage() {
           description="Who signed in, opened or changed a claim, or downloaded a file."
         >
           <ActivitySettings />
+        </SettingsSection>
+      )}
+
+      {role === "agency_admin" && (
+        <SettingsSection
+          icon={<LifeBuoy className="h-5 w-5" />}
+          title="Help for clients"
+          description="The claims advocate and after-hours number clients see on every page."
+        >
+          <AdvocateSettings />
         </SettingsSection>
       )}
 

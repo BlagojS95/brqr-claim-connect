@@ -3,6 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useMemo } from "react";
 import { LineChart as LineIcon } from "lucide-react";
+import { EmptyState } from "@/components/states/empty-state";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import { avgClosedCost, claimTotals } from "@/lib/claim-metrics";
 import { formatDate, todayIso } from "@/lib/dates";
 import type { ClaimLinkFilter } from "@/lib/insights-breakdowns";
@@ -96,7 +99,9 @@ function InsightsPage() {
   const period = search.period ?? DEFAULT_INSIGHTS_PERIOD;
 
   // "all" brings the policies too, for the policy-year period.
-  const { data, isLoading } = useQuery(overviewQueryOptions("all", getOverview));
+  const { data, isLoading, isError, error, refetch } = useQuery(
+    overviewQueryOptions("all", getOverview),
+  );
   const claims = useMemo(() => data?.claims ?? [], [data]);
   const policies = useMemo(() => data?.policies ?? [], [data]);
 
@@ -301,7 +306,17 @@ function InsightsPage() {
         />
       </div>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {isLoading && <LoadingSkeleton variant="card" rows={3} label="Loading insights" />}
+      {isError && (
+        <ErrorState title="We couldn't load your insights" error={error} onRetry={refetch} />
+      )}
+      {!isLoading && !isError && claims.length === 0 && (
+        <EmptyState
+          icon={LineIcon}
+          title="No claims to chart yet"
+          text="Charts appear here once claims are on file."
+        />
+      )}
 
       <Suspense fallback={<ChartsPlaceholder cards={INSIGHTS_CARDS} measure={measure} />}>
         <InsightsCharts

@@ -2,6 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { BarChart3 } from "lucide-react";
+import { EmptyState } from "@/components/states/empty-state";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { CLIENT_USER_ROLE } from "@/lib/client-users";
 import { formatDate, todayIso } from "@/lib/dates";
@@ -37,7 +40,13 @@ export function LossSummary() {
   const getOverview = useServerFn(fetchAgencyOverview);
   const share = useServerFn(createLossSummaryShare);
 
-  const { data: claims = [], isLoading } = useQuery({
+  const {
+    data: claims = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     ...overviewQueryOptions("claims", getOverview),
     select: (overview) => overview.claims,
   });
@@ -164,11 +173,20 @@ export function LossSummary() {
         </select>
       </div>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
-      {!isLoading && summary.totals.claims === 0 ? (
-        <p className="text-sm text-muted-foreground">No claims match these filters.</p>
+      {isLoading && <LoadingSkeleton variant="list" label="Loading the loss summary" />}
+      {isError && (
+        <ErrorState title="We couldn't load the loss summary" error={error} onRetry={refetch} />
+      )}
+      {!isLoading && !isError && summary.totals.claims === 0 ? (
+        <EmptyState
+          compact
+          icon={BarChart3}
+          title="No claims match these filters"
+          text="Change or clear a filter above to see more."
+        />
       ) : (
-        !isLoading && (
+        !isLoading &&
+        !isError && (
           <LossSummaryTable
             summary={summary}
             sort={sort}

@@ -34,6 +34,9 @@ import { WaitingOnControl } from "@/components/claim/waiting-on-control";
 import { ClaimResponseTimes } from "@/components/staff/claim-response-times";
 import { ClaimDocumentRequests, RequestedFromYouCard } from "@/components/claim/document-requests";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
+import { useUndoableRemoval } from "@/hooks/use-undoable-removal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,7 +48,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, FileDown, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, FileDown, FileText, Trash2, Upload } from "lucide-react";
+import { EmptyState } from "@/components/states/empty-state";
 
 export const Route = createFileRoute("/_app/claims/$claimId")({
   head: () => ({ meta: [{ title: "Claim | ClaimsQR" }] }),
@@ -82,7 +86,8 @@ function RemoveDocumentButton({
         <AlertDialogHeader>
           <AlertDialogTitle>Remove this document?</AlertDialogTitle>
           <AlertDialogDescription>
-            "{fileName}" will be removed from this claim for everyone. This can't be undone.
+            "{fileName}" will be removed from this claim for everyone. You can undo this for a few
+            seconds afterwards.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -105,7 +110,7 @@ function ClaimDetail() {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const getClaim = useServerFn(fetchClaimDetail);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.claim(claimId),
     queryFn: async () => {
       const [claim, { data: docs }] = await Promise.all([
@@ -120,7 +125,16 @@ function ClaimDetail() {
     },
   });
 
-  if (isLoading) return <div className="text-muted-foreground">Loading…</div>;
+  // Removing a document hides it at once and deletes it after the 8 s undo window.
+  const documentRemoval = useUndoableRemoval<{ id: string; file_name: string; file_url: string }>({
+    message: (doc) => `Removed ${doc.file_name}`,
+    commit: deleteClaimDocument,
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.claim(claimId) }),
+  });
+
+  if (isLoading) return <LoadingSkeleton variant="detail" label="Loading claim" />;
+  if (isError)
+    return <ErrorState title="We couldn't load this claim" error={error} onRetry={refetch} />;
   const claim = data?.claim;
   if (!claim) return <div>Claim not found.</div>;
 
@@ -143,15 +157,7 @@ function ClaimDetail() {
     queryClient.invalidateQueries({ queryKey: queryKeys.claim(claimId) });
   }
 
-  async function removeDocument(doc: { id: string; file_name: string; file_url: string }) {
-    try {
-      await deleteClaimDocument(doc);
-      toast.success(`Removed ${doc.file_name}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to remove document");
-    }
-    queryClient.invalidateQueries({ queryKey: queryKeys.claim(claimId) });
-  }
+  const visibleDocs = data!.docs.filter((d) => !documentRemoval.hiddenIds.has(d.id));
 
   // Loss details from the claim form; imported claims usually have none.
   const loss = claim.loss_details;
@@ -341,11 +347,16 @@ function ClaimDetail() {
             </label>
           </Button>
         </div>
-        {data!.docs.length === 0 && (
-          <p className="text-sm text-muted-foreground">No documents uploaded.</p>
+        {visibleDocs.length === 0 && (
+          <EmptyState
+            compact
+            icon={FileText}
+            title="No documents yet"
+            text="Use Upload Document above to add photos, reports or letters."
+          />
         )}
         <ul className="space-y-2">
-          {data!.docs.map((d) => (
+          {visibleDocs.map((d) => (
             <li
               key={d.id}
               className="flex items-center justify-between p-3 rounded-md border border-border"
@@ -360,7 +371,10 @@ function ClaimDetail() {
                 >
                   <FileDown className="h-4 w-4" /> Download
                 </a>
-                <RemoveDocumentButton fileName={d.file_name} onConfirm={() => removeDocument(d)} />
+                <RemoveDocumentButton
+                  fileName={d.file_name}
+                  onConfirm={() => documentRemoval.remove(d)}
+                />
               </div>
             </li>
           ))}

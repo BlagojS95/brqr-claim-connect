@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, Building2, Calendar, DollarSign, MapPin, Shield } from "lucide-react";
+import { ArrowLeft, Building2, Calendar, DollarSign, FileText, MapPin, Shield } from "lucide-react";
+import { EmptyState } from "@/components/states/empty-state";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import { incurredAmount, paidAmount, reserveAmount } from "@/lib/claim-metrics";
 import { formatDate } from "@/lib/dates";
 import { fetchPolicyDetail } from "@/lib/overview.functions";
@@ -27,7 +30,7 @@ const fmt = (n: number) =>
 function PolicyDetailPage() {
   const { policyId } = Route.useParams();
   const getPolicy = useServerFn(fetchPolicyDetail);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.policy(policyId),
     queryFn: () => getPolicy({ data: { policyId } }),
   });
@@ -41,7 +44,15 @@ function PolicyDetailPage() {
     </Link>
   );
 
-  if (isLoading) return <div className="text-muted-foreground">Loading…</div>;
+  if (isLoading) return <LoadingSkeleton variant="detail" label="Loading policy" />;
+  if (isError) {
+    return (
+      <div className="space-y-4">
+        {back}
+        <ErrorState title="We couldn't load this policy" error={error} onRetry={refetch} />
+      </div>
+    );
+  }
   if (!data) {
     return (
       <div className="space-y-4">
@@ -136,7 +147,12 @@ function PolicyDetailPage() {
           Claims against this policy
         </h2>
         {claims.length === 0 ? (
-          <p className="p-5 text-sm text-muted-foreground">No claims against this policy.</p>
+          <EmptyState
+            compact
+            icon={FileText}
+            title="No claims against this policy"
+            text="That is good news. Claims you report on this policy will appear here."
+          />
         ) : (
           <>
             <ClaimsTable claims={claims} totals={totals} />

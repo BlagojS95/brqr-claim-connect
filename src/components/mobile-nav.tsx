@@ -4,6 +4,7 @@ import {
   Bell,
   ChevronRight,
   FileText,
+  LifeBuoy,
   FolderArchive,
   Home,
   LogOut,
@@ -158,14 +159,17 @@ export interface MenuItem {
 
 // The "Menu" button in the mobile top bar: every page the desktop sidebar has
 // (the bottom bar only fits the main five), plus Sign out. Closes on a choice.
+// `onHelp` (fix 59) adds a Help entry that opens the claims advocate sheet.
 export function MobileMenu({
   items,
   activePath,
   onSignOut,
+  onHelp,
 }: {
   items: readonly MenuItem[];
   activePath: string | null;
   onSignOut: () => void;
+  onHelp?: () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -211,6 +215,18 @@ export function MobileMenu({
             );
           })}
         </nav>
+        {onHelp && (
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onHelp();
+            }}
+            className="mx-3 mt-3 flex items-center gap-3 px-3 py-3 rounded-md text-sm hover:bg-sidebar-accent/60 text-sidebar-foreground/85"
+          >
+            <LifeBuoy className="h-4 w-4" aria-hidden /> Help &amp; your claims advocate
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {

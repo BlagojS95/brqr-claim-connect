@@ -22,6 +22,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // A moment in the viewer's own time zone, e.g. "Nov 12, 2026, 3:04 PM".
 const when = (iso: string | null) =>
@@ -220,14 +231,28 @@ export function SharedLinksList({ kind, clientId }: { kind: SharedReportKind; cl
                 {STATE_LABEL[state]}
               </span>
               {state === "active" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={revokeLink.isPending}
-                  onClick={() => revokeLink.mutate(l.id)}
-                >
-                  Revoke
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" disabled={revokeLink.isPending}>
+                      Revoke
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Revoke this link?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Anyone who has the link will no longer be able to open the report. This
+                        can't be undone, but you can create a new link.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => revokeLink.mutate(l.id)}>
+                        Revoke
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
             </li>
           );

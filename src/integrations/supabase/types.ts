@@ -103,6 +103,10 @@ export type Database = {
           monthly_report_enabled: boolean
           updated_at: string
           weekly_digest_enabled: boolean
+          after_hours_claims_phone: string | null
+          default_advocate_email: string | null
+          default_advocate_name: string | null
+          default_advocate_phone: string | null
         }
         Insert: {
           first_contact_target_business_days?: number
@@ -112,6 +116,10 @@ export type Database = {
           monthly_report_enabled?: boolean
           updated_at?: string
           weekly_digest_enabled?: boolean
+          after_hours_claims_phone?: string | null
+          default_advocate_email?: string | null
+          default_advocate_name?: string | null
+          default_advocate_phone?: string | null
         }
         Update: {
           first_contact_target_business_days?: number
@@ -121,6 +129,10 @@ export type Database = {
           monthly_report_enabled?: boolean
           updated_at?: string
           weekly_digest_enabled?: boolean
+          after_hours_claims_phone?: string | null
+          default_advocate_email?: string | null
+          default_advocate_name?: string | null
+          default_advocate_phone?: string | null
         }
         Relationships: []
       }
@@ -724,6 +736,9 @@ export type Database = {
           phone: string | null
           require_mfa: boolean
           user_id: string | null
+          advocate_email: string | null
+          advocate_name: string | null
+          advocate_phone: string | null
         }
         Insert: {
           ams360_id?: string | null
@@ -735,6 +750,9 @@ export type Database = {
           phone?: string | null
           require_mfa?: boolean
           user_id?: string | null
+          advocate_email?: string | null
+          advocate_name?: string | null
+          advocate_phone?: string | null
         }
         Update: {
           ams360_id?: string | null
@@ -746,6 +764,9 @@ export type Database = {
           phone?: string | null
           require_mfa?: boolean
           user_id?: string | null
+          advocate_email?: string | null
+          advocate_name?: string | null
+          advocate_phone?: string | null
         }
         Relationships: []
       }

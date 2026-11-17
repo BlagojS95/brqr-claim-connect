@@ -36,6 +36,13 @@ export const queryKeys = {
   reportSchedule: (clientId: string) => ["report-schedule", clientId] as const,
   // The last view-as-client sessions on /admin (fix 55).
   viewAsLog: ["view-as-log"] as const,
+  // Claims advocate (fix 59): the Help block, one client's own advocate on
+  // /admin, and the agency defaults in Settings. Shares the "claims-advocate"
+  // prefix so a save can refresh all of them.
+  claimsAdvocateAll: ["claims-advocate"] as const,
+  claimsAdvocate: (clientId: string) => ["claims-advocate", "help", clientId] as const,
+  clientAdvocate: (clientId: string) => ["claims-advocate", "client", clientId] as const,
+  advocateDefaults: ["claims-advocate", "defaults"] as const,
 };
 
 export interface CauseOfLossOption {

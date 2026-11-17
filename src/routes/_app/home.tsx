@@ -19,6 +19,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
 import { AttentionQueue } from "@/components/attention-queue";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/states/empty-state";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import { PlusCircle, Bell, FileText, DollarSign, ClipboardList, Calendar } from "lucide-react";
 
 export const Route = createFileRoute("/_app/home")({
@@ -38,7 +41,7 @@ function Home() {
   const isAdmin = role === "agency_admin";
   const getOverview = useServerFn(fetchAgencyOverview);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     ...overviewQueryOptions("all", getOverview),
     enabled: !!user,
   });
@@ -167,15 +170,37 @@ function Home() {
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-muted-foreground">
-                    Loading…
+                  <td colSpan={5} className="p-4">
+                    <LoadingSkeleton variant="list" rows={4} label="Loading your claims" />
                   </td>
                 </tr>
               )}
-              {!isLoading && claims.length === 0 && (
+              {isError && (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-muted-foreground">
-                    No claims yet.
+                  <td colSpan={5}>
+                    <ErrorState
+                      compact
+                      title="We couldn't load your claims"
+                      error={error}
+                      onRetry={refetch}
+                    />
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !isError && claims.length === 0 && (
+                <tr>
+                  <td colSpan={5}>
+                    <EmptyState
+                      compact
+                      icon={FileText}
+                      title="No claims yet"
+                      text="Claims you report will show up here."
+                      action={
+                        <Button asChild size="sm">
+                          <Link to="/claims/new">Report a claim</Link>
+                        </Button>
+                      }
+                    />
                   </td>
                 </tr>
               )}
