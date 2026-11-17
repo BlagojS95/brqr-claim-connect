@@ -18,6 +18,9 @@ export const queryKeys = {
   // Home's "Needs your attention" list (fix 29), from fetchAttentionQueue.
   attention: ["attention"] as const,
   claimDocumentRequests: (claimId: string) => ["claim", claimId, "document-requests"] as const,
+  // The claim's message thread (fix 47) and who can be @mentioned on it.
+  claimMessages: (claimId: string) => ["claim", claimId, "messages"] as const,
+  claimMentionCandidates: (claimId: string) => ["claim", claimId, "mention-candidates"] as const,
   // The active causes_of_loss lookup rows (fix 35) for the report form.
   causesOfLoss: ["causes-of-loss"] as const,
   // The signed-in user's saved claims-list views (fix 31).

@@ -23,6 +23,7 @@ import { deleteClaimDocument, uploadClaimDocument } from "@/lib/claim-documents"
 import { StatusBadge } from "@/components/status-badge";
 import { ClaimQuickEditButton } from "@/components/staff/claim-quick-edit";
 import { ClaimActivityLog } from "@/components/claim-activity-log";
+import { ClaimMessages } from "@/components/claim/claim-messages";
 import { ClaimContactsTable } from "@/components/claim-contacts-table";
 import { EmailCarrierButton } from "@/components/staff/email-carrier-dialog";
 import { ClaimInternalNotes } from "@/components/claim-internal-notes";
@@ -386,6 +387,11 @@ function ClaimDetail() {
             claimantName: claim.claimant_name,
           }}
         />
+      </section>
+
+      <section id="messages" className="rounded-lg border border-border bg-card p-6">
+        <h2 className="font-semibold text-navy mb-4">Messages</h2>
+        <ClaimMessages claimId={claim.id} />
       </section>
 
       <section className="rounded-lg border border-border bg-card p-6">

@@ -394,6 +394,67 @@ BEGIN
   INSERT INTO rls_expect SELECT 'expired view', 'claims (all)', 5, count(*) FROM public.claims WHERE client_id = ANY (ids);
   RESET ROLE;
 
+  -- Claim messages (fix 47): posted as yourself on claims you can see; a
+  -- location user only at their locations; nobody edits or deletes.
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', u_a_loc, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  BEGIN
+    INSERT INTO public.claim_messages (claim_id, author_id, body) VALUES (c_a1, u_a_loc, 'TEST L1 message');
+    INSERT INTO rls_expect VALUES ('A location', 'can message on L1 claim', 1, 1);
+  EXCEPTION WHEN insufficient_privilege OR check_violation THEN
+    INSERT INTO rls_expect VALUES ('A location', 'can message on L1 claim', 1, 0);
+  END;
+  BEGIN
+    INSERT INTO public.claim_messages (claim_id, author_id, body) VALUES (c_a2, u_a_loc, 'TEST L2 message');
+    INSERT INTO rls_expect VALUES ('A location', 'cannot message on L2 claim', 0, 1);
+  EXCEPTION WHEN insufficient_privilege OR check_violation THEN
+    INSERT INTO rls_expect VALUES ('A location', 'cannot message on L2 claim', 0, 0);
+  END;
+  BEGIN
+    INSERT INTO public.claim_messages (claim_id, author_id, body) VALUES (c_a1, u_a_admin, 'TEST forged author');
+    INSERT INTO rls_expect VALUES ('A location', 'cannot post as someone else', 0, 1);
+  EXCEPTION WHEN insufficient_privilege OR check_violation THEN
+    INSERT INTO rls_expect VALUES ('A location', 'cannot post as someone else', 0, 0);
+  END;
+  BEGIN
+    UPDATE public.claim_messages SET body = 'TEST changed' WHERE claim_id = c_a1;
+    GET DIAGNOSTICS n = ROW_COUNT;
+    INSERT INTO rls_expect VALUES ('A location', 'cannot edit messages', 0, n);
+  EXCEPTION WHEN insufficient_privilege THEN
+    INSERT INTO rls_expect VALUES ('A location', 'cannot edit messages', 0, 0);
+  END;
+  RESET ROLE;
+  INSERT INTO public.claim_messages (claim_id, author_id, body) VALUES (c_a2, u_a_co, 'TEST L2 by company');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', u_a_loc, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  INSERT INTO rls_expect SELECT 'A location', 'messages (L1 only)', 1, count(*) FROM public.claim_messages WHERE claim_id IN (c_a1, c_a2, c_a0, c_b1);
+  INSERT INTO rls_expect SELECT 'A location', 'message logged in activity', 1, count(*) FROM public.claim_activity WHERE claim_id = c_a1 AND kind = 'message';
+  RESET ROLE;
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', u_a_co, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  INSERT INTO rls_expect SELECT 'A company', 'messages', 2, count(*) FROM public.claim_messages WHERE claim_id IN (c_a1, c_a2, c_a0, c_b1);
+  RESET ROLE;
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', u_b, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  INSERT INTO rls_expect SELECT 'B admin', 'A messages', 0, count(*) FROM public.claim_messages WHERE claim_id IN (c_a1, c_a2, c_a0);
+  BEGIN
+    INSERT INTO public.claim_messages (claim_id, author_id, body) VALUES (c_a0, u_b, 'TEST B on A');
+    INSERT INTO rls_expect VALUES ('B admin', 'cannot message on A claim', 0, 1);
+  EXCEPTION WHEN insufficient_privilege OR check_violation THEN
+    INSERT INTO rls_expect VALUES ('B admin', 'cannot message on A claim', 0, 0);
+  END;
+  RESET ROLE;
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', u_agency, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  INSERT INTO rls_expect SELECT 'agency', 'messages', 2, count(*) FROM public.claim_messages WHERE claim_id IN (c_a1, c_a2, c_a0, c_b1);
+  BEGIN
+    INSERT INTO public.claim_messages (claim_id, author_id, body) VALUES (c_b1, u_agency, 'TEST agency reply');
+    INSERT INTO rls_expect VALUES ('agency', 'can message on any claim', 1, 1);
+  EXCEPTION WHEN insufficient_privilege OR check_violation THEN
+    INSERT INTO rls_expect VALUES ('agency', 'can message on any claim', 1, 0);
+  END;
+  RESET ROLE;
+
   -- Every public table must carry the three view-as write policies (a table
   -- made after the fix 55 migration needs them added) and have RLS on.
   INSERT INTO rls_expect

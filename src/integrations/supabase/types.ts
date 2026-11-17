@@ -223,6 +223,41 @@ export type Database = {
           },
         ]
       }
+      claim_messages: {
+        Row: {
+          author_id: string | null
+          body: string
+          claim_id: string
+          created_at: string
+          id: string
+          mentions: string[]
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          claim_id: string
+          created_at?: string
+          id?: string
+          mentions?: string[]
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          claim_id?: string
+          created_at?: string
+          id?: string
+          mentions?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_messages_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claim_reserve_history: {
         Row: {
           changed_at: string
