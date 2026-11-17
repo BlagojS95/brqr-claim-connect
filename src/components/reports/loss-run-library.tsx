@@ -26,6 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, FileText, Send, FolderArchive } from "lucide-react";
 import { toast } from "sonner";
+import { GlossaryTip } from "@/components/glossary-tip";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -177,6 +178,7 @@ export function LossRunLibrary() {
         <div className="p-5 border-b border-border flex items-center gap-2">
           <FolderArchive className="h-4 w-4 text-gold" />
           <h2 className="font-semibold text-navy">Loss Run Library</h2>
+          <GlossaryTip term="lossRun" />
         </div>
         <div className="p-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {yearCards.length === 0 && (

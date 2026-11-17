@@ -31,6 +31,7 @@ const base: AgencyClaim = {
   waiting_on: null,
   last_activity_at: null,
   created_at: "2026-01-01T00:00:00Z",
+  carrier_updated_at: null,
   cause_of_loss_id: null,
   cause_of_loss: null,
   loss_location: null,

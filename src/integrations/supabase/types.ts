@@ -1,1486 +1,1499 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
+    PostgrestVersion: "14.5";
+  };
   public: {
     Tables: {
       access_log: {
         Row: {
-          action: string
-          claim_id: string | null
-          client_id: string | null
-          created_at: string
-          detail: string | null
-          id: string
-          user_id: string | null
-        }
+          action: string;
+          claim_id: string | null;
+          client_id: string | null;
+          created_at: string;
+          detail: string | null;
+          id: string;
+          user_id: string | null;
+        };
         Insert: {
-          action: string
-          claim_id?: string | null
-          client_id?: string | null
-          created_at?: string
-          detail?: string | null
-          id?: string
-          user_id?: string | null
-        }
+          action: string;
+          claim_id?: string | null;
+          client_id?: string | null;
+          created_at?: string;
+          detail?: string | null;
+          id?: string;
+          user_id?: string | null;
+        };
         Update: {
-          action?: string
-          claim_id?: string | null
-          client_id?: string | null
-          created_at?: string
-          detail?: string | null
-          id?: string
-          user_id?: string | null
-        }
+          action?: string;
+          claim_id?: string | null;
+          client_id?: string | null;
+          created_at?: string;
+          detail?: string | null;
+          id?: string;
+          user_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: 'access_log_claim_id_fkey'
-            columns: ['claim_id']
-            isOneToOne: false
-            referencedRelation: 'claims'
-            referencedColumns: ['id']
+            foreignKeyName: "access_log_claim_id_fkey";
+            columns: ["claim_id"];
+            isOneToOne: false;
+            referencedRelation: "claims";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'access_log_client_id_fkey'
-            columns: ['client_id']
-            isOneToOne: false
-            referencedRelation: 'clients'
-            referencedColumns: ['id']
-          }
-        ]
-      }
+            foreignKeyName: "access_log_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       admin_view_sessions: {
         Row: {
-          admin_id: string
-          client_id: string
-          ended_at: string | null
-          ended_reason: string | null
-          id: string
-          started_at: string
-        }
+          admin_id: string;
+          client_id: string;
+          ended_at: string | null;
+          ended_reason: string | null;
+          id: string;
+          started_at: string;
+        };
         Insert: {
-          admin_id: string
-          client_id: string
-          ended_at?: string | null
-          ended_reason?: string | null
-          id?: string
-          started_at?: string
-        }
+          admin_id: string;
+          client_id: string;
+          ended_at?: string | null;
+          ended_reason?: string | null;
+          id?: string;
+          started_at?: string;
+        };
         Update: {
-          admin_id?: string
-          client_id?: string
-          ended_at?: string | null
-          ended_reason?: string | null
-          id?: string
-          started_at?: string
-        }
+          admin_id?: string;
+          client_id?: string;
+          ended_at?: string | null;
+          ended_reason?: string | null;
+          id?: string;
+          started_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "admin_view_sessions_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "admin_view_sessions_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       agency_settings: {
         Row: {
-          first_contact_target_business_days: number
-          submit_target_business_days: number
-          broker_claims_email: string
-          id: number
-          monthly_report_enabled: boolean
-          updated_at: string
-          weekly_digest_enabled: boolean
-          after_hours_claims_phone: string | null
-          default_advocate_email: string | null
-          default_advocate_name: string | null
-          default_advocate_phone: string | null
-        }
+          first_contact_target_business_days: number;
+          submit_target_business_days: number;
+          broker_claims_email: string;
+          id: number;
+          monthly_report_enabled: boolean;
+          updated_at: string;
+          weekly_digest_enabled: boolean;
+          after_hours_claims_phone: string | null;
+          default_advocate_email: string | null;
+          default_advocate_name: string | null;
+          default_advocate_phone: string | null;
+        };
         Insert: {
-          first_contact_target_business_days?: number
-          submit_target_business_days?: number
-          broker_claims_email?: string
-          id?: number
-          monthly_report_enabled?: boolean
-          updated_at?: string
-          weekly_digest_enabled?: boolean
-          after_hours_claims_phone?: string | null
-          default_advocate_email?: string | null
-          default_advocate_name?: string | null
-          default_advocate_phone?: string | null
-        }
+          first_contact_target_business_days?: number;
+          submit_target_business_days?: number;
+          broker_claims_email?: string;
+          id?: number;
+          monthly_report_enabled?: boolean;
+          updated_at?: string;
+          weekly_digest_enabled?: boolean;
+          after_hours_claims_phone?: string | null;
+          default_advocate_email?: string | null;
+          default_advocate_name?: string | null;
+          default_advocate_phone?: string | null;
+        };
         Update: {
-          first_contact_target_business_days?: number
-          submit_target_business_days?: number
-          broker_claims_email?: string
-          id?: number
-          monthly_report_enabled?: boolean
-          updated_at?: string
-          weekly_digest_enabled?: boolean
-          after_hours_claims_phone?: string | null
-          default_advocate_email?: string | null
-          default_advocate_name?: string | null
-          default_advocate_phone?: string | null
-        }
-        Relationships: []
-      }
+          first_contact_target_business_days?: number;
+          submit_target_business_days?: number;
+          broker_claims_email?: string;
+          id?: number;
+          monthly_report_enabled?: boolean;
+          updated_at?: string;
+          weekly_digest_enabled?: boolean;
+          after_hours_claims_phone?: string | null;
+          default_advocate_email?: string | null;
+          default_advocate_name?: string | null;
+          default_advocate_phone?: string | null;
+        };
+        Relationships: [];
+      };
       carrier_import_mappings: {
         Row: {
-          carrier: string
-          id: string
-          mapping: Json
-          updated_at: string
-          updated_by: string | null
-        }
+          carrier: string;
+          id: string;
+          mapping: Json;
+          updated_at: string;
+          updated_by: string | null;
+        };
         Insert: {
-          carrier: string
-          id?: string
-          mapping: Json
-          updated_at?: string
-          updated_by?: string | null
-        }
+          carrier: string;
+          id?: string;
+          mapping: Json;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
         Update: {
-          carrier?: string
-          id?: string
-          mapping?: Json
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
+          carrier?: string;
+          id?: string;
+          mapping?: Json;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       claim_activity: {
         Row: {
-          actor_id: string | null
-          body: string
-          claim_id: string
-          created_at: string
-          id: string
-          kind: string
-        }
+          actor_id: string | null;
+          body: string;
+          claim_id: string;
+          created_at: string;
+          id: string;
+          kind: string;
+        };
         Insert: {
-          actor_id?: string | null
-          body: string
-          claim_id: string
-          created_at?: string
-          id?: string
-          kind: string
-        }
+          actor_id?: string | null;
+          body: string;
+          claim_id: string;
+          created_at?: string;
+          id?: string;
+          kind: string;
+        };
         Update: {
-          actor_id?: string | null
-          body?: string
-          claim_id?: string
-          created_at?: string
-          id?: string
-          kind?: string
-        }
+          actor_id?: string | null;
+          body?: string;
+          claim_id?: string;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "claim_activity_claim_id_fkey"
-            columns: ["claim_id"]
-            isOneToOne: false
-            referencedRelation: "claims"
-            referencedColumns: ["id"]
+            foreignKeyName: "claim_activity_claim_id_fkey";
+            columns: ["claim_id"];
+            isOneToOne: false;
+            referencedRelation: "claims";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       claim_contact_emails: {
         Row: {
-          claim_contact_id: string
-          claim_id: string
-          id: string
-          replied_at: string | null
-          sent_at: string
-          sent_by: string | null
-          subject: string | null
-        }
+          claim_contact_id: string;
+          claim_id: string;
+          id: string;
+          replied_at: string | null;
+          sent_at: string;
+          sent_by: string | null;
+          subject: string | null;
+        };
         Insert: {
-          claim_contact_id: string
-          claim_id: string
-          id?: string
-          replied_at?: string | null
-          sent_at?: string
-          sent_by?: string | null
-          subject?: string | null
-        }
+          claim_contact_id: string;
+          claim_id: string;
+          id?: string;
+          replied_at?: string | null;
+          sent_at?: string;
+          sent_by?: string | null;
+          subject?: string | null;
+        };
         Update: {
-          claim_contact_id?: string
-          claim_id?: string
-          id?: string
-          replied_at?: string | null
-          sent_at?: string
-          sent_by?: string | null
-          subject?: string | null
-        }
+          claim_contact_id?: string;
+          claim_id?: string;
+          id?: string;
+          replied_at?: string | null;
+          sent_at?: string;
+          sent_by?: string | null;
+          subject?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "claim_contact_emails_claim_contact_id_fkey"
-            columns: ["claim_contact_id"]
-            isOneToOne: false
-            referencedRelation: "claim_contacts"
-            referencedColumns: ["id"]
+            foreignKeyName: "claim_contact_emails_claim_contact_id_fkey";
+            columns: ["claim_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "claim_contacts";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       claim_contacts: {
         Row: {
-          claim_id: string
-          client_id: string | null
-          contact_person: string | null
-          created_at: string
-          email: string | null
-          id: string
-          notes: string | null
-          phone: string | null
-          row_key: string
-          updated_at: string
-        }
+          claim_id: string;
+          client_id: string | null;
+          contact_person: string | null;
+          created_at: string;
+          email: string | null;
+          id: string;
+          notes: string | null;
+          phone: string | null;
+          row_key: string;
+          updated_at: string;
+        };
         Insert: {
-          claim_id: string
-          client_id?: string | null
-          contact_person?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          notes?: string | null
-          phone?: string | null
-          row_key: string
-          updated_at?: string
-        }
+          claim_id: string;
+          client_id?: string | null;
+          contact_person?: string | null;
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          notes?: string | null;
+          phone?: string | null;
+          row_key: string;
+          updated_at?: string;
+        };
         Update: {
-          claim_id?: string
-          client_id?: string | null
-          contact_person?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          notes?: string | null
-          phone?: string | null
-          row_key?: string
-          updated_at?: string
-        }
+          claim_id?: string;
+          client_id?: string | null;
+          contact_person?: string | null;
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          notes?: string | null;
+          phone?: string | null;
+          row_key?: string;
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "claim_contacts_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "claim_contacts_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       claim_messages: {
         Row: {
-          author_id: string | null
-          body: string
-          claim_id: string
-          created_at: string
-          id: string
-          mentions: string[]
-        }
+          author_id: string | null;
+          body: string;
+          claim_id: string;
+          created_at: string;
+          id: string;
+          mentions: string[];
+        };
         Insert: {
-          author_id?: string | null
-          body: string
-          claim_id: string
-          created_at?: string
-          id?: string
-          mentions?: string[]
-        }
+          author_id?: string | null;
+          body: string;
+          claim_id: string;
+          created_at?: string;
+          id?: string;
+          mentions?: string[];
+        };
         Update: {
-          author_id?: string | null
-          body?: string
-          claim_id?: string
-          created_at?: string
-          id?: string
-          mentions?: string[]
-        }
+          author_id?: string | null;
+          body?: string;
+          claim_id?: string;
+          created_at?: string;
+          id?: string;
+          mentions?: string[];
+        };
         Relationships: [
           {
-            foreignKeyName: "claim_messages_claim_id_fkey"
-            columns: ["claim_id"]
-            isOneToOne: false
-            referencedRelation: "claims"
-            referencedColumns: ["id"]
+            foreignKeyName: "claim_messages_claim_id_fkey";
+            columns: ["claim_id"];
+            isOneToOne: false;
+            referencedRelation: "claims";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       claim_watches: {
         Row: {
-          claim_id: string
-          created_at: string
-          user_id: string
-        }
+          claim_id: string;
+          created_at: string;
+          user_id: string;
+        };
         Insert: {
-          claim_id: string
-          created_at?: string
-          user_id?: string
-        }
+          claim_id: string;
+          created_at?: string;
+          user_id?: string;
+        };
         Update: {
-          claim_id?: string
-          created_at?: string
-          user_id?: string
-        }
+          claim_id?: string;
+          created_at?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "claim_watches_claim_id_fkey"
-            columns: ["claim_id"]
-            isOneToOne: false
-            referencedRelation: "claims"
-            referencedColumns: ["id"]
+            foreignKeyName: "claim_watches_claim_id_fkey";
+            columns: ["claim_id"];
+            isOneToOne: false;
+            referencedRelation: "claims";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       claim_reserve_history: {
         Row: {
-          changed_at: string
-          changed_by: string | null
-          claim_id: string
-          id: string
-          new_reserve: number | null
-          old_reserve: number | null
-        }
+          changed_at: string;
+          changed_by: string | null;
+          claim_id: string;
+          id: string;
+          new_reserve: number | null;
+          old_reserve: number | null;
+        };
         Insert: {
-          changed_at?: string
-          changed_by?: string | null
-          claim_id: string
-          id?: string
-          new_reserve?: number | null
-          old_reserve?: number | null
-        }
+          changed_at?: string;
+          changed_by?: string | null;
+          claim_id: string;
+          id?: string;
+          new_reserve?: number | null;
+          old_reserve?: number | null;
+        };
         Update: {
-          changed_at?: string
-          changed_by?: string | null
-          claim_id?: string
-          id?: string
-          new_reserve?: number | null
-          old_reserve?: number | null
-        }
+          changed_at?: string;
+          changed_by?: string | null;
+          claim_id?: string;
+          id?: string;
+          new_reserve?: number | null;
+          old_reserve?: number | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "claim_reserve_history_claim_id_fkey"
-            columns: ["claim_id"]
-            isOneToOne: false
-            referencedRelation: "claims"
-            referencedColumns: ["id"]
+            foreignKeyName: "claim_reserve_history_claim_id_fkey";
+            columns: ["claim_id"];
+            isOneToOne: false;
+            referencedRelation: "claims";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       claim_internal_notes: {
         Row: {
-          body: string
-          claim_id: string
-          updated_at: string
-          updated_by: string | null
-          updated_by_email: string | null
-        }
+          body: string;
+          claim_id: string;
+          updated_at: string;
+          updated_by: string | null;
+          updated_by_email: string | null;
+        };
         Insert: {
-          body?: string
-          claim_id: string
-          updated_at?: string
-          updated_by?: string | null
-          updated_by_email?: string | null
-        }
+          body?: string;
+          claim_id: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          updated_by_email?: string | null;
+        };
         Update: {
-          body?: string
-          claim_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          updated_by_email?: string | null
-        }
+          body?: string;
+          claim_id?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          updated_by_email?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "claim_internal_notes_claim_id_fkey"
-            columns: ["claim_id"]
-            isOneToOne: true
-            referencedRelation: "claims"
-            referencedColumns: ["id"]
+            foreignKeyName: "claim_internal_notes_claim_id_fkey";
+            columns: ["claim_id"];
+            isOneToOne: true;
+            referencedRelation: "claims";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       client_signatures: {
         Row: {
-          client_id: string
-          consent_text: string
-          consent_version: string
-          id: string
-          revoked_at: string | null
-          signature_path: string
-          signed_at: string
-          signed_by: string
-          signer_name: string
-          user_agent: string | null
-        }
+          client_id: string;
+          consent_text: string;
+          consent_version: string;
+          id: string;
+          revoked_at: string | null;
+          signature_path: string;
+          signed_at: string;
+          signed_by: string;
+          signer_name: string;
+          user_agent: string | null;
+        };
         Insert: {
-          client_id: string
-          consent_text: string
-          consent_version: string
-          id?: string
-          revoked_at?: string | null
-          signature_path: string
-          signed_at?: string
-          signed_by: string
-          signer_name: string
-          user_agent?: string | null
-        }
+          client_id: string;
+          consent_text: string;
+          consent_version: string;
+          id?: string;
+          revoked_at?: string | null;
+          signature_path: string;
+          signed_at?: string;
+          signed_by: string;
+          signer_name: string;
+          user_agent?: string | null;
+        };
         Update: {
-          client_id?: string
-          consent_text?: string
-          consent_version?: string
-          id?: string
-          revoked_at?: string | null
-          signature_path?: string
-          signed_at?: string
-          signed_by?: string
-          signer_name?: string
-          user_agent?: string | null
-        }
+          client_id?: string;
+          consent_text?: string;
+          consent_version?: string;
+          id?: string;
+          revoked_at?: string | null;
+          signature_path?: string;
+          signed_at?: string;
+          signed_by?: string;
+          signer_name?: string;
+          user_agent?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "client_signatures_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "client_signatures_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       claims: {
         Row: {
-          assigned_to: string | null
-          first_carrier_contact_at: string | null
-          submitted_to_carrier_at: string | null
-          adjuster_email: string | null
-          adjuster_name: string | null
-          adjuster_phone: string | null
-          ams360_claim_id: string | null
-          ams360_closs_hist_id: string | null
-          ams360_doc_id: string | null
-          carrier: string | null
-          carrier_email: string | null
-          cause_of_loss_id: string | null
-          claim_number: string | null
-          claim_type: string
-          claimant_name: string | null
-          client_id: string
-          closed_date: string | null
-          created_at: string
-          created_by: string | null
-          date_of_loss: string | null
-          date_reported: string | null
-          description: string | null
-          fnol_sent_date: string | null
-          id: string
-          is_litigated: boolean
-          is_notice_only: boolean
-          last_activity_at: string | null
-          last_follow_up: string | null
-          line_of_business: string | null
-          line_of_business_description: string | null
-          line_of_business_id: string | null
-          location_id: string | null
-          notes: string | null
-          paid_amount: number | null
-          policy_id: string | null
-          policy_number: string | null
-          recovery_amount: number | null
-          reserve_amount: number | null
-          status: Database["public"]["Enums"]["claim_status"]
-          waiting_on: Database["public"]["Enums"]["claim_waiting_on"] | null
-          wc_claim_kind: string | null
-          date_reported_to_employer: string | null
-          driver_name: string | null
-          employee_job_title: string | null
-          employee_name: string | null
-          injured_body_part: string | null
-          injuries: boolean | null
-          loss_location: string | null
-          police_report_number: string | null
-          reporter_email: string | null
-          reporter_name: string | null
-          reporter_phone: string | null
-          third_party_contact: string | null
-          time_of_loss: string | null
-          vehicles_involved: string | null
-        }
+          assigned_to: string | null;
+          carrier_updated_at: string | null;
+          first_carrier_contact_at: string | null;
+          submitted_to_carrier_at: string | null;
+          adjuster_email: string | null;
+          adjuster_name: string | null;
+          adjuster_phone: string | null;
+          ams360_claim_id: string | null;
+          ams360_closs_hist_id: string | null;
+          ams360_doc_id: string | null;
+          carrier: string | null;
+          carrier_email: string | null;
+          cause_of_loss_id: string | null;
+          claim_number: string | null;
+          claim_type: string;
+          claimant_name: string | null;
+          client_id: string;
+          closed_date: string | null;
+          created_at: string;
+          created_by: string | null;
+          date_of_loss: string | null;
+          date_reported: string | null;
+          description: string | null;
+          fnol_sent_date: string | null;
+          id: string;
+          is_litigated: boolean;
+          is_notice_only: boolean;
+          last_activity_at: string | null;
+          last_follow_up: string | null;
+          line_of_business: string | null;
+          line_of_business_description: string | null;
+          line_of_business_id: string | null;
+          location_id: string | null;
+          notes: string | null;
+          paid_amount: number | null;
+          policy_id: string | null;
+          policy_number: string | null;
+          recovery_amount: number | null;
+          reserve_amount: number | null;
+          status: Database["public"]["Enums"]["claim_status"];
+          waiting_on: Database["public"]["Enums"]["claim_waiting_on"] | null;
+          wc_claim_kind: string | null;
+          date_reported_to_employer: string | null;
+          driver_name: string | null;
+          employee_job_title: string | null;
+          employee_name: string | null;
+          injured_body_part: string | null;
+          injuries: boolean | null;
+          loss_location: string | null;
+          police_report_number: string | null;
+          reporter_email: string | null;
+          reporter_name: string | null;
+          reporter_phone: string | null;
+          third_party_contact: string | null;
+          time_of_loss: string | null;
+          vehicles_involved: string | null;
+        };
         Insert: {
-          assigned_to?: string | null
-          first_carrier_contact_at?: string | null
-          submitted_to_carrier_at?: string | null
-          adjuster_email?: string | null
-          adjuster_name?: string | null
-          adjuster_phone?: string | null
-          ams360_doc_id?: string | null
-          carrier?: string | null
-          carrier_email?: string | null
-          cause_of_loss_id?: string | null
-          claim_number?: string | null
-          claim_type: string
-          line_of_business_id?: string | null
-          location_id?: string | null
-          claimant_name?: string | null
-          client_id: string
-          closed_date?: string | null
-          created_at?: string
-          created_by?: string | null
-          date_of_loss?: string | null
-          date_reported?: string | null
-          description?: string | null
-          fnol_sent_date?: string | null
-          id?: string
-          is_litigated?: boolean
-          is_notice_only?: boolean
-          last_activity_at?: string | null
-          last_follow_up?: string | null
-          line_of_business?: string | null
-          line_of_business_description?: string | null
-          notes?: string | null
-          paid_amount?: number | null
-          policy_id?: string | null
-          policy_number?: string | null
-          recovery_amount?: number | null
-          reserve_amount?: number | null
-          status?: Database["public"]["Enums"]["claim_status"]
-          waiting_on?: Database["public"]["Enums"]["claim_waiting_on"] | null
-          wc_claim_kind?: string | null
-          date_reported_to_employer?: string | null
-          driver_name?: string | null
-          employee_job_title?: string | null
-          employee_name?: string | null
-          injured_body_part?: string | null
-          injuries?: boolean | null
-          loss_location?: string | null
-          police_report_number?: string | null
-          reporter_email?: string | null
-          reporter_name?: string | null
-          reporter_phone?: string | null
-          third_party_contact?: string | null
-          time_of_loss?: string | null
-          vehicles_involved?: string | null
-        }
+          assigned_to?: string | null;
+          carrier_updated_at?: string | null;
+          first_carrier_contact_at?: string | null;
+          submitted_to_carrier_at?: string | null;
+          adjuster_email?: string | null;
+          adjuster_name?: string | null;
+          adjuster_phone?: string | null;
+          ams360_doc_id?: string | null;
+          carrier?: string | null;
+          carrier_email?: string | null;
+          cause_of_loss_id?: string | null;
+          claim_number?: string | null;
+          claim_type: string;
+          line_of_business_id?: string | null;
+          location_id?: string | null;
+          claimant_name?: string | null;
+          client_id: string;
+          closed_date?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          date_of_loss?: string | null;
+          date_reported?: string | null;
+          description?: string | null;
+          fnol_sent_date?: string | null;
+          id?: string;
+          is_litigated?: boolean;
+          is_notice_only?: boolean;
+          last_activity_at?: string | null;
+          last_follow_up?: string | null;
+          line_of_business?: string | null;
+          line_of_business_description?: string | null;
+          notes?: string | null;
+          paid_amount?: number | null;
+          policy_id?: string | null;
+          policy_number?: string | null;
+          recovery_amount?: number | null;
+          reserve_amount?: number | null;
+          status?: Database["public"]["Enums"]["claim_status"];
+          waiting_on?: Database["public"]["Enums"]["claim_waiting_on"] | null;
+          wc_claim_kind?: string | null;
+          date_reported_to_employer?: string | null;
+          driver_name?: string | null;
+          employee_job_title?: string | null;
+          employee_name?: string | null;
+          injured_body_part?: string | null;
+          injuries?: boolean | null;
+          loss_location?: string | null;
+          police_report_number?: string | null;
+          reporter_email?: string | null;
+          reporter_name?: string | null;
+          reporter_phone?: string | null;
+          third_party_contact?: string | null;
+          time_of_loss?: string | null;
+          vehicles_involved?: string | null;
+        };
         Update: {
-          assigned_to?: string | null
-          first_carrier_contact_at?: string | null
-          submitted_to_carrier_at?: string | null
-          adjuster_email?: string | null
-          adjuster_name?: string | null
-          adjuster_phone?: string | null
-          ams360_doc_id?: string | null
-          carrier?: string | null
-          carrier_email?: string | null
-          cause_of_loss_id?: string | null
-          claim_number?: string | null
-          claim_type?: string
-          line_of_business_id?: string | null
-          location_id?: string | null
-          claimant_name?: string | null
-          client_id?: string
-          closed_date?: string | null
-          created_at?: string
-          created_by?: string | null
-          date_of_loss?: string | null
-          date_reported?: string | null
-          description?: string | null
-          fnol_sent_date?: string | null
-          id?: string
-          is_litigated?: boolean
-          is_notice_only?: boolean
-          last_activity_at?: string | null
-          last_follow_up?: string | null
-          line_of_business?: string | null
-          line_of_business_description?: string | null
-          notes?: string | null
-          paid_amount?: number | null
-          policy_id?: string | null
-          policy_number?: string | null
-          recovery_amount?: number | null
-          reserve_amount?: number | null
-          status?: Database["public"]["Enums"]["claim_status"]
-          waiting_on?: Database["public"]["Enums"]["claim_waiting_on"] | null
-          wc_claim_kind?: string | null
-          date_reported_to_employer?: string | null
-          driver_name?: string | null
-          employee_job_title?: string | null
-          employee_name?: string | null
-          injured_body_part?: string | null
-          injuries?: boolean | null
-          loss_location?: string | null
-          police_report_number?: string | null
-          reporter_email?: string | null
-          reporter_name?: string | null
-          reporter_phone?: string | null
-          third_party_contact?: string | null
-          time_of_loss?: string | null
-          vehicles_involved?: string | null
-        }
+          assigned_to?: string | null;
+          carrier_updated_at?: string | null;
+          first_carrier_contact_at?: string | null;
+          submitted_to_carrier_at?: string | null;
+          adjuster_email?: string | null;
+          adjuster_name?: string | null;
+          adjuster_phone?: string | null;
+          ams360_doc_id?: string | null;
+          carrier?: string | null;
+          carrier_email?: string | null;
+          cause_of_loss_id?: string | null;
+          claim_number?: string | null;
+          claim_type?: string;
+          line_of_business_id?: string | null;
+          location_id?: string | null;
+          claimant_name?: string | null;
+          client_id?: string;
+          closed_date?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          date_of_loss?: string | null;
+          date_reported?: string | null;
+          description?: string | null;
+          fnol_sent_date?: string | null;
+          id?: string;
+          is_litigated?: boolean;
+          is_notice_only?: boolean;
+          last_activity_at?: string | null;
+          last_follow_up?: string | null;
+          line_of_business?: string | null;
+          line_of_business_description?: string | null;
+          notes?: string | null;
+          paid_amount?: number | null;
+          policy_id?: string | null;
+          policy_number?: string | null;
+          recovery_amount?: number | null;
+          reserve_amount?: number | null;
+          status?: Database["public"]["Enums"]["claim_status"];
+          waiting_on?: Database["public"]["Enums"]["claim_waiting_on"] | null;
+          wc_claim_kind?: string | null;
+          date_reported_to_employer?: string | null;
+          driver_name?: string | null;
+          employee_job_title?: string | null;
+          employee_name?: string | null;
+          injured_body_part?: string | null;
+          injuries?: boolean | null;
+          loss_location?: string | null;
+          police_report_number?: string | null;
+          reporter_email?: string | null;
+          reporter_name?: string | null;
+          reporter_phone?: string | null;
+          third_party_contact?: string | null;
+          time_of_loss?: string | null;
+          vehicles_involved?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "claims_cause_of_loss_id_fkey"
-            columns: ["cause_of_loss_id"]
-            isOneToOne: false
-            referencedRelation: "causes_of_loss"
-            referencedColumns: ["id"]
+            foreignKeyName: "claims_cause_of_loss_id_fkey";
+            columns: ["cause_of_loss_id"];
+            isOneToOne: false;
+            referencedRelation: "causes_of_loss";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "claims_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "claims_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "claims_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "client_locations"
-            referencedColumns: ["id"]
+            foreignKeyName: "claims_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "client_locations";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "claims_line_of_business_id_fkey"
-            columns: ["line_of_business_id"]
-            isOneToOne: false
-            referencedRelation: "lines_of_business"
-            referencedColumns: ["id"]
+            foreignKeyName: "claims_line_of_business_id_fkey";
+            columns: ["line_of_business_id"];
+            isOneToOne: false;
+            referencedRelation: "lines_of_business";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "claims_policy_id_fkey"
-            columns: ["policy_id"]
-            isOneToOne: false
-            referencedRelation: "policies"
-            referencedColumns: ["id"]
+            foreignKeyName: "claims_policy_id_fkey";
+            columns: ["policy_id"];
+            isOneToOne: false;
+            referencedRelation: "policies";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       client_locations: {
         Row: {
-          address: string | null
-          client_id: string
-          created_at: string
-          id: string
-          name: string
-        }
+          address: string | null;
+          client_id: string;
+          created_at: string;
+          id: string;
+          name: string;
+        };
         Insert: {
-          address?: string | null
-          client_id: string
-          created_at?: string
-          id?: string
-          name: string
-        }
+          address?: string | null;
+          client_id: string;
+          created_at?: string;
+          id?: string;
+          name: string;
+        };
         Update: {
-          address?: string | null
-          client_id?: string
-          created_at?: string
-          id?: string
-          name?: string
-        }
+          address?: string | null;
+          client_id?: string;
+          created_at?: string;
+          id?: string;
+          name?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "client_locations_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "client_locations_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       client_users: {
         Row: {
-          client_id: string
-          created_at: string
-          location_ids: string[]
-          role: Database["public"]["Enums"]["client_user_role"]
-          user_id: string
-        }
+          client_id: string;
+          created_at: string;
+          location_ids: string[];
+          role: Database["public"]["Enums"]["client_user_role"];
+          user_id: string;
+        };
         Insert: {
-          client_id: string
-          created_at?: string
-          location_ids?: string[]
-          role?: Database["public"]["Enums"]["client_user_role"]
-          user_id: string
-        }
+          client_id: string;
+          created_at?: string;
+          location_ids?: string[];
+          role?: Database["public"]["Enums"]["client_user_role"];
+          user_id: string;
+        };
         Update: {
-          client_id?: string
-          created_at?: string
-          location_ids?: string[]
-          role?: Database["public"]["Enums"]["client_user_role"]
-          user_id?: string
-        }
+          client_id?: string;
+          created_at?: string;
+          location_ids?: string[];
+          role?: Database["public"]["Enums"]["client_user_role"];
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "client_users_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "client_users_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       clients: {
         Row: {
-          ams360_id: string | null
-          company_name: string | null
-          created_at: string
-          email: string | null
-          id: string
-          name: string
-          phone: string | null
-          require_mfa: boolean
-          user_id: string | null
-          advocate_email: string | null
-          advocate_name: string | null
-          advocate_phone: string | null
-        }
+          ams360_id: string | null;
+          company_name: string | null;
+          created_at: string;
+          email: string | null;
+          id: string;
+          name: string;
+          phone: string | null;
+          require_mfa: boolean;
+          user_id: string | null;
+          advocate_email: string | null;
+          advocate_name: string | null;
+          advocate_phone: string | null;
+        };
         Insert: {
-          ams360_id?: string | null
-          company_name?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          name: string
-          phone?: string | null
-          require_mfa?: boolean
-          user_id?: string | null
-          advocate_email?: string | null
-          advocate_name?: string | null
-          advocate_phone?: string | null
-        }
+          ams360_id?: string | null;
+          company_name?: string | null;
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          name: string;
+          phone?: string | null;
+          require_mfa?: boolean;
+          user_id?: string | null;
+          advocate_email?: string | null;
+          advocate_name?: string | null;
+          advocate_phone?: string | null;
+        };
         Update: {
-          ams360_id?: string | null
-          company_name?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          name?: string
-          phone?: string | null
-          require_mfa?: boolean
-          user_id?: string | null
-          advocate_email?: string | null
-          advocate_name?: string | null
-          advocate_phone?: string | null
-        }
-        Relationships: []
-      }
+          ams360_id?: string | null;
+          company_name?: string | null;
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          name?: string;
+          phone?: string | null;
+          require_mfa?: boolean;
+          user_id?: string | null;
+          advocate_email?: string | null;
+          advocate_name?: string | null;
+          advocate_phone?: string | null;
+        };
+        Relationships: [];
+      };
       documents: {
         Row: {
-          claim_id: string | null
-          client_id: string
-          document_request_id: string | null
-          file_name: string
-          file_url: string
-          id: string
-          uploaded_at: string
-        }
+          claim_id: string | null;
+          client_id: string;
+          document_request_id: string | null;
+          file_name: string;
+          file_url: string;
+          id: string;
+          uploaded_at: string;
+        };
         Insert: {
-          claim_id?: string | null
-          client_id: string
-          document_request_id?: string | null
-          file_name: string
-          file_url: string
-          id?: string
-          uploaded_at?: string
-        }
+          claim_id?: string | null;
+          client_id: string;
+          document_request_id?: string | null;
+          file_name: string;
+          file_url: string;
+          id?: string;
+          uploaded_at?: string;
+        };
         Update: {
-          claim_id?: string | null
-          client_id?: string
-          document_request_id?: string | null
-          file_name?: string
-          file_url?: string
-          id?: string
-          uploaded_at?: string
-        }
+          claim_id?: string | null;
+          client_id?: string;
+          document_request_id?: string | null;
+          file_name?: string;
+          file_url?: string;
+          id?: string;
+          uploaded_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "documents_claim_id_fkey"
-            columns: ["claim_id"]
-            isOneToOne: false
-            referencedRelation: "claims"
-            referencedColumns: ["id"]
+            foreignKeyName: "documents_claim_id_fkey";
+            columns: ["claim_id"];
+            isOneToOne: false;
+            referencedRelation: "claims";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "documents_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "documents_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       email_templates: {
         Row: {
-          body: string
-          created_at: string
-          id: string
-          key: string | null
-          name: string
-          sort_order: number
-          subject: string
-          updated_at: string
-          updated_by: string | null
-        }
+          body: string;
+          created_at: string;
+          id: string;
+          key: string | null;
+          name: string;
+          sort_order: number;
+          subject: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
         Insert: {
-          body: string
-          created_at?: string
-          id?: string
-          key?: string | null
-          name: string
-          sort_order?: number
-          subject: string
-          updated_at?: string
-          updated_by?: string | null
-        }
+          body: string;
+          created_at?: string;
+          id?: string;
+          key?: string | null;
+          name: string;
+          sort_order?: number;
+          subject: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
         Update: {
-          body?: string
-          created_at?: string
-          id?: string
-          key?: string | null
-          name?: string
-          sort_order?: number
-          subject?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
+          body?: string;
+          created_at?: string;
+          id?: string;
+          key?: string | null;
+          name?: string;
+          sort_order?: number;
+          subject?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       loss_run_requests: {
         Row: {
-          admin_notes: string | null
-          client_id: string
-          created_at: string
-          fulfilled_at: string | null
-          id: string
-          lines_of_business: string[]
-          notes: string | null
-          requested_by: string | null
-          status: string
-          years: number[]
-        }
+          admin_notes: string | null;
+          client_id: string;
+          created_at: string;
+          fulfilled_at: string | null;
+          id: string;
+          lines_of_business: string[];
+          notes: string | null;
+          requested_by: string | null;
+          status: string;
+          years: number[];
+        };
         Insert: {
-          admin_notes?: string | null
-          client_id: string
-          created_at?: string
-          fulfilled_at?: string | null
-          id?: string
-          lines_of_business?: string[]
-          notes?: string | null
-          requested_by?: string | null
-          status?: string
-          years?: number[]
-        }
+          admin_notes?: string | null;
+          client_id: string;
+          created_at?: string;
+          fulfilled_at?: string | null;
+          id?: string;
+          lines_of_business?: string[];
+          notes?: string | null;
+          requested_by?: string | null;
+          status?: string;
+          years?: number[];
+        };
         Update: {
-          admin_notes?: string | null
-          client_id?: string
-          created_at?: string
-          fulfilled_at?: string | null
-          id?: string
-          lines_of_business?: string[]
-          notes?: string | null
-          requested_by?: string | null
-          status?: string
-          years?: number[]
-        }
-        Relationships: []
-      }
+          admin_notes?: string | null;
+          client_id?: string;
+          created_at?: string;
+          fulfilled_at?: string | null;
+          id?: string;
+          lines_of_business?: string[];
+          notes?: string | null;
+          requested_by?: string | null;
+          status?: string;
+          years?: number[];
+        };
+        Relationships: [];
+      };
       lines_of_business: {
         Row: {
-          code: string
-          id: string
-          name: string
-          sort_order: number
-        }
+          code: string;
+          id: string;
+          name: string;
+          sort_order: number;
+        };
         Insert: {
-          code: string
-          id?: string
-          name: string
-          sort_order: number
-        }
+          code: string;
+          id?: string;
+          name: string;
+          sort_order: number;
+        };
         Update: {
-          code?: string
-          id?: string
-          name?: string
-          sort_order?: number
-        }
-        Relationships: []
-      }
+          code?: string;
+          id?: string;
+          name?: string;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
       loss_runs: {
         Row: {
-          client_id: string
-          created_at: string
-          document_url: string | null
-          id: string
-          policy_id: string | null
-          total_claims: number | null
-          total_incurred: number | null
-          total_paid: number | null
-          year: number
-        }
+          client_id: string;
+          created_at: string;
+          document_url: string | null;
+          id: string;
+          policy_id: string | null;
+          total_claims: number | null;
+          total_incurred: number | null;
+          total_paid: number | null;
+          year: number;
+        };
         Insert: {
-          client_id: string
-          created_at?: string
-          document_url?: string | null
-          id?: string
-          policy_id?: string | null
-          total_claims?: number | null
-          total_incurred?: number | null
-          total_paid?: number | null
-          year: number
-        }
+          client_id: string;
+          created_at?: string;
+          document_url?: string | null;
+          id?: string;
+          policy_id?: string | null;
+          total_claims?: number | null;
+          total_incurred?: number | null;
+          total_paid?: number | null;
+          year: number;
+        };
         Update: {
-          client_id?: string
-          created_at?: string
-          document_url?: string | null
-          id?: string
-          policy_id?: string | null
-          total_claims?: number | null
-          total_incurred?: number | null
-          total_paid?: number | null
-          year?: number
-        }
+          client_id?: string;
+          created_at?: string;
+          document_url?: string | null;
+          id?: string;
+          policy_id?: string | null;
+          total_claims?: number | null;
+          total_incurred?: number | null;
+          total_paid?: number | null;
+          year?: number;
+        };
         Relationships: [
           {
-            foreignKeyName: "loss_runs_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "loss_runs_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "loss_runs_policy_id_fkey"
-            columns: ["policy_id"]
-            isOneToOne: false
-            referencedRelation: "policies"
-            referencedColumns: ["id"]
+            foreignKeyName: "loss_runs_policy_id_fkey";
+            columns: ["policy_id"];
+            isOneToOne: false;
+            referencedRelation: "policies";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       notification_outbox: {
         Row: {
-          attempts: number
-          claim_id: string
-          created_at: string
-          id: string
-          kind: string
-          last_error: string | null
-          status: string
-        }
+          attempts: number;
+          claim_id: string;
+          created_at: string;
+          id: string;
+          kind: string;
+          last_error: string | null;
+          status: string;
+        };
         Insert: {
-          attempts?: number
-          claim_id: string
-          created_at?: string
-          id?: string
-          kind: string
-          last_error?: string | null
-          status?: string
-        }
+          attempts?: number;
+          claim_id: string;
+          created_at?: string;
+          id?: string;
+          kind: string;
+          last_error?: string | null;
+          status?: string;
+        };
         Update: {
-          attempts?: number
-          claim_id?: string
-          created_at?: string
-          id?: string
-          kind?: string
-          last_error?: string | null
-          status?: string
-        }
+          attempts?: number;
+          claim_id?: string;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          last_error?: string | null;
+          status?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "notification_outbox_claim_id_fkey"
-            columns: ["claim_id"]
-            isOneToOne: false
-            referencedRelation: "claims"
-            referencedColumns: ["id"]
+            foreignKeyName: "notification_outbox_claim_id_fkey";
+            columns: ["claim_id"];
+            isOneToOne: false;
+            referencedRelation: "claims";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       policies: {
         Row: {
-          broker_name: string | null
-          carrier: string | null
-          client_id: string
-          created_at: string
-          effective_date: string | null
-          experience_mod: number | null
-          expiration_date: string | null
-          id: string
-          line_of_business_id: string | null
-          location_id: string | null
-          policy_number: string
-          policy_type: string | null
-          premium: number | null
-        }
+          broker_name: string | null;
+          carrier: string | null;
+          client_id: string;
+          created_at: string;
+          effective_date: string | null;
+          experience_mod: number | null;
+          expiration_date: string | null;
+          id: string;
+          line_of_business_id: string | null;
+          location_id: string | null;
+          policy_number: string;
+          policy_type: string | null;
+          premium: number | null;
+        };
         Insert: {
-          broker_name?: string | null
-          carrier?: string | null
-          client_id: string
-          created_at?: string
-          effective_date?: string | null
-          experience_mod?: number | null
-          expiration_date?: string | null
-          id?: string
-          line_of_business_id?: string | null
-          location_id?: string | null
-          policy_number: string
-          policy_type?: string | null
-          premium?: number | null
-        }
+          broker_name?: string | null;
+          carrier?: string | null;
+          client_id: string;
+          created_at?: string;
+          effective_date?: string | null;
+          experience_mod?: number | null;
+          expiration_date?: string | null;
+          id?: string;
+          line_of_business_id?: string | null;
+          location_id?: string | null;
+          policy_number: string;
+          policy_type?: string | null;
+          premium?: number | null;
+        };
         Update: {
-          broker_name?: string | null
-          carrier?: string | null
-          client_id?: string
-          created_at?: string
-          effective_date?: string | null
-          experience_mod?: number | null
-          expiration_date?: string | null
-          id?: string
-          line_of_business_id?: string | null
-          location_id?: string | null
-          policy_number?: string
-          policy_type?: string | null
-          premium?: number | null
-        }
+          broker_name?: string | null;
+          carrier?: string | null;
+          client_id?: string;
+          created_at?: string;
+          effective_date?: string | null;
+          experience_mod?: number | null;
+          expiration_date?: string | null;
+          id?: string;
+          line_of_business_id?: string | null;
+          location_id?: string | null;
+          policy_number?: string;
+          policy_type?: string | null;
+          premium?: number | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "policies_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "policies_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "policies_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "client_locations"
-            referencedColumns: ["id"]
+            foreignKeyName: "policies_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "client_locations";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "policies_line_of_business_id_fkey"
-            columns: ["line_of_business_id"]
-            isOneToOne: false
-            referencedRelation: "lines_of_business"
-            referencedColumns: ["id"]
+            foreignKeyName: "policies_line_of_business_id_fkey";
+            columns: ["line_of_business_id"];
+            isOneToOne: false;
+            referencedRelation: "lines_of_business";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       causes_of_loss: {
         Row: {
-          active: boolean
-          id: string
-          name: string
-          sort_order: number
-        }
+          active: boolean;
+          id: string;
+          name: string;
+          sort_order: number;
+        };
         Insert: {
-          active?: boolean
-          id?: string
-          name: string
-          sort_order?: number
-        }
+          active?: boolean;
+          id?: string;
+          name: string;
+          sort_order?: number;
+        };
         Update: {
-          active?: boolean
-          id?: string
-          name?: string
-          sort_order?: number
-        }
-        Relationships: []
-      }
+          active?: boolean;
+          id?: string;
+          name?: string;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
       claim_document_requests: {
         Row: {
-          claim_id: string
-          fulfilled_at: string | null
-          fulfilled_document_id: string | null
-          id: string
-          name: string
-          note: string | null
-          requested_at: string
-          requested_by: string | null
-        }
+          claim_id: string;
+          fulfilled_at: string | null;
+          fulfilled_document_id: string | null;
+          id: string;
+          name: string;
+          note: string | null;
+          requested_at: string;
+          requested_by: string | null;
+        };
         Insert: {
-          claim_id: string
-          fulfilled_at?: string | null
-          fulfilled_document_id?: string | null
-          id?: string
-          name: string
-          note?: string | null
-          requested_at?: string
-          requested_by?: string | null
-        }
+          claim_id: string;
+          fulfilled_at?: string | null;
+          fulfilled_document_id?: string | null;
+          id?: string;
+          name: string;
+          note?: string | null;
+          requested_at?: string;
+          requested_by?: string | null;
+        };
         Update: {
-          claim_id?: string
-          fulfilled_at?: string | null
-          fulfilled_document_id?: string | null
-          id?: string
-          name?: string
-          note?: string | null
-          requested_at?: string
-          requested_by?: string | null
-        }
+          claim_id?: string;
+          fulfilled_at?: string | null;
+          fulfilled_document_id?: string | null;
+          id?: string;
+          name?: string;
+          note?: string | null;
+          requested_at?: string;
+          requested_by?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "claim_document_requests_claim_id_fkey"
-            columns: ["claim_id"]
-            isOneToOne: false
-            referencedRelation: "claims"
-            referencedColumns: ["id"]
+            foreignKeyName: "claim_document_requests_claim_id_fkey";
+            columns: ["claim_id"];
+            isOneToOne: false;
+            referencedRelation: "claims";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "claim_document_requests_fulfilled_document_id_fkey"
-            columns: ["fulfilled_document_id"]
-            isOneToOne: false
-            referencedRelation: "documents"
-            referencedColumns: ["id"]
+            foreignKeyName: "claim_document_requests_fulfilled_document_id_fkey";
+            columns: ["fulfilled_document_id"];
+            isOneToOne: false;
+            referencedRelation: "documents";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       digest_runs: {
         Row: {
-          created_at: string
-          detail: string | null
-          id: string
-          status: string
-          user_id: string
-          week_start: string
-        }
+          created_at: string;
+          detail: string | null;
+          id: string;
+          status: string;
+          user_id: string;
+          week_start: string;
+        };
         Insert: {
-          created_at?: string
-          detail?: string | null
-          id?: string
-          status: string
-          user_id: string
-          week_start: string
-        }
+          created_at?: string;
+          detail?: string | null;
+          id?: string;
+          status: string;
+          user_id: string;
+          week_start: string;
+        };
         Update: {
-          created_at?: string
-          detail?: string | null
-          id?: string
-          status?: string
-          user_id?: string
-          week_start?: string
-        }
-        Relationships: []
-      }
+          created_at?: string;
+          detail?: string | null;
+          id?: string;
+          status?: string;
+          user_id?: string;
+          week_start?: string;
+        };
+        Relationships: [];
+      };
       report_schedules: {
         Row: {
-          client_id: string
-          created_at: string
-          id: string
-          large_loss_threshold: number
-          last_sent_month: string | null
-          user_id: string
-        }
+          client_id: string;
+          created_at: string;
+          id: string;
+          large_loss_threshold: number;
+          last_sent_month: string | null;
+          user_id: string;
+        };
         Insert: {
-          client_id: string
-          created_at?: string
-          id?: string
-          large_loss_threshold?: number
-          last_sent_month?: string | null
-          user_id: string
-        }
+          client_id: string;
+          created_at?: string;
+          id?: string;
+          large_loss_threshold?: number;
+          last_sent_month?: string | null;
+          user_id: string;
+        };
         Update: {
-          client_id?: string
-          created_at?: string
-          id?: string
-          large_loss_threshold?: number
-          last_sent_month?: string | null
-          user_id?: string
-        }
+          client_id?: string;
+          created_at?: string;
+          id?: string;
+          large_loss_threshold?: number;
+          last_sent_month?: string | null;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "report_schedules_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "report_schedules_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       saved_claim_views: {
         Row: {
-          created_at: string
-          filters: Json
-          id: string
-          name: string
-          user_id: string
-        }
+          created_at: string;
+          filters: Json;
+          id: string;
+          name: string;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          filters?: Json
-          id?: string
-          name: string
-          user_id?: string
-        }
+          created_at?: string;
+          filters?: Json;
+          id?: string;
+          name: string;
+          user_id?: string;
+        };
         Update: {
-          created_at?: string
-          filters?: Json
-          id?: string
-          name?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+          created_at?: string;
+          filters?: Json;
+          id?: string;
+          name?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       shared_reports: {
         Row: {
-          client_id: string
-          created_at: string
-          created_by: string | null
-          expires_at: string
-          id: string
-          kind: string
-          revoked_at: string | null
-          revoked_by: string | null
-          snapshot: Json
-          title: string
-          token_hash: string
-        }
+          client_id: string;
+          created_at: string;
+          created_by: string | null;
+          expires_at: string;
+          id: string;
+          kind: string;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          snapshot: Json;
+          title: string;
+          token_hash: string;
+        };
         Insert: {
-          client_id: string
-          created_at?: string
-          created_by?: string | null
-          expires_at: string
-          id?: string
-          kind: string
-          revoked_at?: string | null
-          revoked_by?: string | null
-          snapshot: Json
-          title: string
-          token_hash: string
-        }
+          client_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at: string;
+          id?: string;
+          kind: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          snapshot: Json;
+          title: string;
+          token_hash: string;
+        };
         Update: {
-          client_id?: string
-          created_at?: string
-          created_by?: string | null
-          expires_at?: string
-          id?: string
-          kind?: string
-          revoked_at?: string | null
-          revoked_by?: string | null
-          snapshot?: Json
-          title?: string
-          token_hash?: string
-        }
+          client_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string;
+          id?: string;
+          kind?: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          snapshot?: Json;
+          title?: string;
+          token_hash?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "shared_reports_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "shared_reports_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
+      user_table_prefs: {
+        Row: {
+          claims_list: Json;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          claims_list?: Json;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Update: {
+          claims_list?: Json;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       user_notification_prefs: {
         Row: {
-          documents_all: boolean
-          documents_watched: boolean
-          messages_all: boolean
-          messages_watched: boolean
-          status_all: boolean
-          status_watched: boolean
-          updated_at: string
-          user_id: string
-          weekly_digest: boolean
-        }
+          documents_all: boolean;
+          documents_watched: boolean;
+          messages_all: boolean;
+          messages_watched: boolean;
+          status_all: boolean;
+          status_watched: boolean;
+          updated_at: string;
+          user_id: string;
+          weekly_digest: boolean;
+        };
         Insert: {
-          documents_all?: boolean
-          documents_watched?: boolean
-          messages_all?: boolean
-          messages_watched?: boolean
-          status_all?: boolean
-          status_watched?: boolean
-          updated_at?: string
-          user_id?: string
-          weekly_digest?: boolean
-        }
+          documents_all?: boolean;
+          documents_watched?: boolean;
+          messages_all?: boolean;
+          messages_watched?: boolean;
+          status_all?: boolean;
+          status_watched?: boolean;
+          updated_at?: string;
+          user_id?: string;
+          weekly_digest?: boolean;
+        };
         Update: {
-          documents_all?: boolean
-          documents_watched?: boolean
-          messages_all?: boolean
-          messages_watched?: boolean
-          status_all?: boolean
-          status_watched?: boolean
-          updated_at?: string
-          user_id?: string
-          weekly_digest?: boolean
-        }
-        Relationships: []
-      }
+          documents_all?: boolean;
+          documents_watched?: boolean;
+          messages_all?: boolean;
+          messages_watched?: boolean;
+          status_all?: boolean;
+          status_watched?: boolean;
+          updated_at?: string;
+          user_id?: string;
+          weekly_digest?: boolean;
+        };
+        Relationships: [];
+      };
       user_roles: {
         Row: {
-          created_at: string
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
+          created_at: string;
+          id: string;
+          role: Database["public"]["Enums"]["app_role"];
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
+          created_at?: string;
+          id?: string;
+          role: Database["public"]["Enums"]["app_role"];
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
-    }
+          created_at?: string;
+          id?: string;
+          role?: Database["public"]["Enums"]["app_role"];
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+    };
     Views: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Functions: {
       has_role: {
         Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+          _role: Database["public"]["Enums"]["app_role"];
+          _user_id: string;
+        };
+        Returns: boolean;
+      };
       mfa_required: {
-        Args: { _uid: string }
-        Returns: boolean
-      }
+        Args: { _uid: string };
+        Returns: boolean;
+      };
       viewing_as_client: {
-        Args: { _uid: string }
-        Returns: string | null
-      }
-    }
+        Args: { _uid: string };
+        Returns: string | null;
+      };
+    };
     Enums: {
-      app_role: "agency_admin" | "client"
-      claim_status: "notice" | "submitted" | "open" | "closed" | "reopened"
-      claim_waiting_on: "client" | "agency" | "carrier"
-      client_user_role: "client_admin" | "company" | "location"
-    }
+      app_role: "agency_admin" | "client";
+      claim_status: "notice" | "submitted" | "open" | "closed" | "reopened";
+      claim_waiting_on: "client" | "agency" | "carrier";
+      client_user_role: "client_admin" | "company" | "location";
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
+      Row: infer R;
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R;
       }
       ? R
       : never
-    : never
+    : never;
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
+      Insert: infer I;
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
+        Insert: infer I;
       }
       ? I
       : never
-    : never
+    : never;
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
+      Update: infer U;
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
+        Update: infer U;
       }
       ? U
       : never
-    : never
+    : never;
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+    : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+    : never;
 
 export const Constants = {
   public: {
@@ -1491,4 +1504,4 @@ export const Constants = {
       client_user_role: ["client_admin", "company", "location"],
     },
   },
-} as const
+} as const;

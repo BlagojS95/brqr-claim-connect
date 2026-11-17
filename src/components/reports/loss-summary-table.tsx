@@ -13,6 +13,8 @@ import {
   type LossSummaryTotals,
 } from "@/lib/loss-summary";
 import { StatusBadge } from "@/components/status-badge";
+import { GlossaryTip, TermLabel } from "@/components/glossary-tip";
+import type { GlossaryTerm } from "@/lib/glossary";
 import { cn } from "@/lib/utils";
 
 const fmt = (n: number) =>
@@ -22,16 +24,21 @@ const fmt = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-const COLUMNS: { key: LossSummarySortKey; label: string; money?: boolean }[] = [
+const COLUMNS: {
+  key: LossSummarySortKey;
+  label: string;
+  money?: boolean;
+  term?: GlossaryTerm;
+}[] = [
   { key: "year", label: "Year" },
   { key: "line", label: "Line" },
   { key: "carrier", label: "Carrier" },
   { key: "number", label: "Claim #" },
   { key: "date", label: "Date of loss" },
-  { key: "status", label: "Status" },
-  { key: "paid", label: "Paid", money: true },
-  { key: "reserve", label: "Reserve", money: true },
-  { key: "incurred", label: "Incurred", money: true },
+  { key: "status", label: "Status", term: "status" },
+  { key: "paid", label: "Paid", money: true, term: "paid" },
+  { key: "reserve", label: "Reserve", money: true, term: "reserve" },
+  { key: "incurred", label: "Incurred", money: true, term: "incurred" },
 ];
 
 const claimsLabel = (n: number) => `${n} claim${n === 1 ? "" : "s"}`;
@@ -105,6 +112,7 @@ function SortHeader({
         {column.label}
         <Icon className={cn("h-3 w-3", !active && "opacity-40")} aria-hidden />
       </button>
+      {column.term && <GlossaryTip term={column.term} className="ml-1" />}
     </th>
   );
 }
@@ -204,11 +212,16 @@ function PhoneTotals({
   label,
   totals,
   strong,
+  help,
 }: {
   label: string;
   totals: LossSummaryTotals;
   strong?: boolean;
+  /** Show the plain-English "?" help on each amount (fix 49); once per list is enough. */
+  help?: boolean;
 }) {
+  const name = (term: GlossaryTerm, text: string) =>
+    help ? <TermLabel term={term}>{text}</TermLabel> : text;
   return (
     <div
       className={cn(
@@ -220,9 +233,15 @@ function PhoneTotals({
         {label} ({claimsLabel(totals.claims)})
       </div>
       <div className="mt-1 grid grid-cols-3 gap-2 text-xs">
-        <span>Paid {fmt(totals.paid)}</span>
-        <span>Reserve {fmt(totals.reserve)}</span>
-        <span>Incurred {fmt(totals.incurred)}</span>
+        <span>
+          {name("paid", "Paid")} {fmt(totals.paid)}
+        </span>
+        <span>
+          {name("reserve", "Reserve")} {fmt(totals.reserve)}
+        </span>
+        <span>
+          {name("incurred", "Incurred")} {fmt(totals.incurred)}
+        </span>
       </div>
     </div>
   );
@@ -304,7 +323,7 @@ function PhoneList({
           <PhoneTotals label={`${yearLabel(y.year)} subtotal`} totals={y.totals} strong />
         </div>
       ))}
-      <PhoneTotals label="Grand total" totals={summary.totals} strong />
+      <PhoneTotals label="Grand total" totals={summary.totals} strong help />
     </div>
   );
 }

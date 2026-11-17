@@ -311,3 +311,19 @@ export function claimUpdateActivityBody(
 /** The column list read for the diff. */
 export const CLAIM_EDITABLE_SELECT =
   "claim_number, adjuster_name, adjuster_phone, adjuster_email, status, paid_amount, reserve_amount, waiting_on, assigned_to, submitted_to_carrier_at, first_carrier_contact_at, closed_date";
+
+/** The fields that come from the carrier; changing one refreshes carrier_updated_at (fix 62). */
+export const CARRIER_DATA_FIELDS: readonly EditableField[] = [
+  "claim_number",
+  "status",
+  "paid_amount",
+  "reserve_amount",
+  "adjuster_name",
+  "adjuster_phone",
+  "adjuster_email",
+];
+
+/** True when any of the changes touches carrier-held data. */
+export function carrierDataChanged(changes: readonly FieldChange[]): boolean {
+  return changes.some((c) => CARRIER_DATA_FIELDS.includes(c.field));
+}

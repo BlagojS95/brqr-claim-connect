@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { StatusBadge } from "@/components/status-badge";
+import { TermLabel } from "@/components/glossary-tip";
+import type { GlossaryTerm } from "@/lib/glossary";
 import { incurredAmount, paidAmount } from "@/lib/claim-metrics";
 import { formatDate } from "@/lib/dates";
 import { largestClaimsMeasure } from "@/lib/insights-breakdowns";
@@ -44,6 +46,8 @@ export function LargestOpenClaims({
     rankBy === INSIGHTS_MEASURE.paid ? paidAmount(c) : incurredAmount(c);
   const other = (c: AgencyClaim) =>
     rankBy === INSIGHTS_MEASURE.paid ? incurredAmount(c) : paidAmount(c);
+  const rankTerm: GlossaryTerm = rankBy === INSIGHTS_MEASURE.paid ? "paid" : "incurred";
+  const otherTerm: GlossaryTerm = rankBy === INSIGHTS_MEASURE.paid ? "incurred" : "paid";
   const otherLabel =
     INSIGHTS_MEASURE_LABELS[
       rankBy === INSIGHTS_MEASURE.paid ? INSIGHTS_MEASURE.incurred : INSIGHTS_MEASURE.paid
@@ -78,7 +82,7 @@ export function LargestOpenClaims({
                     </div>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                    <StatusBadge status={c.status} />
+                    <StatusBadge status={c.status} inLink />
                     <span>{c.line_of_business}</span>
                     <span>· {c.cause_of_loss ?? "Cause not given"}</span>
                     <span>· {formatDate(c.date_of_loss)}</span>
@@ -100,9 +104,11 @@ export function LargestOpenClaims({
                   <th className="py-2 pr-3 font-medium">Date of Loss</th>
                   <th className="py-2 pr-3 font-medium">Status</th>
                   <th className="py-2 pr-3 font-medium text-right">
-                    {INSIGHTS_MEASURE_LABELS[rankBy]}
+                    <TermLabel term={rankTerm}>{INSIGHTS_MEASURE_LABELS[rankBy]}</TermLabel>
                   </th>
-                  <th className="py-2 font-medium text-right">{otherLabel}</th>
+                  <th className="py-2 font-medium text-right">
+                    <TermLabel term={otherTerm}>{otherLabel}</TermLabel>
+                  </th>
                 </tr>
               </thead>
               <tbody>

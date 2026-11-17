@@ -118,6 +118,11 @@ export const SERVER_FN_ACCESS: Record<string, ServerFnAccess> = {
   fetchAgencyOverview: "read",
   fetchClaimDetail: "read",
   fetchPolicyDetail: "read",
+  // claim-watch-bulk.functions.ts (fix 50)
+  watchClaimsBulk: "write",
+  // table-prefs.functions.ts (fix 50): saving is skipped while viewing as a client.
+  fetchClaimsListPrefs: "read",
+  saveClaimsListPrefs: "write",
   // saved-views.functions.ts
   listSavedViews: "read",
   createSavedView: "write",

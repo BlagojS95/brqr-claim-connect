@@ -70,6 +70,8 @@ export function toClaim(row: ClaimRow, clientName: string): AgencyClaim {
     waiting_on: row.waiting_on ?? null,
     last_activity_at: row.last_activity_at ?? null,
     created_at: row.created_at,
+    // ?? null: rows read before the carrier_updated_at migration has been applied
+    carrier_updated_at: row.carrier_updated_at ?? null,
     cause_of_loss_id: row.cause_of_loss_id ?? null,
     cause_of_loss: row.causes_of_loss?.name ?? null,
     loss_location: row.loss_location ?? null,
