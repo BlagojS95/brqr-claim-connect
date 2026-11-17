@@ -23,6 +23,7 @@ import { SHARED_REPORT_KIND } from "@/lib/shared-reports";
 import { LossSummaryExport } from "@/components/reports/loss-summary-export";
 import { LossSummaryTable } from "@/components/reports/loss-summary-table";
 import { GlossaryTip } from "@/components/glossary-tip";
+import { DataFreshness } from "@/components/data-freshness";
 import { ShareReportButton, SharedLinksList } from "@/components/reports/share-links";
 
 const ALL = "";
@@ -167,6 +168,7 @@ export function LossSummary() {
       </div>
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {!isLoading && <DataFreshness claims={clientClaims} />}
       {!isLoading && summary.totals.claims === 0 ? (
         <p className="text-sm text-muted-foreground">No claims match these filters.</p>
       ) : (

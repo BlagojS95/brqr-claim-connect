@@ -14,6 +14,7 @@ import {
   CLAIM_EDITABLE_SELECT,
   QuickEditSchema,
   claimUpdateActivityBody,
+  carrierDataChanged,
   diffClaimValues,
   type ClaimEditableValues,
   type FieldChange,
@@ -70,16 +71,17 @@ export const updateClaimQuickEdit = createServerFn({ method: "POST" })
       unprocessable("Claims can only be assigned to agency staff");
     }
 
+    const now = new Date().toISOString();
     const names = await staffNames([current.assigned_to, next.assigned_to]);
     const { update, changes } = diffClaimValues(current, next, {
-      now: new Date(),
+      now: new Date(now),
       staffName: (id) => (id ? (names.get(id) ?? "Former staff member") : "Unassigned"),
     });
     if (!changes.length) return { changes };
 
     const { data: updated, error } = await context.supabase
       .from("claims")
-      .update(update)
+      .update(carrierDataChanged(changes) ? { ...update, carrier_updated_at: now } : update)
       .eq("id", claimId)
       .select("id");
     if (error) throw new Error(`Couldn't save the claim: ${error.message}`);

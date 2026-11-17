@@ -40,6 +40,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GlossaryTip, TermLabel } from "@/components/glossary-tip";
+import { DataFreshness } from "@/components/data-freshness";
 import { MEASURE_TERM } from "@/lib/glossary";
 import type { GlossaryTerm } from "@/lib/glossary";
 
@@ -308,6 +309,7 @@ function InsightsPage() {
             : change(avgClosed, priorAvgClosed))}
         />
       </div>
+      <DataFreshness claims={current} />
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
 

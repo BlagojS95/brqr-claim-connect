@@ -127,6 +127,7 @@ export const applyCarrierImport = createServerFn({ method: "POST" })
     const claims = await loadCarrierClaims(supabase, data.carrier);
     const preview = buildCarrierImportPreview(data.rows, claims);
 
+    const importedAt = new Date().toISOString();
     const result: CarrierImportApplyResult = {
       updated: 0,
       unchanged: preview.unchanged.length,
@@ -135,7 +136,10 @@ export const applyCarrierImport = createServerFn({ method: "POST" })
     };
     const activity: Database["public"]["Tables"]["claim_activity"]["Insert"][] = [];
     for (const match of preview.changed) {
-      const { error } = await supabase.from("claims").update(match.update).eq("id", match.claimId);
+      const { error } = await supabase
+        .from("claims")
+        .update({ ...match.update, carrier_updated_at: importedAt })
+        .eq("id", match.claimId);
       if (error) {
         result.failed.push({
           row: match.row,

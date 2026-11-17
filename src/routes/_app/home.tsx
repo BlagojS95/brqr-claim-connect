@@ -21,6 +21,7 @@ import { TermLabel } from "@/components/glossary-tip";
 import { cn } from "@/lib/utils";
 import { AttentionQueue } from "@/components/attention-queue";
 import { Button } from "@/components/ui/button";
+import { DataFreshness } from "@/components/data-freshness";
 import { PlusCircle, Bell, FileText, DollarSign, ClipboardList, Calendar } from "lucide-react";
 
 export const Route = createFileRoute("/_app/home")({
@@ -316,6 +317,7 @@ function ClaimsSummary({ claims }: { claims: AgencyClaim[] }) {
               </TermLabel>
               <span className="font-semibold text-navy">{fmtCurrency(incurred)}</span>
             </div>
+            <DataFreshness claims={claims} />
           </div>
         </div>
       </div>

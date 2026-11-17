@@ -45,6 +45,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { formatDateTime } from "@/lib/claim-quick-edit";
 import { ArrowLeft, FileDown, Trash2, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_app/claims/$claimId")({
@@ -233,6 +234,10 @@ function ClaimDetail() {
         <Field label="Line of Business" value={claim.line_of_business} />
         <Field label="Date of Loss" value={formatDate(claim.date_of_loss)} />
         <Field label="Adjuster" value={claim.adjuster_name} />
+        <Field
+          label="Last updated from carrier"
+          value={claim.carrier_updated_at ? formatDateTime(claim.carrier_updated_at) : "Not yet"}
+        />
         <Field label="Paid" term="paid" value={`$${paidAmount(claim).toLocaleString()}`} />
         <Field
           label="Reserve"
