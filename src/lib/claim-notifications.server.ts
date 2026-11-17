@@ -65,7 +65,7 @@ function buildEmailHtml(opts: {
           <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:8px;overflow:hidden;border:1px solid #E0E5EB;">
             <tr>
               <td style="background-color:${NAVY};padding:24px 32px;">
-                <span style="color:#F9FCFF;font-size:20px;font-weight:700;">BRQR Claims Portal</span>
+                <span style="color:#F9FCFF;font-size:20px;font-weight:700;">ClaimsQR</span>
                 <div style="height:3px;width:48px;background-color:${GOLD};margin-top:10px;"></div>
               </td>
             </tr>
@@ -121,7 +121,7 @@ function buildEmailHtml(opts: {
 // env var says otherwise. The sender must be on a domain verified in Resend;
 // the resend.dev sandbox sender can only deliver to the Resend account owner.
 const DEFAULT_RECIPIENT = "service@brqr.com";
-const DEFAULT_SENDER = "BRQR Claims Portal <onboarding@resend.dev>";
+const DEFAULT_SENDER = "ClaimsQR <onboarding@resend.dev>";
 
 export function notificationRecipient(): string {
   return process.env.CLAIM_NOTIFICATION_EMAIL || DEFAULT_RECIPIENT;

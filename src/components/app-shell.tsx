@@ -77,7 +77,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-64 flex-col bg-sidebar text-sidebar-foreground">
         <div className="p-6 border-b border-sidebar-border">
-          <img src={claimsQrLogo} alt="Claims QR" className="h-11 w-auto" />
+          <img src={claimsQrLogo} alt="ClaimsQR" className="h-11 w-auto" />
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {visible.map((item) => {
@@ -117,7 +117,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden flex items-center justify-between p-4 bg-navy text-navy-foreground">
-          <img src={claimsQrLogo} alt="Claims QR" className="h-8 w-auto" />
+          <img src={claimsQrLogo} alt="ClaimsQR" className="h-8 w-auto" />
           {/* Every sidebar page and Sign out; the bottom bar holds the main five. */}
           <MobileMenu
             items={visible}
