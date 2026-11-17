@@ -27,6 +27,7 @@ import { ClaimInternalNotes } from "@/components/claim-internal-notes";
 import { ClaimRecoveryEditor, ClaimReserveEditor } from "@/components/claim-reserve-editor";
 import { ClaimOutcome } from "@/components/claim/claim-outcome";
 import { WaitingOnControl } from "@/components/claim/waiting-on-control";
+import { ClaimResponseTimes } from "@/components/staff/claim-response-times";
 import { ClaimDocumentRequests, RequestedFromYouCard } from "@/components/claim/document-requests";
 import { Button } from "@/components/ui/button";
 import {
@@ -253,6 +254,9 @@ function ClaimDetail() {
           label="Waiting on"
           value={<WaitingOnControl claim={claim} editable={role === "agency_admin"} />}
         />
+        {role === "agency_admin" && (
+          <Field label="Response times" value={<ClaimResponseTimes claimId={claim.id} />} />
+        )}
         {role === "agency_admin" ? (
           <Field label="For reports" value={<ClaimReportFlags claim={claim} />} />
         ) : (

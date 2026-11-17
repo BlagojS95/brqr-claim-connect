@@ -11,6 +11,10 @@
 // your attention" uses (attention-queue.ts), run through buildAttentionQueue
 // itself so the two lists can't drift apart. Document requests are left out:
 // those wait on the client, not the agency.
+//
+// Response targets (fix 56): a claim still not sent to the carrier, or sent
+// with no first carrier contact, past its business-day target gets a "Past
+// response target" reason and the item is flagged (response-targets.ts).
 
 import {
   ATTENTION_THRESHOLDS,
@@ -20,6 +24,11 @@ import {
 } from "@/lib/attention-queue";
 import { CLAIM_STATUS, type ClaimStatus } from "@/lib/claim-status";
 import { OUTBOX_STATUS } from "@/lib/claim-submission";
+import {
+  claimResponseTimes,
+  DEFAULT_RESPONSE_TARGETS,
+  type ResponseTargets,
+} from "@/lib/response-targets";
 import {
   claimWaitingOn,
   daysSince,
@@ -31,6 +40,7 @@ import {
 export { ATTENTION_THRESHOLDS as STAFF_QUEUE_THRESHOLDS };
 
 export const STAFF_QUEUE_REASONS = [
+  "past_target",
   "waiting_on_agency",
   "notification_failed",
   "follow_up",
@@ -42,6 +52,7 @@ export type StaffQueueReasonKind = (typeof STAFF_QUEUE_REASONS)[number];
 
 /** Filter labels; each reason on a row has its own, more specific text. */
 export const STAFF_QUEUE_REASON_LABELS: Record<StaffQueueReasonKind, string> = {
+  past_target: "Past response target",
   waiting_on_agency: "Waiting on agency",
   notification_failed: "Notification failed",
   follow_up: "Follow-up due",
@@ -71,6 +82,8 @@ export interface StaffQueueClaim {
   assigned_to: string | null;
   last_activity_at: string | null;
   created_at: string;
+  submitted_to_carrier_at: string | null;
+  first_carrier_contact_at: string | null;
 }
 
 export interface StaffQueueOutboxRow {
@@ -109,6 +122,8 @@ export interface StaffQueueItem {
   /** The oldest reason's age and start. */
   ageDays: number;
   since: string;
+  /** Past a response target (fix 56): shown as a red "Past target" badge. */
+  pastTarget: boolean;
 }
 
 const OUTBOX_KIND_LABELS: Record<string, string> = {
@@ -128,7 +143,11 @@ function compareReasons(a: StaffQueueReason, b: StaffQueueReason): number {
  * Builds the queue: one item per open claim with at least one reason. Closed
  * claims never appear. Sorted oldest first (see sortStaffQueue).
  */
-export function buildStaffQueue(input: StaffQueueInput, now: Date): StaffQueueItem[] {
+export function buildStaffQueue(
+  input: StaffQueueInput,
+  now: Date,
+  targets: ResponseTargets = DEFAULT_RESPONSE_TARGETS,
+): StaffQueueItem[] {
   const claims = new Map(
     input.claims.filter((c) => c.status !== CLAIM_STATUS.closed).map((c) => [c.id, c]),
   );
@@ -138,6 +157,24 @@ export function buildStaffQueue(input: StaffQueueInput, now: Date): StaffQueueIt
     if (list) list.push(reason);
     else reasons.set(claimId, [reason]);
   };
+
+  // Past a response target (fix 56). Aged from when that step started.
+  for (const claim of claims.values()) {
+    const times = claimResponseTimes(claim, targets, now);
+    if (!times.pastTarget || times.pendingDays === null) continue;
+    const submit = times.pending === "submit";
+    const since = submit ? claim.created_at : claim.submitted_to_carrier_at!;
+    const age = daysSince(since, now);
+    if (age === null) continue;
+    const target = submit ? targets.submitTargetDays : targets.firstContactTargetDays;
+    const days = (n: number) => `${n} business day${n === 1 ? "" : "s"}`;
+    add(claim.id, {
+      kind: "past_target",
+      label: `${submit ? "Not sent to carrier" : "No carrier contact"} after ${days(times.pendingDays)} (target ${days(target)})`,
+      since,
+      ageDays: age,
+    });
+  }
 
   // The agency has the ball.
   for (const claim of claims.values()) {
@@ -205,6 +242,7 @@ export function buildStaffQueue(input: StaffQueueInput, now: Date): StaffQueueIt
       reasons: list,
       ageDays: list[0].ageDays,
       since: list[0].since,
+      pastTarget: list.some((r) => r.kind === "past_target"),
     });
   }
   return sortStaffQueue(items, "oldest");

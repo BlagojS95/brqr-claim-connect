@@ -11,6 +11,8 @@ import {
   type StaffQueueOutboxRow,
 } from "@/lib/staff-queue";
 import type { WaitingOn } from "@/lib/waiting-on";
+import { loadResponseTargets } from "@/lib/response-targets.server";
+import type { ResponseTargets } from "@/lib/response-targets";
 
 interface ClaimRow {
   id: string;
@@ -22,6 +24,8 @@ interface ClaimRow {
   assigned_to: string | null;
   last_activity_at: string | null;
   created_at: string;
+  submitted_to_carrier_at: string | null;
+  first_carrier_contact_at: string | null;
   clients: { name: string | null; company_name: string | null } | null;
 }
 
@@ -35,6 +39,8 @@ interface EmailRow {
 
 export interface StaffQueueResult {
   items: StaffQueueItem[];
+  /** The response targets the "Past target" flags used (fix 56). */
+  targets: ResponseTargets;
 }
 
 // Staff work queue (fix 52). Agency admins only: the role is checked here on
@@ -44,12 +50,12 @@ export const fetchStaffQueue = createServerFn({ method: "GET" })
   .middleware([requireAgencyAdmin])
   .handler(async ({ context }): Promise<StaffQueueResult> => {
     const { supabase } = context;
-    const [claimRows, emailRows, outbox] = await Promise.all([
+    const [claimRows, emailRows, outbox, targets] = await Promise.all([
       fetchAll<ClaimRow>((from, to) =>
         supabase
           .from("claims")
           .select(
-            "id, claim_number, claim_type, client_id, status, waiting_on, assigned_to, last_activity_at, created_at, clients(name, company_name)",
+            "id, claim_number, claim_type, client_id, status, waiting_on, assigned_to, last_activity_at, created_at, submitted_to_carrier_at, first_carrier_contact_at, clients(name, company_name)",
           )
           .neq("status", CLAIM_STATUS.closed)
           .order("id")
@@ -70,6 +76,7 @@ export const fetchStaffQueue = createServerFn({ method: "GET" })
           .order("id")
           .range(from, to),
       ),
+      loadResponseTargets(supabase),
     ]);
 
     const claims: StaffQueueClaim[] = claimRows.map(({ clients, ...c }) => ({
@@ -84,5 +91,8 @@ export const fetchStaffQueue = createServerFn({ method: "GET" })
       row_key: e.claim_contacts?.row_key ?? null,
     }));
 
-    return { items: buildStaffQueue({ claims, contactEmails, outbox }, new Date()) };
+    return {
+      items: buildStaffQueue({ claims, contactEmails, outbox }, new Date(), targets),
+      targets,
+    };
   });

@@ -32,8 +32,12 @@ const claim = (fields: Partial<StaffQueueClaim> & { id: string }): StaffQueueCla
   assigned_to: null,
   last_activity_at: daysAgo(1),
   created_at: daysAgo(30),
+  submitted_to_carrier_at: null,
+  first_carrier_contact_at: null,
   ...fields,
 });
+
+const RELAXED = { submitTargetDays: 30, firstContactTargetDays: 30 };
 
 const input = (fields: Partial<StaffQueueInput>): StaffQueueInput => ({
   claims: [],
@@ -148,6 +152,7 @@ describe("buildStaffQueue rules", () => {
         ],
       }),
       now,
+      RELAXED, // keep the response-target rule out of this test
     );
     expect(kinds(items)).toEqual([["a", ["awaiting_claim_number"]]]);
   });
@@ -231,6 +236,7 @@ describe("buildStaffQueue rules", () => {
     );
     expect(items).toHaveLength(1);
     expect(items[0].reasons.map((r) => r.kind)).toEqual([
+      "past_target",
       "awaiting_claim_number",
       "notification_failed",
       "waiting_on_agency",
@@ -281,6 +287,86 @@ describe("buildStaffQueue rules", () => {
       clientName: "Bravo LLC",
       assignedTo: STAFF_1,
     });
+  });
+});
+
+describe("response targets on the queue (fix 56)", () => {
+  // now is Mon 16 Nov 2026 10:00 EST.
+  it("flags a claim not sent to the carrier past the submit target", () => {
+    const items = buildStaffQueue(
+      input({
+        claims: [
+          // Reported Thu 12 Nov: Fri + Mon = 2 business days > 1.
+          claim({
+            id: "a",
+            status: CLAIM_STATUS.submitted,
+            claim_number: "X-1",
+            created_at: "2026-11-12T15:00:00Z",
+          }),
+          // Reported Fri 13 Nov: Mon = 1, within target.
+          claim({
+            id: "b",
+            status: CLAIM_STATUS.submitted,
+            claim_number: "X-2",
+            created_at: "2026-11-13T15:00:00Z",
+          }),
+        ],
+      }),
+      now,
+    );
+    expect(kinds(items)).toEqual([["a", ["past_target"]]]);
+    expect(items[0].pastTarget).toBe(true);
+    expect(items[0].reasons[0].label).toBe(
+      "Not sent to carrier after 2 business days (target 1 business day)",
+    );
+    expect(items[0].ageDays).toBe(4);
+  });
+
+  it("flags a sent claim with no carrier contact past the first-contact target", () => {
+    const sent = (id: string, submitted: string, contact: string | null = null) =>
+      claim({ id, submitted_to_carrier_at: submitted, first_carrier_contact_at: contact });
+    const items = buildStaffQueue(
+      input({
+        claims: [
+          sent("a", "2026-11-10T15:00:00Z"), // Tue: Wed..Mon = 4 > 3
+          sent("b", "2026-11-11T15:00:00Z"), // Wed: Thu, Fri, Mon = 3
+          sent("c", "2026-11-02T15:00:00Z", "2026-11-03T15:00:00Z"), // contacted
+        ],
+      }),
+      now,
+    );
+    expect(kinds(items)).toEqual([["a", ["past_target"]]]);
+    expect(items[0].reasons[0].label).toBe(
+      "No carrier contact after 4 business days (target 3 business days)",
+    );
+  });
+
+  it("uses the configured targets and leaves the flag off otherwise", () => {
+    const late = claim({
+      id: "a",
+      status: CLAIM_STATUS.submitted,
+      claim_number: "X-1",
+      created_at: "2026-11-12T15:00:00Z",
+    });
+    expect(buildStaffQueue(input({ claims: [late] }), now, RELAXED)).toEqual([]);
+    const waiting = buildStaffQueue(
+      input({ claims: [claim({ id: "b", waiting_on: WAITING_ON.agency })] }),
+      now,
+    );
+    expect(waiting[0].pastTarget).toBe(false);
+  });
+
+  it("filters by the past-target reason", () => {
+    const items = buildStaffQueue(
+      input({
+        claims: [
+          claim({ id: "a", submitted_to_carrier_at: "2026-11-10T15:00:00Z" }),
+          claim({ id: "b", waiting_on: WAITING_ON.agency }),
+        ],
+      }),
+      now,
+    );
+    expect(filterStaffQueue(items, { reason: "past_target" }).map((i) => i.claimId)).toEqual(["a"]);
   });
 });
 

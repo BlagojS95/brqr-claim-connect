@@ -20,6 +20,8 @@ import {
 import { daysLabel } from "@/lib/waiting-on";
 import { StatusBadge } from "@/components/status-badge";
 import { ClaimQuickEditButton } from "@/components/staff/claim-quick-edit";
+import { PastTargetBadge } from "@/components/staff/past-target-badge";
+import { ResponseTargetsPanel } from "@/components/staff/response-targets-panel";
 import { cn } from "@/lib/utils";
 
 // Staff work queue (fix 52), the agency admins' landing page. Not nested under
@@ -224,6 +226,8 @@ function StaffQueuePage() {
           </div>
         </>
       )}
+
+      <ResponseTargetsPanel targets={queue.data?.targets} staff={staff} onSaved={refetch} />
     </div>
   );
 }
@@ -274,6 +278,7 @@ function ClaimLink({ item }: { item: StaffQueueItem }) {
       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span className="truncate">{item.claimType}</span>
         <StatusBadge status={item.status} />
+        {item.pastTarget && <PastTargetBadge />}
       </div>
     </div>
   );
