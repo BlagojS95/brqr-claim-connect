@@ -119,6 +119,27 @@ export const SERVER_FN_ACCESS: Record<string, ServerFnAccess> = {
   endViewAsClient: "view-session",
   fetchViewAsSession: "view-session",
   listViewAsSessions: "admin",
+  // Phase 7 staff tools: agency-only, so refused while viewing as a client.
+  // carrier-email.functions.ts (fix 54)
+  fetchEmailTemplates: "admin",
+  fetchCarrierEmailDraft: "admin",
+  sendCarrierEmail: "write",
+  saveEmailTemplate: "write",
+  deleteEmailTemplate: "write",
+  // carrier-import.functions.ts (fix 53)
+  fetchCarrierImportSetup: "admin",
+  fetchCarrierClaims: "admin",
+  saveCarrierImportMapping: "write",
+  applyCarrierImport: "write",
+  // claim-quick-edit.functions.ts (fix 53)
+  fetchClaimQuickEdit: "admin",
+  updateClaimQuickEdit: "write",
+  // response-targets.functions.ts (fix 56)
+  fetchClaimResponseTimes: "admin",
+  updateResponseTargets: "write",
+  fetchStaffResponseMetrics: "admin",
+  // staff-queue.functions.ts (fix 52)
+  fetchStaffQueue: "admin",
 };
 
 /**
