@@ -135,7 +135,7 @@ export function ShareReportButton({
                 onClick={() => void copy()}
                 aria-label="Copy link"
               >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -215,7 +215,7 @@ export function SharedLinksList({ kind, clientId }: { kind: SharedReportKind; cl
                 </div>
               </div>
               <span
-                className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full border ${STATE_TONE[state]}`}
+                className={`text-[0.75rem] uppercase tracking-wide px-2 py-1 rounded-full border ${STATE_TONE[state]}`}
               >
                 {STATE_LABEL[state]}
               </span>

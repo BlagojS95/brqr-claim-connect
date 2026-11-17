@@ -186,7 +186,7 @@ function AdminPage() {
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-navy">Admin</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage all clients and open claims.</p>
-        <Link to="/admin/import" className="inline-block mt-2 text-sm text-navy underline hover:text-gold">Update claims from a carrier file</Link>
+        <Link to="/admin/import" className="inline-block mt-2 text-sm text-navy underline hover:text-gold-text">Update claims from a carrier file</Link>
       </div>
 
       <CsvImportCard />
@@ -333,7 +333,7 @@ function AdminPage() {
                       <td className="p-3">{c?.client_name ?? "—"}</td>
                       <td className="p-3">{c?.claim_type ?? "—"}</td>
                       <td className="p-3 font-mono text-xs">
-                        <Link to="/claims/$claimId" params={{ claimId }} className="text-navy hover:text-gold">
+                        <Link to="/claims/$claimId" params={{ claimId }} className="text-navy hover:text-gold-text">
                           {c?.claim_number ?? "View"}
                         </Link>
                       </td>
@@ -384,7 +384,7 @@ function AdminPage() {
                   <td className="p-3">{formatDate(c.date_of_loss)}</td>
                   <td className="p-3">{c.claim_type}</td>
                   <td className="p-3 font-mono text-xs">
-                    <Link to="/claims/$claimId" params={{ claimId: c.id }} className="text-navy hover:text-gold">
+                    <Link to="/claims/$claimId" params={{ claimId: c.id }} className="text-navy hover:text-gold-text">
                       {c.claim_number ?? "—"}
                     </Link>
                   </td>

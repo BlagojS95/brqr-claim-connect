@@ -268,7 +268,7 @@ function ClaimLink({ item }: { item: StaffQueueItem }) {
       <Link
         to="/claims/$claimId"
         params={{ claimId: item.claimId }}
-        className="font-medium text-navy hover:text-gold underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+        className="font-medium text-navy hover:text-gold-text underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
       >
         {/* Display copy for a missing claim number, not a claim status. */}
         <span className={item.claimNumber ? "font-mono text-xs" : "italic"}>

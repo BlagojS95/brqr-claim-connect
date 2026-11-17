@@ -72,11 +72,11 @@ export function MobileBottomNav({ activePath }: { activePath: string | null }) {
         to={item.to}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex-1 min-w-0 flex flex-col items-center py-2 text-[10px] gap-1",
+          "flex-1 min-w-0 flex flex-col items-center py-2 text-[0.75rem] gap-1",
           active ? "text-gold" : "text-sidebar-foreground/70",
         )}
       >
-        <Icon className="h-5 w-5" />
+        <Icon className="h-5 w-5" aria-hidden />
         {item.label}
       </Link>
     );
@@ -92,7 +92,7 @@ export function MobileBottomNav({ activePath }: { activePath: string | null }) {
       <Sheet open={reportOpen} onOpenChange={setReportOpen}>
         <SheetTrigger
           className={cn(
-            "flex-1 min-w-0 flex flex-col items-center pb-2 text-[10px] gap-1 focus-visible:outline-none group",
+            "flex-1 min-w-0 flex flex-col items-center pb-2 text-[0.75rem] gap-1 focus-visible:outline-none group",
             reportActive ? "text-gold" : "text-sidebar-foreground/70",
           )}
         >
@@ -102,7 +102,7 @@ export function MobileBottomNav({ activePath }: { activePath: string | null }) {
               reportActive && "ring-gold/40",
             )}
           >
-            <Plus className="h-6 w-6" />
+            <Plus className="h-6 w-6" aria-hidden />
           </span>
           Report
         </SheetTrigger>
@@ -130,7 +130,7 @@ export function MobileBottomNav({ activePath }: { activePath: string | null }) {
                     )}
                   >
                     <span className="h-10 w-10 shrink-0 rounded-full bg-navy text-navy-foreground flex items-center justify-center">
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-5 w-5" aria-hidden />
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="block font-medium text-navy">{choice.label}</span>

@@ -184,9 +184,9 @@ function CarrierImportPage() {
     <div className="space-y-6">
       <Link
         to="/admin"
-        className="inline-flex items-center gap-1 text-sm text-navy hover:text-gold"
+        className="inline-flex items-center gap-1 text-sm text-navy hover:text-gold-text"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to admin
+        <ArrowLeft className="h-4 w-4" aria-hidden /> Back to admin
       </Link>
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-navy">Carrier import</h1>
@@ -226,7 +226,7 @@ function CarrierImportPage() {
           <div className="space-y-1.5">
             <span className="text-sm font-medium leading-none">2. Carrier file</span>
             <label className="flex items-center gap-2 border border-dashed border-border rounded-md px-4 py-2 cursor-pointer hover:bg-muted/30 text-sm text-muted-foreground min-w-0">
-              <Upload className="h-4 w-4 shrink-0" />
+              <Upload className="h-4 w-4 shrink-0" aria-hidden />
               <span className="truncate">{file ? file.name : "Choose CSV or Excel file"}</span>
               <input
                 type="file"
@@ -422,7 +422,7 @@ function MatchedItem({ match }: { match: MatchedRow }) {
         <Link
           to="/claims/$claimId"
           params={{ claimId: match.claimId }}
-          className="font-mono font-medium text-navy hover:text-gold break-all"
+          className="font-mono font-medium text-navy hover:text-gold-text break-all"
         >
           {match.claimNumber}
         </Link>

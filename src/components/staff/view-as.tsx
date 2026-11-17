@@ -51,7 +51,7 @@ export function ViewAsClientButton({
         }
       }}
     >
-      <Eye className="h-3.5 w-3.5 mr-1" /> View as client
+      <Eye className="h-3.5 w-3.5 mr-1" aria-hidden /> View as client
     </Button>
   );
 }

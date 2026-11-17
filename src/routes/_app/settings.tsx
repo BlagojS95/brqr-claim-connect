@@ -167,7 +167,7 @@ function SettingsPage() {
 
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading settings…
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading settings…
         </div>
       ) : error || !data ? (
         <p className="text-sm text-destructive">
@@ -176,7 +176,7 @@ function SettingsPage() {
       ) : (
         <>
           <SettingsSection
-            icon={<Mail className="h-5 w-5" />}
+            icon={<Mail className="h-5 w-5" aria-hidden />}
             title="Email notifications"
             description="Emails ClaimsQR sends to your login address."
           >
@@ -193,14 +193,14 @@ function SettingsPage() {
           {isClientAdmin && (
             <>
               <SettingsSection
-                icon={<Users className="h-5 w-5" />}
+                icon={<Users className="h-5 w-5" aria-hidden />}
                 title="Users"
                 description="Everyone at your company who can sign in, and what they can see."
               >
                 <TeamUsers />
               </SettingsSection>
               <SettingsSection
-                icon={<MapPin className="h-5 w-5" />}
+                icon={<MapPin className="h-5 w-5" aria-hidden />}
                 title="Locations"
                 description="Your sites. Claims can be filed under a location."
               >
@@ -211,7 +211,7 @@ function SettingsPage() {
 
           {agency && (
             <SettingsSection
-              icon={<Building2 className="h-5 w-5" />}
+              icon={<Building2 className="h-5 w-5" aria-hidden />}
               title="Agency"
               description="Only agency admins see this section."
             >
@@ -247,9 +247,9 @@ function SettingsPage() {
                   onClick={() => testDigest.mutate()}
                 >
                   {testDigest.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                   ) : (
-                    <Send className="h-4 w-4" />
+                    <Send className="h-4 w-4" aria-hidden />
                   )}
                   Send me a test digest
                 </Button>
@@ -291,7 +291,7 @@ function SettingsPage() {
 
       {role === "agency_admin" && (
         <SettingsSection
-          icon={<FileText className="h-5 w-5" />}
+          icon={<FileText className="h-5 w-5" aria-hidden />}
           title="Email templates"
           description='Templates for "Email carrier" on a claim. Placeholders are filled in from the claim.'
         >

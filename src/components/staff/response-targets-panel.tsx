@@ -171,7 +171,7 @@ function StaffMetrics({ staff }: { staff: readonly StaffMember[] }) {
         aria-expanded={open}
         aria-controls="staff-response-metrics"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-2 text-left text-sm font-medium text-navy hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+        className="flex w-full items-center justify-between gap-2 text-left text-sm font-medium text-navy hover:text-gold-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
       >
         Staff response times (last {STAFF_METRICS_WINDOW_DAYS} days)
         <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />

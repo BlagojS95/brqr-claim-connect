@@ -37,7 +37,7 @@ function PolicyDetailPage() {
       to="/policies"
       className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-navy"
     >
-      <ArrowLeft className="h-4 w-4" /> Back to policies
+      <ArrowLeft className="h-4 w-4" aria-hidden /> Back to policies
     </Link>
   );
 
@@ -61,7 +61,7 @@ function PolicyDetailPage() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-md bg-navy/5 flex items-center justify-center">
-            <Shield className="h-5 w-5 text-navy" />
+            <Shield className="h-5 w-5 text-navy" aria-hidden />
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-navy">
@@ -71,7 +71,7 @@ function PolicyDetailPage() {
           </div>
         </div>
         <span
-          className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full border ${
+          className={`text-[0.75rem] uppercase tracking-wide px-2 py-1 rounded-full border ${
             active
               ? "bg-emerald-50 text-emerald-700 border-emerald-200"
               : "bg-slate-100 text-slate-600 border-slate-200"
@@ -87,7 +87,7 @@ function PolicyDetailPage() {
           label="Carrier"
           value={
             <span className="inline-flex items-center gap-2">
-              <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+              <Building2 className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
               {policy.carrier ?? "—"}
             </span>
           }
@@ -96,7 +96,7 @@ function PolicyDetailPage() {
           label="Term"
           value={
             <span className="inline-flex items-center gap-2">
-              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
               {formatDate(policy.effective_date)} → {formatDate(policy.expiry_date)}
             </span>
           }
@@ -105,7 +105,7 @@ function PolicyDetailPage() {
           label="Premium"
           value={
             <span className="inline-flex items-center gap-2">
-              <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+              <DollarSign className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
               {policy.premium == null ? "—" : fmt(Number(policy.premium))}
             </span>
           }
@@ -115,7 +115,7 @@ function PolicyDetailPage() {
             label="Location"
             value={
               <span className="inline-flex items-center gap-2">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                <MapPin className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
                 {policy.location_name}
               </span>
             }

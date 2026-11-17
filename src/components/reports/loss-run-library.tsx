@@ -168,7 +168,7 @@ export function LossRunLibrary() {
       {/* Holder */}
       <section className="rounded-lg border border-border bg-card">
         <div className="p-5 border-b border-border flex items-center gap-2">
-          <FolderArchive className="h-4 w-4 text-gold" />
+          <FolderArchive className="h-4 w-4 text-gold" aria-hidden />
           <h2 className="font-semibold text-navy">Loss Run Library</h2>
         </div>
         <div className="p-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -188,9 +188,9 @@ export function LossRunLibrary() {
                           key={path}
                           type="button"
                           onClick={() => download(path)}
-                          className="inline-flex items-center gap-1 text-xs text-navy hover:text-gold"
+                          className="inline-flex items-center gap-1 text-xs text-navy hover:text-gold-text"
                         >
-                          <Download className="h-3.5 w-3.5" />
+                          <Download className="h-3.5 w-3.5" aria-hidden />
                           Download{card.files.length > 1 ? ` ${i + 1}` : ""}
                         </button>
                       ))}
@@ -227,7 +227,7 @@ export function LossRunLibrary() {
       {/* Requester */}
       <section className="rounded-lg border border-border bg-card">
         <div className="p-5 border-b border-border flex items-center gap-2">
-          <Send className="h-4 w-4 text-gold" />
+          <Send className="h-4 w-4 text-gold" aria-hidden />
           <h2 className="font-semibold text-navy">Request a Loss Run</h2>
         </div>
         <Tabs defaultValue="insurgrid" className="p-5">
@@ -294,7 +294,7 @@ export function LossRunLibrary() {
       {/* Past Requests */}
       <section className="rounded-lg border border-border bg-card">
         <div className="p-5 border-b border-border flex items-center gap-2">
-          <FileText className="h-4 w-4 text-gold" />
+          <FileText className="h-4 w-4 text-gold" aria-hidden />
           <h2 className="font-semibold text-navy">Your Requests</h2>
         </div>
         <div className="overflow-x-auto">

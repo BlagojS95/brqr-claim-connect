@@ -54,7 +54,7 @@ export function EmailTemplatesSettings() {
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading templates…
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading templates…
       </div>
     );
   }
@@ -106,7 +106,7 @@ export function EmailTemplatesSettings() {
                     onClick={() => setEditing(t.id)}
                     aria-label={`Edit ${t.name}`}
                   >
-                    <Pencil className="h-4 w-4" /> Edit
+                    <Pencil className="h-4 w-4" aria-hidden /> Edit
                   </Button>
                   {!t.key && <DeleteTemplateButton template={t} />}
                 </div>
@@ -126,7 +126,7 @@ export function EmailTemplatesSettings() {
 
       {editing !== NEW && (
         <Button variant="outline" className="w-full sm:w-auto" onClick={() => setEditing(NEW)}>
-          <Plus className="h-4 w-4" /> Add template
+          <Plus className="h-4 w-4" aria-hidden /> Add template
         </Button>
       )}
     </div>
@@ -215,7 +215,7 @@ function TemplateEditor({ template, onDone }: { template?: EmailTemplate; onDone
           disabled={invalid || mutation.isPending}
           className="w-full sm:w-auto bg-navy hover:bg-navy/90 text-navy-foreground"
         >
-          {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
           {template ? "Save template" : "Add template"}
         </Button>
       </div>
@@ -244,7 +244,7 @@ function DeleteTemplateButton({ template }: { template: EmailTemplate }) {
           disabled={mutation.isPending}
           aria-label={`Delete ${template.name}`}
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-4 w-4" aria-hidden />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

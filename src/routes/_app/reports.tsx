@@ -34,7 +34,7 @@ function ReportsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-navy flex items-center gap-2">
-          <FileBarChart className="h-6 w-6 text-gold" /> Reports
+          <FileBarChart className="h-6 w-6 text-gold" aria-hidden /> Reports
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           {companyReports

@@ -117,7 +117,7 @@ export function RenewalPack() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl md:text-2xl font-bold text-navy flex items-center gap-2">
-          <FileStack className="h-6 w-6 text-gold" /> Renewal Pack
+          <FileStack className="h-6 w-6 text-gold" aria-hidden /> Renewal Pack
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
           Five policy years of claims against premium for each line of business, in one PDF for your

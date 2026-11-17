@@ -192,7 +192,7 @@ export function ClaimContactsTable({
         onClick={() => sendEmail(contact)}
         disabled={!contact.email}
       >
-        <Mail className="h-3.5 w-3.5" /> Send Email
+        <Mail className="h-3.5 w-3.5" aria-hidden /> Send Email
       </Button>
     ),
     followUp: (
@@ -326,7 +326,7 @@ function NotesPopover({
     >
       <PopoverTrigger asChild>
         <Button variant="ghost" size="sm" className="text-navy">
-          <StickyNote className="h-3.5 w-3.5" /> Notes
+          <StickyNote className="h-3.5 w-3.5" aria-hidden /> Notes
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 space-y-2">

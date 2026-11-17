@@ -121,7 +121,7 @@ export function ExecutiveReportTab() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl md:text-2xl font-bold text-navy flex items-center gap-2">
-          <Presentation className="h-6 w-6 text-gold" /> Executive Loss Report
+          <Presentation className="h-6 w-6 text-gold" aria-hidden /> Executive Loss Report
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
           A PDF summary of a period against a comparison period: headline, loss ratios, large
