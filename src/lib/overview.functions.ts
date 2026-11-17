@@ -5,6 +5,8 @@ import { parseInput } from "@/lib/http-errors.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Tables } from "@/integrations/supabase/types";
 import { fetchAll } from "@/lib/fetch-all";
+import { ACCESS_ACTION } from "@/lib/access-log";
+import { logAccess } from "@/lib/access-log.server";
 import {
   CLAIM_SELECT,
   UUID_RE,
@@ -123,6 +125,16 @@ export const fetchClaimDetail = createServerFn({ method: "GET" })
     if (!claim) return null;
     // Viewing as a client (fix 55): another client's claim is "not found".
     if (context.viewingClientId && claim.client_id !== context.viewingClientId) return null;
+    // Access log (fix 51), not awaited. View-as sessions are logged on their own.
+    if (!context.viewingClientId) {
+      logAccess({
+        userId: context.userId,
+        clientId: claim.client_id,
+        claimId: claim.id,
+        action: ACCESS_ACTION.viewClaim,
+        dedupeMinutes: 10,
+      });
+    }
 
     const { clients: clientRow, ...row } = claim;
     return {

@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { parseInput } from "@/lib/http-errors.server";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
+import { ACCESS_ACTION } from "@/lib/access-log";
+import { logAccess } from "@/lib/access-log.server";
 
 const SaveNoteSchema = z.object({
   claimId: z.string().uuid(),
@@ -23,5 +25,11 @@ export const saveClaimInternalNote = createServerFn({ method: "POST" })
       updated_at: new Date().toISOString(),
     });
     if (error) throw new Error(error.message);
+    logAccess({
+      userId: context.userId,
+      claimId: data.claimId,
+      action: ACCESS_ACTION.addNote,
+      detail: "Internal note",
+    });
     return { ok: true };
   });

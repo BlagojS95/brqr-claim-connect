@@ -32,6 +32,8 @@ import {
   ShareDaysSchema,
 } from "@/lib/shared-reports";
 import { canManageShares, hashShareToken, storeSharedReport } from "@/lib/shared-reports.server";
+import { ACCESS_ACTION } from "@/lib/access-log";
+import { logAccess } from "@/lib/access-log.server";
 
 const isoDate = z.string().refine((v) => parseIsoDate(v) !== null, "Enter a valid date");
 const RangeSchema = z
@@ -86,7 +88,14 @@ export const downloadExecutiveReport = createServerFn({ method: "POST" })
   .inputValidator(parseInput(ReportRequestSchema))
   .handler(async ({ data, context }) => {
     await loadDevVars();
-    return renderReportFile(await buildReport(context, data));
+    const file = await renderReportFile(await buildReport(context, data));
+    logAccess({
+      userId: context.userId,
+      clientId: data.clientId,
+      action: ACCESS_ACTION.download,
+      detail: "Executive loss report (PDF)",
+    });
+    return file;
   });
 
 export const createExecutiveReportShare = createServerFn({ method: "POST" })
@@ -100,6 +109,12 @@ export const createExecutiveReportShare = createServerFn({ method: "POST" })
       forbidden("Only BRQR or your company's admin can share reports");
     }
     const report = await buildReport(context, data);
+    logAccess({
+      userId: context.userId,
+      clientId: data.clientId,
+      action: ACCESS_ACTION.share,
+      detail: "Executive loss report",
+    });
     return storeSharedReport({
       kind: SHARED_REPORT_KIND.executiveReport,
       clientId: data.clientId,

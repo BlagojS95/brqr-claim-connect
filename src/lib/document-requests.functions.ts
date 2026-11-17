@@ -5,6 +5,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
 import { buildDocumentRequestEmail } from "@/lib/claim-alerts";
+import { ACCESS_ACTION } from "@/lib/access-log";
+import { logAccess } from "@/lib/access-log.server";
 import {
   MAX_REQUEST_NAME_LENGTH,
   MAX_REQUEST_NOTE_LENGTH,
@@ -70,6 +72,12 @@ export const createDocumentRequest = createServerFn({ method: "POST" })
           note: checked.value.note,
           reason,
         }),
+    });
+    logAccess({
+      userId: context.userId,
+      claimId: data.claimId,
+      action: ACCESS_ACTION.editClaim,
+      detail: `Requested document: ${checked.value.name}`,
     });
     return { ok: true };
   });

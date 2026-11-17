@@ -2,11 +2,23 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Building2, FileText, Loader2, Mail, MapPin, Send, Users } from "lucide-react";
+import {
+  Activity,
+  Building2,
+  FileText,
+  Loader2,
+  Mail,
+  MapPin,
+  Send,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { TeamLocations, TeamUsers } from "@/components/settings/team-settings";
+import { ActivitySettings } from "@/components/settings/activity-settings";
+import { SecuritySettings } from "@/components/settings/security-settings";
 import { EmailTemplatesSettings } from "@/components/settings/email-templates-settings";
 import { useAuth } from "@/hooks/use-auth";
 import { CLIENT_USER_ROLE } from "@/lib/client-users";
@@ -289,6 +301,24 @@ function SettingsPage() {
             </SettingsSection>
           )}
         </>
+      )}
+
+      <SettingsSection
+        icon={<ShieldCheck className="h-5 w-5" />}
+        title="Security"
+        description="Two-step sign-in with an authenticator app."
+      >
+        <SecuritySettings />
+      </SettingsSection>
+
+      {(role === "agency_admin" || isClientAdmin) && (
+        <SettingsSection
+          icon={<Activity className="h-5 w-5" />}
+          title="Activity"
+          description="Who signed in, opened or changed a claim, or downloaded a file."
+        >
+          <ActivitySettings />
+        </SettingsSection>
       )}
 
       {role === "agency_admin" && (

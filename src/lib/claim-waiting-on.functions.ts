@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { parseInput, unprocessable } from "@/lib/http-errors.server";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
+import { ACCESS_ACTION } from "@/lib/access-log";
+import { logAccess } from "@/lib/access-log.server";
 import { CLAIM_STATUS } from "@/lib/claim-status";
 import { WAITING_ON_VALUES } from "@/lib/waiting-on";
 
@@ -25,5 +27,11 @@ export const updateClaimWaitingOn = createServerFn({ method: "POST" })
       .select("id");
     if (error) throw new Error(error.message);
     if (!updated?.length) unprocessable("This claim is closed or no longer exists");
+    logAccess({
+      userId: context.userId,
+      claimId: data.claimId,
+      action: ACCESS_ACTION.editClaim,
+      detail: `Waiting on: ${data.waitingOn}`,
+    });
     return { ok: true };
   });
