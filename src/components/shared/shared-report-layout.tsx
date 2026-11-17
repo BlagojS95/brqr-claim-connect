@@ -7,7 +7,7 @@ import claimsQrLogoWhite from "@/assets/claims-qr-logo-white.png";
 // else. No navigation, no account menu, no links into the portal.
 
 /** "Nov 17, 2026" from an expiry timestamp (expires_at is a timestamptz). */
-export function formatExpiry(expiresAt: string): string {
+function formatExpiry(expiresAt: string): string {
   const d = new Date(expiresAt);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("en-US", { dateStyle: "medium" });

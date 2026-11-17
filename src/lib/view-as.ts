@@ -46,6 +46,12 @@ export const SERVER_FN_ACCESS: Record<string, ServerFnAccess> = {
   // claim-activity.functions.ts
   fetchClaimActivity: "read", // POST, but only reads
   addClaimNote: "write",
+  // claims-advocate.functions.ts (fix 59)
+  fetchClaimsAdvocate: "read",
+  fetchClientAdvocate: "admin",
+  updateClientAdvocate: "write",
+  fetchAdvocateDefaults: "admin",
+  updateAdvocateDefaults: "write",
   // claim-contacts.functions.ts: seeds missing contact rows, skipped while viewing.
   ensureClaimContacts: "read",
   // claim-internal-notes.functions.ts

@@ -19,6 +19,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { CsvImportCard } from "@/components/csv-import-card";
 import { ClientSignatureView } from "@/components/client-signature-view";
 import { ViewAsClientButton, ViewAsLogCard } from "@/components/staff/view-as";
+import { ClientAdvocateDialog } from "@/components/help/client-advocate-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -222,6 +223,7 @@ function AdminPage() {
                       <div className="flex flex-col items-start gap-1.5">
                         {c.name}
                         <ViewAsClientButton clientId={c.id} clientName={c.company_name || c.name} />
+                        <ClientAdvocateDialog clientId={c.id} clientName={c.company_name || c.name} />
                       </div>
                     </td>
                     <td className="p-3">{c.company_name ?? "—"}</td>

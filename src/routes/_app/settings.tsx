@@ -2,12 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Building2, FileText, Loader2, Mail, MapPin, Send, Users } from "lucide-react";
+import { Building2, FileText, LifeBuoy, Loader2, Mail, MapPin, Send, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { TeamLocations, TeamUsers } from "@/components/settings/team-settings";
 import { EmailTemplatesSettings } from "@/components/settings/email-templates-settings";
+import { AdvocateSettings } from "@/components/settings/advocate-settings";
 import { useAuth } from "@/hooks/use-auth";
 import { CLIENT_USER_ROLE } from "@/lib/client-users";
 import { formatDate } from "@/lib/dates";
@@ -287,6 +288,16 @@ function SettingsPage() {
             </SettingsSection>
           )}
         </>
+      )}
+
+      {role === "agency_admin" && (
+        <SettingsSection
+          icon={<LifeBuoy className="h-5 w-5" />}
+          title="Help for clients"
+          description="The claims advocate and after-hours number clients see on every page."
+        >
+          <AdvocateSettings />
+        </SettingsSection>
       )}
 
       {role === "agency_admin" && (
