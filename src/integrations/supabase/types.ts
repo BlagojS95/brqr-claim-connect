@@ -337,6 +337,24 @@ export type Database = {
           },
         ]
       }
+      claim_watches: {
+        Row: {
+          claim_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          claim_id: string
+          created_at?: string
+          user_id?: string
+        }
+        Update: {
+          claim_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       claims: {
         Row: {
           assigned_to: string | null
@@ -1144,6 +1162,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_table_prefs: {
+        Row: {
+          claims_list: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          claims_list?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          claims_list?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_notification_prefs: {
         Row: {

@@ -48,7 +48,7 @@ export interface SavedView {
 }
 
 const filterText = z.string().trim().min(1).max(MAX_FILTER_LENGTH);
-const isoDate = z.string().regex(/^d{4}-d{2}-d{2}$/);
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 /** The shape of saved_claim_views.filters. Unknown keys are refused. */
 export const SavedViewFiltersSchema = z

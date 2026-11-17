@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import * as React from "react";
 import { useEffect, useState } from "react";
 import { STATUS_BUCKETS, paidAmount, reserveAmount } from "@/lib/claim-metrics";
 import { CLAIM_STATUS_LABELS } from "@/lib/claim-status";
@@ -27,6 +28,7 @@ import {
 } from "@/lib/waiting-on";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import type { AgencyClaim } from "@/lib/overview.types";
+import { viewFiltersFromSearch } from "@/lib/saved-views";
 import { overviewQueryOptions } from "@/lib/query-keys";
 import { ClaimFiltersControl } from "@/components/claims/claim-filters";
 import { ExportMenu } from "@/components/claims/export-menu";
@@ -37,6 +39,17 @@ import { GlossaryTip } from "@/components/glossary-tip";
 import type { GlossaryTerm } from "@/lib/glossary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { BulkWatchButton, ColumnChooser, DensityMenu } from "@/components/claims/table-controls";
+import { useClaimsListPrefs } from "@/components/claims/use-claims-list-prefs";
+import {
+  DENSITY_CLASSES,
+  MAX_BULK_CLAIMS,
+  pageSelectionState,
+  setSelected,
+  type ClaimsTableColumn,
+  type TableDensity,
+} from "@/lib/claims-table";
 import { cn } from "@/lib/utils";
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
 
@@ -86,6 +99,15 @@ function ClaimsList() {
     select: (overview) => overview.claims,
   });
 
+  // Table controls (fix 50): saved per user, see useClaimsListPrefs.
+  const prefs = useClaimsListPrefs(search, (filters) => navigate({ search: filters }));
+  const classes = DENSITY_CLASSES[prefs.density];
+  const visibleColumns = COLUMNS.filter((c) => prefs.columns.includes(c.key));
+  const [selected, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
+  // A different list means a different selection.
+  const listKey = JSON.stringify(viewFiltersFromSearch(search));
+  useEffect(() => setSelectedIds(new Set()), [listKey]);
+
   const filtered = filterClaims(claims, search);
   const page = paginate(sortClaims(filtered, sort, dir), search.page);
   // One clock for every row's "Days since update".
@@ -103,6 +125,11 @@ function ClaimsList() {
     const next = nextSort({ sort, dir }, key);
     navigate({ search: (prev) => ({ ...prev, ...next, page: undefined }) });
   };
+
+  const pageIds = page.rows.map((c) => c.id);
+  const onToggle = (id: string, on: boolean) =>
+    setSelectedIds((prev) => setSelected(prev, [id], on));
+  const selectedCount = selected.size;
 
   const goToPage = (n: number) =>
     navigate({ search: (prev) => ({ ...prev, page: n > 1 ? n : undefined }) });
@@ -132,9 +159,34 @@ function ClaimsList() {
               </Button>
             );
           })}
-          <ExportMenu claims={claims} search={search} />
+          <ColumnChooser
+            labels={COLUMNS}
+            columns={prefs.columns}
+            onToggle={prefs.setColumn}
+            onReset={prefs.resetColumns}
+          />
+          <DensityMenu density={prefs.density} onChange={prefs.setDensity} />
+          <ExportMenu claims={claims} search={search} selected={selected} />
         </div>
       </div>
+
+      {selectedCount > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm"
+          role="region"
+          aria-label="Selected claims"
+        >
+          <span aria-live="polite">
+            {selectedCount} {selectedCount === 1 ? "claim" : "claims"} selected
+            {selectedCount > MAX_BULK_CLAIMS &&
+              ` (the most one action takes is ${MAX_BULK_CLAIMS})`}
+          </span>
+          <BulkWatchButton claimIds={[...selected]} onDone={() => setSelectedIds(new Set())} />
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+            Clear
+          </Button>
+        </div>
+      )}
 
       {/* Saved views (fix 31): "All claims" plus the user's own views. */}
       <SavedViewsBar search={search} onApply={(filters) => navigate({ search: filters })} />
@@ -179,7 +231,7 @@ function ClaimsList() {
       />
 
       {/* Phones get cards (fix 23); the table starts at md. */}
-      <ul className="md:hidden space-y-3">
+      <ul className={cn("md:hidden", classes.cardGap)}>
         {isLoading && (
           <li className="rounded-lg border border-border bg-card p-6 text-center text-sm text-muted-foreground">
             Loading…
@@ -191,8 +243,14 @@ function ClaimsList() {
           </li>
         )}
         {page.rows.map((c) => (
-          <li key={c.id}>
-            <ClaimCard claim={c} now={now} />
+          <li key={c.id} className="flex items-start gap-2">
+            <Checkbox
+              className="mt-4 h-5 w-5"
+              checked={selected.has(c.id)}
+              onCheckedChange={(v) => onToggle(c.id, v === true)}
+              aria-label={`Select claim ${c.claim_number ?? "number pending"}, loss on ${formatDate(c.date_of_loss)}`}
+            />
+            <ClaimCard claim={c} now={now} density={prefs.density} />
           </li>
         ))}
       </ul>
@@ -201,7 +259,17 @@ function ClaimsList() {
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              {COLUMNS.map((col) => {
+              <th scope="col" className="w-10 pl-3">
+                <Checkbox
+                  checked={pageSelectionState(selected, pageIds)}
+                  disabled={pageIds.length === 0}
+                  onCheckedChange={(v) =>
+                    setSelectedIds((prev) => setSelected(prev, pageIds, v === true))
+                  }
+                  aria-label="Select all claims on this page"
+                />
+              </th>
+              {visibleColumns.map((col) => {
                 const active = col.key === sort;
                 const Icon = active ? (dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
                 return (
@@ -216,7 +284,8 @@ function ClaimsList() {
                         type="button"
                         onClick={() => onSort(col.key)}
                         className={cn(
-                          "inline-flex items-center gap-1 p-3 uppercase tracking-wide hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm",
+                          "inline-flex items-center gap-1 uppercase tracking-wide hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm",
+                          classes.cell,
                           col.term ? "pr-1" : "w-full",
                           col.numeric && "justify-end",
                           active && "text-foreground",
@@ -236,20 +305,34 @@ function ClaimsList() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={COLUMNS.length} className="p-6 text-center text-muted-foreground">
+                <td
+                  colSpan={visibleColumns.length + 1}
+                  className="p-6 text-center text-muted-foreground"
+                >
                   Loading…
                 </td>
               </tr>
             )}
             {!isLoading && page.total === 0 && (
               <tr>
-                <td colSpan={COLUMNS.length} className="p-6 text-center text-muted-foreground">
+                <td
+                  colSpan={visibleColumns.length + 1}
+                  className="p-6 text-center text-muted-foreground"
+                >
                   No claims found.
                 </td>
               </tr>
             )}
             {page.rows.map((c) => (
-              <ClaimRow key={c.id} claim={c} now={now} />
+              <ClaimRow
+                key={c.id}
+                claim={c}
+                now={now}
+                columns={prefs.columns}
+                density={prefs.density}
+                selected={selected.has(c.id)}
+                onSelect={(on) => onToggle(c.id, on)}
+              />
             ))}
           </tbody>
         </table>
@@ -284,13 +367,24 @@ function ClaimsList() {
   );
 }
 
-function ClaimCard({ claim: c, now }: { claim: AgencyClaim; now: Date }) {
+function ClaimCard({
+  claim: c,
+  now,
+  density,
+}: {
+  claim: AgencyClaim;
+  now: Date;
+  density: TableDensity;
+}) {
   const carrierShort = carrierShortName(c.carrier);
   return (
     <Link
       to="/claims/$claimId"
       params={{ claimId: c.id }}
-      className="block rounded-lg border border-border bg-card p-4 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className={cn(
+        "block min-w-0 flex-1 rounded-lg border border-border bg-card hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        DENSITY_CLASSES[density].card,
+      )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -386,7 +480,21 @@ function MobileSort({
 // Every cell is a real link to the claim, so a click anywhere in the row opens
 // it and Ctrl/Cmd/middle-click opens a new tab. Only the first link is in the
 // tab order, so keyboard users get one stop per row.
-function ClaimRow({ claim: c, now }: { claim: AgencyClaim; now: Date }) {
+function ClaimRow({
+  claim: c,
+  now,
+  columns,
+  density,
+  selected,
+  onSelect,
+}: {
+  claim: AgencyClaim;
+  now: Date;
+  columns: readonly ClaimsTableColumn[];
+  density: TableDensity;
+  selected: boolean;
+  onSelect: (on: boolean) => void;
+}) {
   const cell = (content: React.ReactNode, className?: string, first = false) => (
     <td className="p-0">
       <Link
@@ -399,7 +507,8 @@ function ClaimRow({ claim: c, now }: { claim: AgencyClaim; now: Date }) {
             : undefined
         }
         className={cn(
-          "block p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          DENSITY_CLASSES[density].cell,
+          "block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
           className,
         )}
       >
@@ -409,19 +518,35 @@ function ClaimRow({ claim: c, now }: { claim: AgencyClaim; now: Date }) {
   );
   const carrierShort = carrierShortName(c.carrier);
 
+  const cells: Record<ClaimsTableColumn, React.ReactNode> = {
+    date: cell(formatDate(c.date_of_loss), undefined, true),
+    type: cell(c.claim_type),
+    carrier: cell(<span title={c.carrier ?? undefined}>{carrierShort ?? "—"}</span>),
+    status: cell(<StatusBadge status={c.status} inLink />),
+    number: cell(c.claim_number ?? "—", "font-mono text-xs"),
+    adjuster: cell(c.adjuster_name ?? "—"),
+    paid: cell(fmtMoney(paidAmount(c)), "text-right tabular-nums"),
+    reserve: cell(fmtMoney(reserveAmount(c)), "text-right tabular-nums"),
+    closed: cell(formatDate(c.closed_date), "text-muted-foreground"),
+    waiting: cell(waitingOnLabel(claimWaitingOn(c))),
+    updated: cell(daysLabel(daysSince(lastUpdateAt(c), now)), "text-right tabular-nums"),
+  };
+
   return (
-    <tr className="border-t border-border hover:bg-muted/30 focus-within:bg-muted/30">
-      {cell(formatDate(c.date_of_loss), undefined, true)}
-      {cell(c.claim_type)}
-      {cell(<span title={c.carrier ?? undefined}>{carrierShort ?? "—"}</span>)}
-      {cell(<StatusBadge status={c.status} inLink />)}
-      {cell(c.claim_number ?? "—", "font-mono text-xs")}
-      {cell(c.adjuster_name ?? "—")}
-      {cell(fmtMoney(paidAmount(c)), "text-right tabular-nums")}
-      {cell(fmtMoney(reserveAmount(c)), "text-right tabular-nums")}
-      {cell(formatDate(c.closed_date), "text-muted-foreground")}
-      {cell(waitingOnLabel(claimWaitingOn(c)))}
-      {cell(daysLabel(daysSince(lastUpdateAt(c), now)), "text-right tabular-nums")}
+    <tr
+      className="border-t border-border hover:bg-muted/30 focus-within:bg-muted/30"
+      data-state={selected ? "selected" : undefined}
+    >
+      <td className="w-10 pl-3">
+        <Checkbox
+          checked={selected}
+          onCheckedChange={(v) => onSelect(v === true)}
+          aria-label={`Select claim ${c.claim_number ?? "number pending"}, loss on ${formatDate(c.date_of_loss)}`}
+        />
+      </td>
+      {columns.map((key) => (
+        <React.Fragment key={key}>{cells[key]}</React.Fragment>
+      ))}
     </tr>
   );
 }
