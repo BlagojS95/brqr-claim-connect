@@ -644,7 +644,7 @@ export function ClaimForm({ isNotice }: { isNotice: boolean }) {
       <div className="space-y-2">
         <Label>Upload Documents</Label>
         <label className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-md p-6 cursor-pointer hover:bg-muted/30">
-          <Upload className="h-6 w-6 text-muted-foreground" />
+          <Upload className="h-6 w-6 text-muted-foreground" aria-hidden />
           <span className="text-sm text-muted-foreground mt-2">
             {files.length
               ? `${files.length} file(s) selected`

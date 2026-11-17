@@ -108,12 +108,12 @@ function Home() {
         <div className="flex gap-2">
           <Link to="/claims/new">
             <Button className="bg-navy hover:bg-navy/90 text-navy-foreground gap-2">
-              <PlusCircle className="h-4 w-4" /> Report New Claim
+              <PlusCircle className="h-4 w-4" aria-hidden /> Report New Claim
             </Button>
           </Link>
           <Link to="/claims/notice">
             <Button variant="outline" className="border-gold text-navy gap-2">
-              <Bell className="h-4 w-4" /> Incident Notice Only
+              <Bell className="h-4 w-4" aria-hidden /> Incident Notice Only
             </Button>
           </Link>
         </div>
@@ -163,7 +163,7 @@ function Home() {
       <section className="rounded-lg border border-border bg-card">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <h2 className="font-semibold text-navy">Recent Claims</h2>
-          <Link to="/claims" className="text-sm text-navy hover:text-gold">
+          <Link to="/claims" className="text-sm text-navy hover:text-gold-text">
             View all →
           </Link>
         </div>
@@ -234,7 +234,7 @@ function Home() {
                       to="/claims/$claimId"
                       params={{ claimId: c.id }}
                       aria-label={`Claim ${c.claim_number ?? "Pending"}: ${c.claim_type}, ${claimStatusLabel(c.status)}, loss date ${formatDate(c.date_of_loss)}`}
-                      className="text-navy group-hover:text-gold focus-visible:outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-gold"
+                      className="text-navy group-hover:text-gold-text focus-visible:outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-gold"
                     >
                       {/* Display copy for a missing claim number, not a claim status. */}
                       {c.claim_number ?? "Pending"}

@@ -63,7 +63,7 @@ export function AttentionQueue({ showClient }: { showClient: boolean }) {
                 className="group flex items-start justify-between gap-3 p-4 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-navy break-words group-hover:text-gold">
+                  <p className="text-sm font-medium text-navy break-words group-hover:text-gold-text">
                     {item.reason}
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground truncate">
@@ -91,7 +91,7 @@ export function AttentionQueue({ showClient }: { showClient: boolean }) {
             type="button"
             variant="ghost"
             size="sm"
-            className="text-navy hover:text-gold"
+            className="text-navy hover:text-gold-text"
             aria-expanded={expanded}
             onClick={() => setExpanded((v) => !v)}
           >

@@ -209,7 +209,7 @@ function AdminPage() {
         <p className="text-sm text-muted-foreground mt-1">Manage all clients and open claims.</p>
         <Link
           to="/admin/import"
-          className="inline-block mt-2 text-sm text-navy underline hover:text-gold"
+          className="inline-block mt-2 text-sm text-navy underline hover:text-gold-text"
         >
           Update claims from a carrier file
         </Link>
@@ -406,7 +406,7 @@ function AdminPage() {
                         <Link
                           to="/claims/$claimId"
                           params={{ claimId }}
-                          className="text-navy hover:text-gold"
+                          className="text-navy hover:text-gold-text"
                         >
                           {c?.claim_number ?? "View"}
                         </Link>
@@ -461,7 +461,7 @@ function AdminPage() {
                     <Link
                       to="/claims/$claimId"
                       params={{ claimId: c.id }}
-                      className="text-navy hover:text-gold"
+                      className="text-navy hover:text-gold-text"
                     >
                       {c.claim_number ?? "—"}
                     </Link>

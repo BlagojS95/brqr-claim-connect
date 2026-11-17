@@ -88,7 +88,7 @@ export function LossSummary() {
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-xl md:text-2xl font-bold text-navy flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-gold" /> Loss Summary
+            <BarChart3 className="h-6 w-6 text-gold" aria-hidden /> Loss Summary
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
             Every claim by year and line of business, valued as of {formatDate(todayIso())}.{" "}

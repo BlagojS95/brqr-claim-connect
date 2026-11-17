@@ -45,7 +45,7 @@ export function EmailCarrierButton({ claimId }: { claimId: string }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <Mail className="h-4 w-4" /> Email carrier
+          <Mail className="h-4 w-4" aria-hidden /> Email carrier
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
@@ -127,7 +127,7 @@ function EmailCarrierForm({ claimId, onDone }: { claimId: string; onDone: () => 
   if (draft.isLoading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading…
       </div>
     );
   }
@@ -238,9 +238,9 @@ function EmailCarrierForm({ claimId, onDone }: { claimId: string; onDone: () => 
           className="w-full sm:w-auto bg-navy hover:bg-navy/90 text-navy-foreground"
         >
           {mutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
           ) : (
-            <Send className="h-4 w-4" />
+            <Send className="h-4 w-4" aria-hidden />
           )}
           Send
         </Button>

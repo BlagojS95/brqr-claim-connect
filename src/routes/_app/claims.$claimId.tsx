@@ -93,7 +93,7 @@ function RemoveDocumentButton({
           type="button"
           className="text-muted-foreground hover:text-destructive inline-flex items-center gap-1 text-sm"
         >
-          <Trash2 className="h-4 w-4" /> Remove
+          <Trash2 className="h-4 w-4" aria-hidden /> Remove
         </button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -212,9 +212,9 @@ function ClaimDetail() {
     <div className="space-y-6">
       <Link
         to="/claims"
-        className="inline-flex items-center gap-1 text-sm text-navy hover:text-gold"
+        className="inline-flex items-center gap-1 text-sm text-navy hover:text-gold-text"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to claims
+        <ArrowLeft className="h-4 w-4" aria-hidden /> Back to claims
       </Link>
 
       <div className="flex items-start justify-between flex-wrap gap-4">
@@ -366,7 +366,7 @@ function ClaimDetail() {
           <h2 className="font-semibold text-navy">Documents</h2>
           <Button asChild variant="outline" size="sm" disabled={uploading}>
             <label className="cursor-pointer">
-              <Upload className="h-3.5 w-3.5" /> {uploading ? "Uploading…" : "Upload Document"}
+              <Upload className="h-3.5 w-3.5" aria-hidden /> {uploading ? "Uploading…" : "Upload Document"}
               <input
                 type="file"
                 multiple
@@ -400,9 +400,9 @@ function ClaimDetail() {
                   href={d.file_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-navy hover:text-gold inline-flex items-center gap-1 text-sm"
+                  className="text-navy hover:text-gold-text inline-flex items-center gap-1 text-sm"
                 >
-                  <FileDown className="h-4 w-4" /> Download
+                  <FileDown className="h-4 w-4" aria-hidden /> Download
                 </a>
                 <RemoveDocumentButton
                   fileName={d.file_name}

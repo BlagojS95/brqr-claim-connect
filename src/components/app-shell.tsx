@@ -94,7 +94,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
                     : "hover:bg-sidebar-accent/60 text-sidebar-foreground/85",
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4" aria-hidden />
                 {item.label}
               </Link>
             );
@@ -111,7 +111,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
           onClick={logout}
           className="m-3 flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-sidebar-accent/60"
         >
-          <LogOut className="h-4 w-4" /> Sign out
+          <LogOut className="h-4 w-4" aria-hidden /> Sign out
         </button>
       </aside>
 

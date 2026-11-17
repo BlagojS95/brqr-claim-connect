@@ -108,7 +108,7 @@ export function RequestedFromYouCard({ claimId, clientId }: { claimId: string; c
                 className="bg-navy hover:bg-navy/90 text-navy-foreground shrink-0 self-start sm:self-auto"
               >
                 <label className="cursor-pointer">
-                  <Upload className="h-3.5 w-3.5" /> {busy ? "Uploading…" : "Upload"}
+                  <Upload className="h-3.5 w-3.5" aria-hidden /> {busy ? "Uploading…" : "Upload"}
                   <input
                     type="file"
                     className="hidden"
@@ -137,7 +137,7 @@ function DeleteRequestButton({ name, onConfirm }: { name: string; onConfirm: () 
           type="button"
           className="text-muted-foreground hover:text-destructive inline-flex items-center gap-1 text-sm shrink-0"
         >
-          <Trash2 className="h-4 w-4" /> Delete
+          <Trash2 className="h-4 w-4" aria-hidden /> Delete
         </button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -209,7 +209,7 @@ function AddRequestForm({ claimId }: { claimId: string }) {
           disabled={!checked.ok || save.isPending}
           className="bg-navy hover:bg-navy/90 text-navy-foreground"
         >
-          <Plus className="h-3.5 w-3.5" /> {save.isPending ? "Adding…" : "Request document"}
+          <Plus className="h-3.5 w-3.5" aria-hidden /> {save.isPending ? "Adding…" : "Request document"}
         </Button>
       </div>
     </form>
@@ -257,7 +257,7 @@ export function ClaimDocumentRequests({ claimId, isAdmin }: { claimId: string; i
             className="flex items-start justify-between gap-3 p-3 rounded-md border border-border"
           >
             <div className="flex items-start gap-2 min-w-0">
-              <CircleDashed className="h-4 w-4 mt-0.5 shrink-0 text-gold" />
+              <CircleDashed className="h-4 w-4 mt-0.5 shrink-0 text-gold" aria-hidden />
               <div className="min-w-0">
                 <div className="text-sm font-medium break-words">{r.name}</div>
                 {r.note && (
@@ -279,7 +279,7 @@ export function ClaimDocumentRequests({ claimId, isAdmin }: { claimId: string; i
             className="flex items-start justify-between gap-3 p-3 rounded-md border border-border"
           >
             <div className="flex items-start gap-2 min-w-0">
-              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-[#2d8a9e]" />
+              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-[#2d8a9e]" aria-hidden />
               <div className="min-w-0">
                 <div className="text-sm font-medium break-words">{r.name}</div>
                 <p className="text-xs text-muted-foreground mt-0.5 break-words">
@@ -293,9 +293,9 @@ export function ClaimDocumentRequests({ claimId, isAdmin }: { claimId: string; i
                 href={r.document.file_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-navy hover:text-gold inline-flex items-center gap-1 text-sm shrink-0"
+                className="text-navy hover:text-gold-text inline-flex items-center gap-1 text-sm shrink-0"
               >
-                <FileDown className="h-4 w-4" /> Download
+                <FileDown className="h-4 w-4" aria-hidden /> Download
               </a>
             )}
           </li>

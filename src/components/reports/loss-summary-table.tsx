@@ -288,7 +288,7 @@ function PhoneList({
               : "Sorted descending; switch to ascending"
           }
         >
-          {sort.dir === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+          {sort.dir === "asc" ? <ArrowUp className="h-4 w-4" aria-hidden /> : <ArrowDown className="h-4 w-4" aria-hidden />}
         </button>
       </div>
       {summary.years.map((y) => (

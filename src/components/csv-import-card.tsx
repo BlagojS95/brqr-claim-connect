@@ -139,7 +139,7 @@ export function CsvImportCard() {
           </Select>
 
           <label className="inline-flex items-center gap-2 border border-dashed border-border rounded-md px-4 py-2 cursor-pointer hover:bg-muted/30 text-sm text-muted-foreground">
-            <Upload className="h-4 w-4" />
+            <Upload className="h-4 w-4" aria-hidden />
             {file ? file.name : "Choose Excel or CSV file"}
             <input
               type="file"

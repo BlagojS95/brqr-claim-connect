@@ -45,7 +45,7 @@ export function ClaimQuickEditButton({
   return (
     <>
       <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <Pencil className="h-3.5 w-3.5" />
+        <Pencil className="h-3.5 w-3.5" aria-hidden />
         {label}
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
