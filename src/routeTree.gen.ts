@@ -23,6 +23,7 @@ import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as SharedTokenRouteImport } from './routes/shared.$token'
 import { Route as AppAdminImportRouteImport } from './routes/_app/admin_.import'
+import { Route as AppAdminQueueRouteImport } from './routes/_app/admin_.queue'
 import { Route as AppClaimsIndexRouteImport } from './routes/_app/claims.index'
 import { Route as AppClaimsClaimIdRouteImport } from './routes/_app/claims.$claimId'
 import { Route as AppClaimsNewRouteImport } from './routes/_app/claims.new'
@@ -101,6 +102,11 @@ const AppAdminImportRoute = AppAdminImportRouteImport.update({
   path: '/admin/import',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminQueueRoute = AppAdminQueueRouteImport.update({
+  id: '/admin_/queue',
+  path: '/admin/queue',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppClaimsIndexRoute = AppClaimsIndexRouteImport.update({
   id: '/claims/',
   path: '/claims/',
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/shared/$token': typeof SharedTokenRoute
   '/admin/import': typeof AppAdminImportRoute
+  '/admin/queue': typeof AppAdminQueueRoute
   '/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/claims/new': typeof AppClaimsNewRoute
   '/claims/notice': typeof AppClaimsNoticeRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/shared/$token': typeof SharedTokenRoute
   '/admin/import': typeof AppAdminImportRoute
+  '/admin/queue': typeof AppAdminQueueRoute
   '/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/claims/new': typeof AppClaimsNewRoute
   '/claims/notice': typeof AppClaimsNoticeRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/shared/$token': typeof SharedTokenRoute
   '/_app/admin_/import': typeof AppAdminImportRoute
+  '/_app/admin_/queue': typeof AppAdminQueueRoute
   '/_app/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/_app/claims/new': typeof AppClaimsNewRoute
   '/_app/claims/notice': typeof AppClaimsNoticeRoute
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/shared/$token'
     | '/admin/import'
+    | '/admin/queue'
     | '/claims/$claimId'
     | '/claims/new'
     | '/claims/notice'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/shared/$token'
     | '/admin/import'
+    | '/admin/queue'
     | '/claims/$claimId'
     | '/claims/new'
     | '/claims/notice'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/shared/$token'
     | '/_app/admin_/import'
+    | '/_app/admin_/queue'
     | '/_app/claims/$claimId'
     | '/_app/claims/new'
     | '/_app/claims/notice'
@@ -399,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminImportRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin_/queue': {
+      id: '/_app/admin_/queue'
+      path: '/admin/queue'
+      fullPath: '/admin/queue'
+      preLoaderRoute: typeof AppAdminQueueRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/claims/': {
       id: '/_app/claims/'
       path: '/claims'
@@ -465,6 +484,7 @@ interface AppRouteChildren {
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppAdminImportRoute: typeof AppAdminImportRoute
+  AppAdminQueueRoute: typeof AppAdminQueueRoute
   AppClaimsClaimIdRoute: typeof AppClaimsClaimIdRoute
   AppClaimsNewRoute: typeof AppClaimsNewRoute
   AppClaimsNoticeRoute: typeof AppClaimsNoticeRoute
@@ -480,6 +500,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppAdminImportRoute: AppAdminImportRoute,
+  AppAdminQueueRoute: AppAdminQueueRoute,
   AppClaimsClaimIdRoute: AppClaimsClaimIdRoute,
   AppClaimsNewRoute: AppClaimsNewRoute,
   AppClaimsNoticeRoute: AppClaimsNoticeRoute,
