@@ -5,12 +5,18 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendViaResend } from "@/lib/claim-notifications.server";
 import {
+  alertPrefsFromRow,
   buildMessageEmail,
+  chooseAlertRecipients,
   claimAudience,
   deliverAlerts,
   messageRecipients,
   type AlertClaim,
   type AlertDeliveryResult,
+  type AlertEmail,
+  type AlertEvent,
+  type AlertPrefs,
+  type AlertRecipientChoice,
   type AudienceMember,
 } from "@/lib/claim-alerts";
 
@@ -83,8 +89,91 @@ export async function loadPeople(ids: readonly (string | null)[]): Promise<Map<s
 }
 
 /**
- * Fix 47: emails the people mentioned in a new message and the claim's
- * assigned staff member (never the author). Never throws.
+ * Fix 48: who gets an email about an event on a claim, from each person's
+ * watch and alert settings (see chooseAlertRecipients). `direct` are people
+ * who are always told (someone @mentioned, the assigned staff member).
+ */
+export async function notificationRecipients(
+  claimId: string,
+  event: AlertEvent,
+  opts: {
+    actorId: string | null;
+    direct?: readonly AlertRecipientChoice[];
+    audience?: ClaimAudienceData;
+  },
+): Promise<{ audience: ClaimAudienceData; recipients: AlertRecipientChoice[] } | null> {
+  const audience = opts.audience ?? (await loadClaimAudience(claimId));
+  if (!audience) return null;
+  const ids = audience.members.map((m) => m.userId);
+  const [{ data: watches, error: watchError }, { data: prefRows, error: prefError }] =
+    await Promise.all([
+      supabaseAdmin.from("claim_watches").select("user_id").eq("claim_id", claimId),
+      supabaseAdmin.from("user_notification_prefs").select("*").in("user_id", ids),
+    ]);
+  if (watchError) throw new Error(`Couldn't load watchers: ${watchError.message}`);
+  if (prefError) throw new Error(`Couldn't load alert settings: ${prefError.message}`);
+  const prefsByUser = new Map<string, AlertPrefs>(
+    (prefRows ?? []).map((r) => [r.user_id, alertPrefsFromRow(r)]),
+  );
+  return {
+    audience,
+    recipients: chooseAlertRecipients({
+      event,
+      audience: audience.members,
+      watcherIds: (watches ?? []).map((w) => w.user_id),
+      prefsByUser,
+      actorId: opts.actorId,
+      direct: opts.direct,
+    }),
+  };
+}
+
+/** Emails one send budget can still cover (a carrier import touches many claims). */
+export interface AlertBudget {
+  remaining: number;
+}
+
+/**
+ * Fix 48: emails the people who asked for alerts about an event on a claim
+ * (status changes, document requests). Never throws: a failed alert must not
+ * undo the change that caused it.
+ */
+export async function notifyClaimEvent(input: {
+  claimId: string;
+  event: Exclude<AlertEvent, "messages">;
+  actorId: string | null;
+  build: (claim: AlertClaim, reason: "watching" | "all") => AlertEmail;
+  budget?: AlertBudget;
+}): Promise<AlertDeliveryResult> {
+  try {
+    const found = await notificationRecipients(input.claimId, input.event, {
+      actorId: input.actorId,
+    });
+    if (!found) return { sent: 0, failed: 0, skipped: 0 };
+    let recipients = found.recipients;
+    if (input.budget) {
+      recipients = recipients.slice(0, Math.max(0, input.budget.remaining));
+      input.budget.remaining -= recipients.length;
+    }
+    const people = await loadPeople(recipients.map((r) => r.userId));
+    return await deliverAlerts(
+      recipients.map((r) => ({ userId: r.userId, email: people.get(r.userId)?.email ?? null })),
+      (r) => {
+        const choice = recipients.find((c) => c.userId === r.userId);
+        return input.build(found.audience.claim, choice?.reason === "all" ? "all" : "watching");
+      },
+      { send: sendViaResend, sleep },
+    );
+  } catch (err) {
+    console.error("claim alert failed", err instanceof Error ? err.message : err);
+    return { sent: 0, failed: 1, skipped: 0 };
+  }
+}
+
+/**
+ * Fix 47 + 48: emails the people mentioned in a new message, the claim's
+ * assigned staff member, and anyone watching the claim (or asking for every
+ * claim) who wants message alerts. Never the author. Never throws.
  */
 export async function notifyNewMessage(input: {
   audience: ClaimAudienceData;
@@ -95,23 +184,33 @@ export async function notifyNewMessage(input: {
 }): Promise<AlertDeliveryResult> {
   const { audience, people } = input;
   try {
-    const ids = messageRecipients({
+    const directIds = messageRecipients({
       audience: audience.members,
       mentionIds: input.mentionIds,
       assignedTo: audience.claim.assigned_to,
       authorId: input.authorId,
     });
-    const missing = ids.filter((id) => !people.has(id));
+    const direct: AlertRecipientChoice[] = directIds.map((userId) => ({
+      userId,
+      reason: input.mentionIds.includes(userId) ? "mentioned" : "assigned",
+    }));
+    const found = await notificationRecipients(audience.claim.id, "messages", {
+      actorId: input.authorId,
+      direct,
+      audience,
+    });
+    const recipients = found?.recipients ?? [];
+    const missing = recipients.map((r) => r.userId).filter((id) => !people.has(id));
     if (missing.length) for (const [id, p] of await loadPeople(missing)) people.set(id, p);
     const authorName = people.get(input.authorId)?.name ?? "Someone";
     return await deliverAlerts(
-      ids.map((userId) => ({ userId, email: people.get(userId)?.email ?? null })),
+      recipients.map((r) => ({ userId: r.userId, email: people.get(r.userId)?.email ?? null })),
       (r) =>
         buildMessageEmail({
           claim: audience.claim,
           authorName,
           body: input.body,
-          reason: input.mentionIds.includes(r.userId) ? "mentioned" : "assigned",
+          reason: recipients.find((c) => c.userId === r.userId)?.reason ?? "watching",
         }),
       { send: sendViaResend, sleep },
     );

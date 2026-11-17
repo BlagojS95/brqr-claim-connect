@@ -95,5 +95,8 @@ export const updateClaimQuickEdit = createServerFn({ method: "POST" })
       });
       if (logError) throw new Error(`Saved, but couldn't log the change: ${logError.message}`);
     }
+    // Imported here so the service-role code stays out of client bundles.
+    const { alertStatusChange } = await import("@/lib/claim-status-alerts.server");
+    await alertStatusChange(claimId, changes, context.userId);
     return { changes };
   });

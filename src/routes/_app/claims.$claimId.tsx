@@ -24,6 +24,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { ClaimQuickEditButton } from "@/components/staff/claim-quick-edit";
 import { ClaimActivityLog } from "@/components/claim-activity-log";
 import { ClaimMessages } from "@/components/claim/claim-messages";
+import { WatchButton } from "@/components/claim/watch-button";
 import { ClaimContactsTable } from "@/components/claim-contacts-table";
 import { EmailCarrierButton } from "@/components/staff/email-carrier-dialog";
 import { ClaimInternalNotes } from "@/components/claim-internal-notes";
@@ -205,6 +206,7 @@ function ClaimDetail() {
           <p className="text-xs text-muted-foreground mt-1">{claim.client_name}</p>
         </div>
         <div className="flex items-center gap-2">
+          <WatchButton claimId={claim.id} showLabel />
           {role === "agency_admin" && <ClaimQuickEditButton claimId={claim.id} />}
           <StatusBadge status={claim.status} />
         </div>

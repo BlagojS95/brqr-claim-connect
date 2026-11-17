@@ -9,7 +9,12 @@ import { parseInput } from "@/lib/http-errors.server";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
 import { fetchAll } from "@/lib/fetch-all";
 import { CLAIM_ACTIVITY_KIND } from "@/lib/claim-activity";
-import { CLAIM_EDITABLE_SELECT, claimUpdateActivityBody } from "@/lib/claim-quick-edit";
+import {
+  CLAIM_EDITABLE_SELECT,
+  claimUpdateActivityBody,
+  type FieldChange,
+} from "@/lib/claim-quick-edit";
+import { loadDevVars } from "@/lib/load-dev-vars.server";
 import {
   CARRIER_IMPORT_CHUNK,
   CarrierMappingSchema,
@@ -107,6 +112,9 @@ const ApplySchema = z.object({
   rows: z.array(CarrierRowSchema).min(1).max(CARRIER_IMPORT_CHUNK),
 });
 
+/** Most status alert emails one import chunk sends. */
+const MAX_IMPORT_ALERT_EMAILS = 20;
+
 export interface CarrierImportApplyResult {
   updated: number;
   unchanged: number;
@@ -124,6 +132,7 @@ export const applyCarrierImport = createServerFn({ method: "POST" })
   .inputValidator(parseInput(ApplySchema))
   .handler(async ({ data, context }): Promise<CarrierImportApplyResult> => {
     const { supabase, userId } = context;
+    await loadDevVars();
     const claims = await loadCarrierClaims(supabase, data.carrier);
     const preview = buildCarrierImportPreview(data.rows, claims);
 
@@ -133,6 +142,7 @@ export const applyCarrierImport = createServerFn({ method: "POST" })
       unmatched: preview.unmatched.length,
       failed: [],
     };
+    const statusAlerts: { claimId: string; changes: FieldChange[] }[] = [];
     const activity: Database["public"]["Tables"]["claim_activity"]["Insert"][] = [];
     for (const match of preview.changed) {
       const { error } = await supabase.from("claims").update(match.update).eq("id", match.claimId);
@@ -145,6 +155,9 @@ export const applyCarrierImport = createServerFn({ method: "POST" })
         continue;
       }
       result.updated++;
+      if (match.changes.some((c) => c.field === "status")) {
+        statusAlerts.push({ claimId: match.claimId, changes: match.changes });
+      }
       const body = claimUpdateActivityBody(match.changes, `Updated from ${data.carrier} import: `);
       if (body) {
         activity.push({
@@ -158,6 +171,16 @@ export const applyCarrierImport = createServerFn({ method: "POST" })
     if (activity.length) {
       const { error } = await supabase.from("claim_activity").insert(activity);
       if (error) throw new Error(`Claims updated, but couldn't log the changes: ${error.message}`);
+    }
+    // Status change alerts go out after everything is saved; capped per chunk so
+    // a big import can't run into the email rate limit.
+    if (statusAlerts.length) {
+      const { alertStatusChange } = await import("@/lib/claim-status-alerts.server");
+      const budget = { remaining: MAX_IMPORT_ALERT_EMAILS };
+      for (const alert of statusAlerts) {
+        if (budget.remaining <= 0) break;
+        await alertStatusChange(alert.claimId, alert.changes, userId, budget);
+      }
     }
     return result;
   });

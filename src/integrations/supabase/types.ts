@@ -258,6 +258,32 @@ export type Database = {
           },
         ]
       }
+      claim_watches: {
+        Row: {
+          claim_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          claim_id: string
+          created_at?: string
+          user_id?: string
+        }
+        Update: {
+          claim_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_watches_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claim_reserve_history: {
         Row: {
           changed_at: string
@@ -1182,16 +1208,34 @@ export type Database = {
       }
       user_notification_prefs: {
         Row: {
+          documents_all: boolean
+          documents_watched: boolean
+          messages_all: boolean
+          messages_watched: boolean
+          status_all: boolean
+          status_watched: boolean
           updated_at: string
           user_id: string
           weekly_digest: boolean
         }
         Insert: {
+          documents_all?: boolean
+          documents_watched?: boolean
+          messages_all?: boolean
+          messages_watched?: boolean
+          status_all?: boolean
+          status_watched?: boolean
           updated_at?: string
           user_id?: string
           weekly_digest?: boolean
         }
         Update: {
+          documents_all?: boolean
+          documents_watched?: boolean
+          messages_all?: boolean
+          messages_watched?: boolean
+          status_all?: boolean
+          status_watched?: boolean
           updated_at?: string
           user_id?: string
           weekly_digest?: boolean

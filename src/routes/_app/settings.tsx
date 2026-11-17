@@ -10,6 +10,7 @@ import { TeamLocations, TeamUsers } from "@/components/settings/team-settings";
 import { EmailTemplatesSettings } from "@/components/settings/email-templates-settings";
 import { useAuth } from "@/hooks/use-auth";
 import { CLIENT_USER_ROLE } from "@/lib/client-users";
+import { AlertPreferences } from "@/components/settings/alert-preferences";
 import { formatDate } from "@/lib/dates";
 import { DIGEST_RUN_STATUSES } from "@/lib/digest";
 import {
@@ -188,6 +189,7 @@ function SettingsPage() {
               disabled={preference.isPending}
               onChange={(value) => preference.mutate(value)}
             />
+            <AlertPreferences />
           </SettingsSection>
 
           {isClientAdmin && (

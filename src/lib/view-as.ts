@@ -63,6 +63,11 @@ export const SERVER_FN_ACCESS: Record<string, ServerFnAccess> = {
   submitClaim: "write",
   processClaimNotifications: "write",
   retryClaimNotification: "write",
+  // claim-watches.functions.ts (fix 48)
+  fetchWatchedClaimIds: "read",
+  setClaimWatch: "write",
+  fetchAlertPrefs: "read",
+  updateAlertPref: "write",
   // claim-waiting-on.functions.ts
   updateClaimWaitingOn: "write",
   // client-users.functions.ts

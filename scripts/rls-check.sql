@@ -455,6 +455,33 @@ BEGIN
   END;
   RESET ROLE;
 
+  -- Claim watches (fix 48): own rows only, only on claims you can see.
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', u_a_loc, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  BEGIN
+    INSERT INTO public.claim_watches (user_id, claim_id) VALUES (u_a_loc, c_a1);
+    INSERT INTO rls_expect VALUES ('A location', 'can watch L1 claim', 1, 1);
+  EXCEPTION WHEN insufficient_privilege OR check_violation THEN
+    INSERT INTO rls_expect VALUES ('A location', 'can watch L1 claim', 1, 0);
+  END;
+  BEGIN
+    INSERT INTO public.claim_watches (user_id, claim_id) VALUES (u_a_loc, c_a2);
+    INSERT INTO rls_expect VALUES ('A location', 'cannot watch L2 claim', 0, 1);
+  EXCEPTION WHEN insufficient_privilege OR check_violation THEN
+    INSERT INTO rls_expect VALUES ('A location', 'cannot watch L2 claim', 0, 0);
+  END;
+  BEGIN
+    INSERT INTO public.claim_watches (user_id, claim_id) VALUES (u_a_admin, c_a1);
+    INSERT INTO rls_expect VALUES ('A location', 'cannot add a watch for someone else', 0, 1);
+  EXCEPTION WHEN insufficient_privilege OR check_violation THEN
+    INSERT INTO rls_expect VALUES ('A location', 'cannot add a watch for someone else', 0, 0);
+  END;
+  RESET ROLE;
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', u_a_co, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  INSERT INTO rls_expect SELECT 'A company', 'sees no one else''s watches', 0, count(*) FROM public.claim_watches WHERE claim_id = c_a1;
+  RESET ROLE;
+
   -- Every public table must carry the three view-as write policies (a table
   -- made after the fix 55 migration needs them added) and have RLS on.
   INSERT INTO rls_expect

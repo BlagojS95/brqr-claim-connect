@@ -253,3 +253,149 @@ export async function deliverAlerts(
   }
   return result;
 }
+
+// ---------------------------------------------------------------------------
+// Watch and alert preferences (fix 48)
+
+/** The kinds of event a user can ask to be emailed about. */
+export const ALERT_EVENTS = ["status", "messages", "documents"] as const;
+export type AlertEvent = (typeof ALERT_EVENTS)[number];
+
+export const ALERT_EVENT_LABELS: Record<AlertEvent, string> = {
+  status: "Status changes",
+  messages: "New messages",
+  documents: "Document requests",
+};
+
+/** For one kind of event: emails for claims the user watches, and for every claim they can see. */
+export interface EventPref {
+  watched: boolean;
+  all: boolean;
+}
+export type AlertPrefs = Record<AlertEvent, EventPref>;
+
+/** What a user without a saved row gets: watched claims on, all claims off. */
+export const DEFAULT_ALERT_PREFS: AlertPrefs = {
+  status: { watched: true, all: false },
+  messages: { watched: true, all: false },
+  documents: { watched: true, all: false },
+};
+
+/** user_notification_prefs columns, per event. */
+export const ALERT_PREF_COLUMNS = {
+  status: { watched: "status_watched", all: "status_all" },
+  messages: { watched: "messages_watched", all: "messages_all" },
+  documents: { watched: "documents_watched", all: "documents_all" },
+} as const;
+
+export type AlertPrefRow = Readonly<Record<string, unknown>>;
+
+const flag = (value: unknown, fallback: boolean) => (typeof value === "boolean" ? value : fallback);
+
+/** Prefs from a user_notification_prefs row (missing row or column = default). */
+export function alertPrefsFromRow(row: AlertPrefRow | null | undefined): AlertPrefs {
+  const out = {} as AlertPrefs;
+  for (const event of ALERT_EVENTS) {
+    const cols = ALERT_PREF_COLUMNS[event];
+    out[event] = {
+      watched: flag(row?.[cols.watched], DEFAULT_ALERT_PREFS[event].watched),
+      all: flag(row?.[cols.all], DEFAULT_ALERT_PREFS[event].all),
+    };
+  }
+  return out;
+}
+
+export type AlertReason = "mentioned" | "assigned" | "watching" | "all";
+
+export interface AlertRecipientChoice {
+  userId: string;
+  reason: AlertReason;
+}
+
+/**
+ * Fix 48: who is emailed about an event on a claim. Only people who can see
+ * the claim, never the person who caused the event, each once. Direct
+ * recipients (someone @mentioned, the assigned staff member) are always
+ * emailed. Everyone else needs the event's "watched claims" switch on while
+ * they watch the claim, or its "all claims" switch on.
+ */
+export function chooseAlertRecipients(input: {
+  event: AlertEvent;
+  audience: readonly AudienceMember[];
+  watcherIds: readonly string[];
+  prefsByUser: ReadonlyMap<string, AlertPrefs>;
+  actorId: string | null;
+  direct?: readonly AlertRecipientChoice[];
+}): AlertRecipientChoice[] {
+  const canSee = new Set(input.audience.map((m) => m.userId));
+  const watchers = new Set(input.watcherIds);
+  const out = new Map<string, AlertRecipientChoice>();
+  const add = (choice: AlertRecipientChoice) => {
+    if (choice.userId === input.actorId || !canSee.has(choice.userId)) return;
+    if (!out.has(choice.userId)) out.set(choice.userId, choice);
+  };
+  for (const d of input.direct ?? []) add(d);
+  for (const member of input.audience) {
+    const pref =
+      input.prefsByUser.get(member.userId)?.[input.event] ?? DEFAULT_ALERT_PREFS[input.event];
+    if (pref.all) add({ userId: member.userId, reason: "all" });
+    else if (pref.watched && watchers.has(member.userId))
+      add({ userId: member.userId, reason: "watching" });
+  }
+  return [...out.values()];
+}
+
+const EVENT_REASON_TEXT: Record<
+  Exclude<AlertEvent, "messages">,
+  Record<"watching" | "all", string>
+> = {
+  status: {
+    watching: "You get this email because you watch this claim.",
+    all: "You get this email because you asked for emails about status changes on every claim.",
+  },
+  documents: {
+    watching: "You get this email because you watch this claim.",
+    all: "You get this email because you asked for emails about document requests on every claim.",
+  },
+};
+
+export function buildStatusChangeEmail(opts: {
+  claim: AlertClaim;
+  from: string;
+  to: string;
+  reason: "watching" | "all";
+}): AlertEmail {
+  const number = opts.claim.claim_number?.trim();
+  return renderAlertEmail({
+    subject: `Status changed to ${opts.to} on ${number ? `claim ${number}` : "a claim"} | ClaimsQR`,
+    heading: "A claim's status changed",
+    claim: opts.claim,
+    lines: [`Status: ${opts.from} to ${opts.to}`],
+    reason: EVENT_REASON_TEXT.status[opts.reason],
+  });
+}
+
+export function buildDocumentRequestEmail(opts: {
+  claim: AlertClaim;
+  name: string;
+  note: string | null;
+  reason: "watching" | "all";
+}): AlertEmail {
+  const number = opts.claim.claim_number?.trim();
+  return renderAlertEmail({
+    subject: `Document requested on ${number ? `claim ${number}` : "a claim"} | ClaimsQR`,
+    heading: "A document was requested",
+    claim: opts.claim,
+    lines: [`Requested: ${opts.name}`],
+    quote: opts.note,
+    reason: EVENT_REASON_TEXT.documents[opts.reason],
+  });
+}
+
+/** The status change among a claim's field changes (labels as shown to staff), if any. */
+export function statusChangeOf(
+  changes: readonly { field: string; from: string; to: string }[],
+): { from: string; to: string } | null {
+  const change = changes.find((c) => c.field === "status");
+  return change && change.from !== change.to ? { from: change.from, to: change.to } : null;
+}

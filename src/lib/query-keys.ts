@@ -21,6 +21,9 @@ export const queryKeys = {
   // The claim's message thread (fix 47) and who can be @mentioned on it.
   claimMessages: (claimId: string) => ["claim", claimId, "messages"] as const,
   claimMentionCandidates: (claimId: string) => ["claim", claimId, "mention-candidates"] as const,
+  // Claims the signed-in user watches, and their email alert settings (fix 48).
+  watchedClaims: ["watched-claims"] as const,
+  alertPrefs: ["alert-prefs"] as const,
   // The active causes_of_loss lookup rows (fix 35) for the report form.
   causesOfLoss: ["causes-of-loss"] as const,
   // The signed-in user's saved claims-list views (fix 31).

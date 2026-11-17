@@ -33,6 +33,7 @@ import { ExportMenu } from "@/components/claims/export-menu";
 import { ExtraFilterChips } from "@/components/claims/extra-filter-chips";
 import { SavedViewsBar } from "@/components/claims/saved-views-bar";
 import { StatusBadge } from "@/components/status-badge";
+import { WatchButton } from "@/components/claim/watch-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -224,19 +225,22 @@ function ClaimsList() {
                   </th>
                 );
               })}
+              <th scope="col" className="p-3 text-left">
+                <span className="sr-only">Watch</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={COLUMNS.length} className="p-6 text-center text-muted-foreground">
+                <td colSpan={COLUMNS.length + 1} className="p-6 text-center text-muted-foreground">
                   Loading…
                 </td>
               </tr>
             )}
             {!isLoading && page.total === 0 && (
               <tr>
-                <td colSpan={COLUMNS.length} className="p-6 text-center text-muted-foreground">
+                <td colSpan={COLUMNS.length + 1} className="p-6 text-center text-muted-foreground">
                   No claims found.
                 </td>
               </tr>
@@ -280,42 +284,49 @@ function ClaimsList() {
 function ClaimCard({ claim: c, now }: { claim: AgencyClaim; now: Date }) {
   const carrierShort = carrierShortName(c.carrier);
   return (
-    <Link
-      to="/claims/$claimId"
-      params={{ claimId: c.id }}
-      className="block rounded-lg border border-border bg-card p-4 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">Date of loss</p>
-          <p className="font-medium text-navy">{formatDate(c.date_of_loss)}</p>
+    <div className="relative">
+      <Link
+        to="/claims/$claimId"
+        params={{ claimId: c.id }}
+        className="block rounded-lg border border-border bg-card p-4 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <div className="flex items-start justify-between gap-3 pr-10">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Date of loss</p>
+            <p className="font-medium text-navy">{formatDate(c.date_of_loss)}</p>
+          </div>
+          <StatusBadge status={c.status} />
         </div>
-        <StatusBadge status={c.status} />
-      </div>
-      <p className="mt-2 text-sm font-medium truncate">{c.claim_type}</p>
-      {c.line_of_business && c.line_of_business !== c.claim_type && (
-        <p className="text-xs text-muted-foreground truncate">{c.line_of_business}</p>
-      )}
-      <div className="mt-1 flex items-center justify-between gap-3 text-sm text-muted-foreground">
-        <span className="truncate" title={c.carrier ?? undefined}>
-          {carrierShort ?? "—"}
-        </span>
-        {c.claim_number ? (
-          <span className="font-mono text-xs truncate">{c.claim_number}</span>
-        ) : (
-          <span className="text-xs italic shrink-0">Number pending</span>
+        <p className="mt-2 text-sm font-medium truncate">{c.claim_type}</p>
+        {c.line_of_business && c.line_of_business !== c.claim_type && (
+          <p className="text-xs text-muted-foreground truncate">{c.line_of_business}</p>
         )}
-      </div>
-      {/* Everything the desktop row shows, so phones see the same (CLAUDE.md). */}
-      <dl className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-        <CardField label="Paid" value={fmtMoney(paidAmount(c))} numeric />
-        <CardField label="Reserve" value={fmtMoney(reserveAmount(c))} numeric />
-        <CardField label="Adjuster" value={c.adjuster_name ?? "—"} />
-        <CardField label="Closed" value={c.closed_date ? formatDate(c.closed_date) : "—"} />
-        <CardField label="Waiting on" value={waitingOnLabel(claimWaitingOn(c))} />
-        <CardField label="Days since update" value={daysLabel(daysSince(lastUpdateAt(c), now))} />
-      </dl>
-    </Link>
+        <div className="mt-1 flex items-center justify-between gap-3 text-sm text-muted-foreground">
+          <span className="truncate" title={c.carrier ?? undefined}>
+            {carrierShort ?? "—"}
+          </span>
+          {c.claim_number ? (
+            <span className="font-mono text-xs truncate">{c.claim_number}</span>
+          ) : (
+            <span className="text-xs italic shrink-0">Number pending</span>
+          )}
+        </div>
+        {/* Everything the desktop row shows, so phones see the same (CLAUDE.md). */}
+        <dl className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+          <CardField label="Paid" value={fmtMoney(paidAmount(c))} numeric />
+          <CardField label="Reserve" value={fmtMoney(reserveAmount(c))} numeric />
+          <CardField label="Adjuster" value={c.adjuster_name ?? "—"} />
+          <CardField label="Closed" value={c.closed_date ? formatDate(c.closed_date) : "—"} />
+          <CardField label="Waiting on" value={waitingOnLabel(claimWaitingOn(c))} />
+          <CardField label="Days since update" value={daysLabel(daysSince(lastUpdateAt(c), now))} />
+        </dl>
+      </Link>
+      <WatchButton
+        claimId={c.id}
+        claimLabel={`claim ${c.claim_number ?? "number pending"}`}
+        className="absolute right-2 top-2"
+      />
+    </div>
   );
 }
 
@@ -415,6 +426,9 @@ function ClaimRow({ claim: c, now }: { claim: AgencyClaim; now: Date }) {
       {cell(formatDate(c.closed_date), "text-muted-foreground")}
       {cell(waitingOnLabel(claimWaitingOn(c)))}
       {cell(daysLabel(daysSince(lastUpdateAt(c), now)), "text-right tabular-nums")}
+      <td className="p-1 text-center">
+        <WatchButton claimId={c.id} claimLabel={`claim ${c.claim_number ?? "number pending"}`} />
+      </td>
     </tr>
   );
 }
