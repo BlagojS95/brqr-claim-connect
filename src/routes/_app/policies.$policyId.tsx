@@ -9,6 +9,8 @@ import { POLICY_STATUS } from "@/lib/policy-status";
 import { queryKeys } from "@/lib/query-keys";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { StatusBadge } from "@/components/status-badge";
+import { TermLabel } from "@/components/glossary-tip";
+import type { GlossaryTerm } from "@/lib/glossary";
 
 // One policy and every claim against it (fix 42). The totals come from the
 // server (fetchPolicyDetail); this page only shows them.
@@ -126,9 +128,9 @@ function PolicyDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Stat label="Claims" value={String(totals.claims)} />
         <Stat label="Open" value={String(totals.open)} />
-        <Stat label="Paid" value={fmt(totals.paid)} />
-        <Stat label="Reserve" value={fmt(totals.reserve)} />
-        <Stat label="Incurred" value={fmt(totals.incurred)} sub="Paid + reserve" />
+        <Stat label="Paid" term="paid" value={fmt(totals.paid)} />
+        <Stat label="Reserve" term="reserve" value={fmt(totals.reserve)} />
+        <Stat label="Incurred" term="incurred" value={fmt(totals.incurred)} sub="Paid + reserve" />
       </div>
 
       <section className="rounded-lg border border-border bg-card overflow-hidden">
@@ -228,7 +230,7 @@ function ClaimCards({ claims }: { claims: AgencyClaim[] }) {
           >
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium text-navy">{formatDate(c.date_of_loss)}</span>
-              <StatusBadge status={c.status} />
+              <StatusBadge status={c.status} inLink />
             </div>
             <div className="flex items-center justify-between gap-2 text-sm">
               <span>{c.claim_type}</span>
@@ -264,10 +266,22 @@ function Info({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Stat({
+  label,
+  value,
+  sub,
+  term,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  term?: GlossaryTerm;
+}) {
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <div className="text-xs text-muted-foreground uppercase tracking-wide">{label}</div>
+      <div className="text-xs text-muted-foreground uppercase tracking-wide">
+        {term ? <TermLabel term={term}>{label}</TermLabel> : label}
+      </div>
       <div className="text-xl md:text-2xl font-bold text-navy mt-1">{value}</div>
       {sub && <div className="text-xs mt-1 text-muted-foreground">{sub}</div>}
     </div>

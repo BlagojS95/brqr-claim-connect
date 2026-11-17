@@ -17,6 +17,8 @@ import { overviewQueryOptions } from "@/lib/query-keys";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
+import { TermLabel } from "@/components/glossary-tip";
+import { cn } from "@/lib/utils";
 import { AttentionQueue } from "@/components/attention-queue";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Bell, FileText, DollarSign, ClipboardList, Calendar } from "lucide-react";
@@ -64,6 +66,7 @@ function Home() {
     },
     {
       label: "Total Paid",
+      term: "paid" as const,
       value: fmtCurrency(paidToDate),
       icon: DollarSign,
       ariaLabel: `Total paid: ${fmtCurrency(paidToDate)}, view in Insights`,
@@ -116,29 +119,36 @@ function Home() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((c) => {
-          const body = (
-            <>
-              <div className="flex items-center justify-between">
-                <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {c.label}
-                </span>
-                <c.icon className="h-4 w-4 text-gold" />
-              </div>
-              <div className="mt-2 text-2xl font-bold text-navy">{c.value}</div>
-            </>
+          const label = (
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">{c.label}</span>
           );
-          return c.link ? (
-            <Link
+          return (
+            // The link is stretched over the card (after:inset-0), so the
+            // whole card opens its list while the "?" help (fix 49) stays a
+            // separate button above it rather than a control inside the link.
+            <div
               key={c.label}
-              {...c.link}
-              aria-label={c.ariaLabel}
-              className="block rounded-lg border border-border bg-card p-5 transition-colors hover:border-gold hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
+              className={cn(
+                "relative rounded-lg border border-border bg-card p-5",
+                c.link &&
+                  "transition-colors hover:border-gold hover:bg-muted/30 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-gold has-[a:focus-visible]:ring-offset-2",
+              )}
             >
-              {body}
-            </Link>
-          ) : (
-            <div key={c.label} className="rounded-lg border border-border bg-card p-5">
-              {body}
+              <div className="flex items-center justify-between">
+                {c.term ? <TermLabel term={c.term}>{label}</TermLabel> : label}
+                <c.icon className="h-4 w-4 text-gold" aria-hidden />
+              </div>
+              {c.link ? (
+                <Link
+                  {...c.link}
+                  aria-label={c.ariaLabel}
+                  className="mt-2 block text-2xl font-bold text-navy focus-visible:outline-none after:absolute after:inset-0 after:rounded-lg after:content-['']"
+                >
+                  {c.value}
+                </Link>
+              ) : (
+                <div className="mt-2 text-2xl font-bold text-navy">{c.value}</div>
+              )}
             </div>
           );
         })}
@@ -289,15 +299,21 @@ function ClaimsSummary({ claims }: { claims: AgencyClaim[] }) {
           </div>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Paid</span>
+              <TermLabel term="paid" className="text-muted-foreground">
+                Paid
+              </TermLabel>
               <span className="font-semibold text-navy">{fmtCurrency(paid)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Reserve</span>
+              <TermLabel term="reserve" className="text-muted-foreground">
+                Reserve
+              </TermLabel>
               <span className="font-semibold text-navy">{fmtCurrency(incurred - paid)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Incurred</span>
+              <TermLabel term="incurred" className="text-muted-foreground">
+                Incurred
+              </TermLabel>
               <span className="font-semibold text-navy">{fmtCurrency(incurred)}</span>
             </div>
           </div>

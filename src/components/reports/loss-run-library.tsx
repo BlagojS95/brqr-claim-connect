@@ -25,10 +25,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, FileText, Send, FolderArchive } from "lucide-react";
 import { toast } from "sonner";
-
+import { GlossaryTip } from "@/components/glossary-tip";
 
 const fmt = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(n);
 
 // The "Loss Runs" tab on /reports (formerly the Loss Runs page).
 export function LossRunLibrary() {
@@ -170,10 +174,13 @@ export function LossRunLibrary() {
         <div className="p-5 border-b border-border flex items-center gap-2">
           <FolderArchive className="h-4 w-4 text-gold" />
           <h2 className="font-semibold text-navy">Loss Run Library</h2>
+          <GlossaryTip term="lossRun" />
         </div>
         <div className="p-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {yearCards.length === 0 && (
-            <p className="text-sm text-muted-foreground col-span-full">No loss runs available yet.</p>
+            <p className="text-sm text-muted-foreground col-span-full">
+              No loss runs available yet.
+            </p>
           )}
           {yearCards.map((card) => {
             const totals = summarize(card.rows);
@@ -261,7 +268,10 @@ export function LossRunLibrary() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
                 {LOSS_RUN_REQUEST_LINES.map((l) => (
                   <label key={l} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <Checkbox checked={lobs.includes(l)} onCheckedChange={() => toggle(lobs, l, setLobs)} />
+                    <Checkbox
+                      checked={lobs.includes(l)}
+                      onCheckedChange={() => toggle(lobs, l, setLobs)}
+                    />
                     {l}
                   </label>
                 ))}
@@ -269,7 +279,9 @@ export function LossRunLibrary() {
             </div>
 
             <div>
-              <Label htmlFor="notes" className="text-sm font-medium text-navy">Notes (optional)</Label>
+              <Label htmlFor="notes" className="text-sm font-medium text-navy">
+                Notes (optional)
+              </Label>
               <Textarea
                 id="notes"
                 value={notes}
@@ -309,7 +321,11 @@ export function LossRunLibrary() {
             </thead>
             <tbody>
               {requests.length === 0 && (
-                <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No requests yet.</td></tr>
+                <tr>
+                  <td colSpan={4} className="p-6 text-center text-muted-foreground">
+                    No requests yet.
+                  </td>
+                </tr>
               )}
               {requests.map((r) => (
                 <tr key={r.id} className="border-t border-border">
@@ -317,7 +333,9 @@ export function LossRunLibrary() {
                   <td className="p-3">{formatRequestYears(r.years)}</td>
                   <td className="p-3 text-xs">{formatRequestLines(r.lines_of_business)}</td>
                   <td className="p-3">
-                    <span className="text-xs px-2 py-1 rounded-full bg-muted/60 text-navy">{r.status}</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-muted/60 text-navy">
+                      {r.status}
+                    </span>
                   </td>
                 </tr>
               ))}

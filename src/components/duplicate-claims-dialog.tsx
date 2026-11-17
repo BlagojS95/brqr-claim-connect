@@ -61,7 +61,7 @@ export function DuplicateClaimsDialog({
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <StatusBadge status={claim.status} />
+                  <StatusBadge status={claim.status} inLink />
                   <ExternalLink className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                   <span className="sr-only">(opens in a new tab)</span>
                 </div>

@@ -21,6 +21,8 @@ import { fetchClaimDetail } from "@/lib/overview.functions";
 import { queryKeys } from "@/lib/query-keys";
 import { deleteClaimDocument, uploadClaimDocument } from "@/lib/claim-documents";
 import { StatusBadge } from "@/components/status-badge";
+import { TermLabel } from "@/components/glossary-tip";
+import type { GlossaryTerm } from "@/lib/glossary";
 import { ClaimQuickEditButton } from "@/components/staff/claim-quick-edit";
 import { ClaimActivityLog } from "@/components/claim-activity-log";
 import { ClaimContactsTable } from "@/components/claim-contacts-table";
@@ -50,10 +52,21 @@ export const Route = createFileRoute("/_app/claims/$claimId")({
   component: ClaimDetail,
 });
 
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
+function Field({
+  label,
+  value,
+  term,
+}: {
+  label: string;
+  value: React.ReactNode;
+  /** Adds the plain-English "?" help (fix 49). */
+  term?: GlossaryTerm;
+}) {
   return (
     <div>
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">
+        {term ? <TermLabel term={term}>{label}</TermLabel> : label}
+      </div>
       <div className="mt-1 text-sm">{value ?? "—"}</div>
     </div>
   );
@@ -220,9 +233,10 @@ function ClaimDetail() {
         <Field label="Line of Business" value={claim.line_of_business} />
         <Field label="Date of Loss" value={formatDate(claim.date_of_loss)} />
         <Field label="Adjuster" value={claim.adjuster_name} />
-        <Field label="Paid" value={`$${paidAmount(claim).toLocaleString()}`} />
+        <Field label="Paid" term="paid" value={`$${paidAmount(claim).toLocaleString()}`} />
         <Field
           label="Reserve"
+          term="reserve"
           value={
             role === "agency_admin" ? (
               <ClaimReserveEditor
@@ -235,10 +249,15 @@ function ClaimDetail() {
             )
           }
         />
-        <Field label="Incurred" value={`$${incurredAmount(claim).toLocaleString()}`} />
+        <Field
+          label="Incurred"
+          term="incurred"
+          value={`$${incurredAmount(claim).toLocaleString()}`}
+        />
         {role === "agency_admin" ? (
           <Field
             label="Recoveries"
+            term="recovery"
             value={
               <ClaimRecoveryEditor
                 key={recoveryAmount(claim)}
@@ -249,14 +268,23 @@ function ClaimDetail() {
           />
         ) : (
           recoveryAmount(claim) > 0 && (
-            <Field label="Recoveries" value={`$${recoveryAmount(claim).toLocaleString()}`} />
+            <Field
+              label="Recoveries"
+              term="recovery"
+              value={`$${recoveryAmount(claim).toLocaleString()}`}
+            />
           )
         )}
         {recoveryAmount(claim) > 0 && (
-          <Field label="Net Incurred" value={`$${netIncurred(claim).toLocaleString()}`} />
+          <Field
+            label="Net Incurred"
+            term="netIncurred"
+            value={`$${netIncurred(claim).toLocaleString()}`}
+          />
         )}
         <Field
           label="Waiting on"
+          term="waitingOn"
           value={<WaitingOnControl claim={claim} editable={role === "agency_admin"} />}
         />
         {role === "agency_admin" && (

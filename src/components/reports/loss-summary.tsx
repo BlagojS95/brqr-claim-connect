@@ -22,6 +22,7 @@ import { createLossSummaryShare } from "@/lib/shared-reports.functions";
 import { SHARED_REPORT_KIND } from "@/lib/shared-reports";
 import { LossSummaryExport } from "@/components/reports/loss-summary-export";
 import { LossSummaryTable } from "@/components/reports/loss-summary-table";
+import { GlossaryTip } from "@/components/glossary-tip";
 import { ShareReportButton, SharedLinksList } from "@/components/reports/share-links";
 
 const ALL = "";
@@ -80,7 +81,8 @@ export function LossSummary() {
             <BarChart3 className="h-6 w-6 text-gold" /> Loss Summary
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Every claim by year and line of business, valued as of {formatDate(todayIso())}.
+            Every claim by year and line of business, valued as of {formatDate(todayIso())}.{" "}
+            <GlossaryTip term="valuationDate" />
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

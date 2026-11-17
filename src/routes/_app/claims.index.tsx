@@ -33,6 +33,8 @@ import { ExportMenu } from "@/components/claims/export-menu";
 import { ExtraFilterChips } from "@/components/claims/extra-filter-chips";
 import { SavedViewsBar } from "@/components/claims/saved-views-bar";
 import { StatusBadge } from "@/components/status-badge";
+import { GlossaryTip } from "@/components/glossary-tip";
+import type { GlossaryTerm } from "@/lib/glossary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -54,17 +56,17 @@ const fmtMoney = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-const COLUMNS: { key: ClaimSortKey; label: string; numeric?: boolean }[] = [
+const COLUMNS: { key: ClaimSortKey; label: string; numeric?: boolean; term?: GlossaryTerm }[] = [
   { key: "date", label: "Date of Loss" },
   { key: "type", label: "Type" },
   { key: "carrier", label: "Carrier" },
-  { key: "status", label: "Status" },
+  { key: "status", label: "Status", term: "status" },
   { key: "number", label: "Claim #" },
   { key: "adjuster", label: "Adjuster" },
-  { key: "paid", label: "Paid", numeric: true },
-  { key: "reserve", label: "Reserve", numeric: true },
+  { key: "paid", label: "Paid", numeric: true, term: "paid" },
+  { key: "reserve", label: "Reserve", numeric: true, term: "reserve" },
   { key: "closed", label: "Closed" },
-  { key: "waiting", label: "Waiting on" },
+  { key: "waiting", label: "Waiting on", term: "waitingOn" },
   { key: "updated", label: "Days since update", numeric: true },
 ];
 
@@ -209,18 +211,23 @@ function ClaimsList() {
                     aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
                     className={cn("p-0", col.numeric ? "text-right" : "text-left")}
                   >
-                    <button
-                      type="button"
-                      onClick={() => onSort(col.key)}
-                      className={cn(
-                        "w-full inline-flex items-center gap-1 p-3 uppercase tracking-wide hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm",
-                        col.numeric && "justify-end",
-                        active && "text-foreground",
-                      )}
-                    >
-                      {col.label}
-                      <Icon className={cn("h-3 w-3", !active && "opacity-40")} aria-hidden />
-                    </button>
+                    <div className={cn("flex items-center", col.numeric && "justify-end")}>
+                      <button
+                        type="button"
+                        onClick={() => onSort(col.key)}
+                        className={cn(
+                          "inline-flex items-center gap-1 p-3 uppercase tracking-wide hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm",
+                          col.term ? "pr-1" : "w-full",
+                          col.numeric && "justify-end",
+                          active && "text-foreground",
+                        )}
+                      >
+                        {col.label}
+                        <Icon className={cn("h-3 w-3", !active && "opacity-40")} aria-hidden />
+                      </button>
+                      {/* Plain-English help (fix 49), beside the sort button, not in it. */}
+                      {col.term && <GlossaryTip term={col.term} className="mr-2" />}
+                    </div>
                   </th>
                 );
               })}
@@ -290,7 +297,7 @@ function ClaimCard({ claim: c, now }: { claim: AgencyClaim; now: Date }) {
           <p className="text-xs text-muted-foreground">Date of loss</p>
           <p className="font-medium text-navy">{formatDate(c.date_of_loss)}</p>
         </div>
-        <StatusBadge status={c.status} />
+        <StatusBadge status={c.status} inLink />
       </div>
       <p className="mt-2 text-sm font-medium truncate">{c.claim_type}</p>
       {c.line_of_business && c.line_of_business !== c.claim_type && (
@@ -407,7 +414,7 @@ function ClaimRow({ claim: c, now }: { claim: AgencyClaim; now: Date }) {
       {cell(formatDate(c.date_of_loss), undefined, true)}
       {cell(c.claim_type)}
       {cell(<span title={c.carrier ?? undefined}>{carrierShort ?? "—"}</span>)}
-      {cell(<StatusBadge status={c.status} />)}
+      {cell(<StatusBadge status={c.status} inLink />)}
       {cell(c.claim_number ?? "—", "font-mono text-xs")}
       {cell(c.adjuster_name ?? "—")}
       {cell(fmtMoney(paidAmount(c)), "text-right tabular-nums")}
