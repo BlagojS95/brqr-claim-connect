@@ -19,13 +19,17 @@ import { Route as VisualGraphsRouteImport } from './routes/visual-graphs'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppInsightsRouteImport } from './routes/_app/insights'
-import { Route as AppPoliciesRouteImport } from './routes/_app/policies'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as SharedTokenRouteImport } from './routes/shared.$token'
+import { Route as AppAdminImportRouteImport } from './routes/_app/admin_.import'
 import { Route as AppClaimsIndexRouteImport } from './routes/_app/claims.index'
 import { Route as AppClaimsClaimIdRouteImport } from './routes/_app/claims.$claimId'
 import { Route as AppClaimsNewRouteImport } from './routes/_app/claims.new'
 import { Route as AppClaimsNoticeRouteImport } from './routes/_app/claims.notice'
+import { Route as AppPoliciesIndexRouteImport } from './routes/_app/policies.index'
+import { Route as AppPoliciesPolicyIdRouteImport } from './routes/_app/policies.$policyId'
+import { Route as ApiCronMonthlyReportRouteImport } from './routes/api/cron/monthly-report'
 import { Route as ApiCronWeeklyDigestRouteImport } from './routes/api/cron/weekly-digest'
 
 const IndexRoute = IndexRouteImport.update({
@@ -77,11 +81,6 @@ const AppInsightsRoute = AppInsightsRouteImport.update({
   path: '/insights',
   getParentRoute: () => AppRoute,
 } as any)
-const AppPoliciesRoute = AppPoliciesRouteImport.update({
-  id: '/policies',
-  path: '/policies',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppReportsRoute = AppReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -90,6 +89,16 @@ const AppReportsRoute = AppReportsRouteImport.update({
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const SharedTokenRoute = SharedTokenRouteImport.update({
+  id: '/shared/$token',
+  path: '/shared/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAdminImportRoute = AppAdminImportRouteImport.update({
+  id: '/admin_/import',
+  path: '/admin/import',
   getParentRoute: () => AppRoute,
 } as any)
 const AppClaimsIndexRoute = AppClaimsIndexRouteImport.update({
@@ -112,6 +121,21 @@ const AppClaimsNoticeRoute = AppClaimsNoticeRouteImport.update({
   path: '/claims/notice',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPoliciesIndexRoute = AppPoliciesIndexRouteImport.update({
+  id: '/policies/',
+  path: '/policies/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPoliciesPolicyIdRoute = AppPoliciesPolicyIdRouteImport.update({
+  id: '/policies/$policyId',
+  path: '/policies/$policyId',
+  getParentRoute: () => AppRoute,
+} as any)
+const ApiCronMonthlyReportRoute = ApiCronMonthlyReportRouteImport.update({
+  id: '/api/cron/monthly-report',
+  path: '/api/cron/monthly-report',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCronWeeklyDigestRoute = ApiCronWeeklyDigestRouteImport.update({
   id: '/api/cron/weekly-digest',
   path: '/api/cron/weekly-digest',
@@ -128,14 +152,18 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AppAdminRoute
   '/home': typeof AppHomeRoute
   '/insights': typeof AppInsightsRoute
-  '/policies': typeof AppPoliciesRoute
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
+  '/shared/$token': typeof SharedTokenRoute
+  '/admin/import': typeof AppAdminImportRoute
   '/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/claims/new': typeof AppClaimsNewRoute
   '/claims/notice': typeof AppClaimsNoticeRoute
+  '/policies/$policyId': typeof AppPoliciesPolicyIdRoute
+  '/api/cron/monthly-report': typeof ApiCronMonthlyReportRoute
   '/api/cron/weekly-digest': typeof ApiCronWeeklyDigestRoute
   '/claims/': typeof AppClaimsIndexRoute
+  '/policies/': typeof AppPoliciesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -147,14 +175,18 @@ export interface FileRoutesByTo {
   '/admin': typeof AppAdminRoute
   '/home': typeof AppHomeRoute
   '/insights': typeof AppInsightsRoute
-  '/policies': typeof AppPoliciesRoute
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
+  '/shared/$token': typeof SharedTokenRoute
+  '/admin/import': typeof AppAdminImportRoute
   '/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/claims/new': typeof AppClaimsNewRoute
   '/claims/notice': typeof AppClaimsNoticeRoute
+  '/policies/$policyId': typeof AppPoliciesPolicyIdRoute
+  '/api/cron/monthly-report': typeof ApiCronMonthlyReportRoute
   '/api/cron/weekly-digest': typeof ApiCronWeeklyDigestRoute
   '/claims': typeof AppClaimsIndexRoute
+  '/policies': typeof AppPoliciesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -168,14 +200,18 @@ export interface FileRoutesById {
   '/_app/admin': typeof AppAdminRoute
   '/_app/home': typeof AppHomeRoute
   '/_app/insights': typeof AppInsightsRoute
-  '/_app/policies': typeof AppPoliciesRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/shared/$token': typeof SharedTokenRoute
+  '/_app/admin_/import': typeof AppAdminImportRoute
   '/_app/claims/$claimId': typeof AppClaimsClaimIdRoute
   '/_app/claims/new': typeof AppClaimsNewRoute
   '/_app/claims/notice': typeof AppClaimsNoticeRoute
+  '/_app/policies/$policyId': typeof AppPoliciesPolicyIdRoute
+  '/api/cron/monthly-report': typeof ApiCronMonthlyReportRoute
   '/api/cron/weekly-digest': typeof ApiCronWeeklyDigestRoute
   '/_app/claims/': typeof AppClaimsIndexRoute
+  '/_app/policies/': typeof AppPoliciesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -189,14 +225,18 @@ export interface FileRouteTypes {
     | '/admin'
     | '/home'
     | '/insights'
-    | '/policies'
     | '/reports'
     | '/settings'
+    | '/shared/$token'
+    | '/admin/import'
     | '/claims/$claimId'
     | '/claims/new'
     | '/claims/notice'
+    | '/policies/$policyId'
+    | '/api/cron/monthly-report'
     | '/api/cron/weekly-digest'
     | '/claims/'
+    | '/policies/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -208,14 +248,18 @@ export interface FileRouteTypes {
     | '/admin'
     | '/home'
     | '/insights'
-    | '/policies'
     | '/reports'
     | '/settings'
+    | '/shared/$token'
+    | '/admin/import'
     | '/claims/$claimId'
     | '/claims/new'
     | '/claims/notice'
+    | '/policies/$policyId'
+    | '/api/cron/monthly-report'
     | '/api/cron/weekly-digest'
     | '/claims'
+    | '/policies'
   id:
     | '__root__'
     | '/'
@@ -228,14 +272,18 @@ export interface FileRouteTypes {
     | '/_app/admin'
     | '/_app/home'
     | '/_app/insights'
-    | '/_app/policies'
     | '/_app/reports'
     | '/_app/settings'
+    | '/shared/$token'
+    | '/_app/admin_/import'
     | '/_app/claims/$claimId'
     | '/_app/claims/new'
     | '/_app/claims/notice'
+    | '/_app/policies/$policyId'
+    | '/api/cron/monthly-report'
     | '/api/cron/weekly-digest'
     | '/_app/claims/'
+    | '/_app/policies/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -246,6 +294,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   LossRunsRoute: typeof LossRunsRoute
   VisualGraphsRoute: typeof VisualGraphsRoute
+  SharedTokenRoute: typeof SharedTokenRoute
+  ApiCronMonthlyReportRoute: typeof ApiCronMonthlyReportRoute
   ApiCronWeeklyDigestRoute: typeof ApiCronWeeklyDigestRoute
 }
 
@@ -321,13 +371,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInsightsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/policies': {
-      id: '/_app/policies'
-      path: '/policies'
-      fullPath: '/policies'
-      preLoaderRoute: typeof AppPoliciesRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/reports': {
       id: '/_app/reports'
       path: '/reports'
@@ -340,6 +383,20 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/shared/$token': {
+      id: '/shared/$token'
+      path: '/shared/$token'
+      fullPath: '/shared/$token'
+      preLoaderRoute: typeof SharedTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/admin_/import': {
+      id: '/_app/admin_/import'
+      path: '/admin/import'
+      fullPath: '/admin/import'
+      preLoaderRoute: typeof AppAdminImportRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/claims/': {
@@ -370,6 +427,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClaimsNoticeRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/policies/': {
+      id: '/_app/policies/'
+      path: '/policies'
+      fullPath: '/policies/'
+      preLoaderRoute: typeof AppPoliciesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/policies/$policyId': {
+      id: '/_app/policies/$policyId'
+      path: '/policies/$policyId'
+      fullPath: '/policies/$policyId'
+      preLoaderRoute: typeof AppPoliciesPolicyIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/api/cron/monthly-report': {
+      id: '/api/cron/monthly-report'
+      path: '/api/cron/monthly-report'
+      fullPath: '/api/cron/monthly-report'
+      preLoaderRoute: typeof ApiCronMonthlyReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cron/weekly-digest': {
       id: '/api/cron/weekly-digest'
       path: '/api/cron/weekly-digest'
@@ -384,26 +462,30 @@ interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRoute
   AppHomeRoute: typeof AppHomeRoute
   AppInsightsRoute: typeof AppInsightsRoute
-  AppPoliciesRoute: typeof AppPoliciesRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppAdminImportRoute: typeof AppAdminImportRoute
   AppClaimsClaimIdRoute: typeof AppClaimsClaimIdRoute
   AppClaimsNewRoute: typeof AppClaimsNewRoute
   AppClaimsNoticeRoute: typeof AppClaimsNoticeRoute
+  AppPoliciesPolicyIdRoute: typeof AppPoliciesPolicyIdRoute
   AppClaimsIndexRoute: typeof AppClaimsIndexRoute
+  AppPoliciesIndexRoute: typeof AppPoliciesIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRoute,
   AppHomeRoute: AppHomeRoute,
   AppInsightsRoute: AppInsightsRoute,
-  AppPoliciesRoute: AppPoliciesRoute,
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppAdminImportRoute: AppAdminImportRoute,
   AppClaimsClaimIdRoute: AppClaimsClaimIdRoute,
   AppClaimsNewRoute: AppClaimsNewRoute,
   AppClaimsNoticeRoute: AppClaimsNoticeRoute,
+  AppPoliciesPolicyIdRoute: AppPoliciesPolicyIdRoute,
   AppClaimsIndexRoute: AppClaimsIndexRoute,
+  AppPoliciesIndexRoute: AppPoliciesIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -416,6 +498,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   LossRunsRoute: LossRunsRoute,
   VisualGraphsRoute: VisualGraphsRoute,
+  SharedTokenRoute: SharedTokenRoute,
+  ApiCronMonthlyReportRoute: ApiCronMonthlyReportRoute,
   ApiCronWeeklyDigestRoute: ApiCronWeeklyDigestRoute,
 }
 export const routeTree = rootRouteImport

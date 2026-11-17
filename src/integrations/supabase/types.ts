@@ -44,6 +44,30 @@ export type Database = {
         }
         Relationships: []
       }
+      carrier_import_mappings: {
+        Row: {
+          carrier: string
+          id: string
+          mapping: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          carrier: string
+          id?: string
+          mapping: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          carrier?: string
+          id?: string
+          mapping?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       claim_activity: {
         Row: {
           actor_id: string | null

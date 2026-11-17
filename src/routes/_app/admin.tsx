@@ -185,6 +185,7 @@ function AdminPage() {
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-navy">Admin</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage all clients and open claims.</p>
+        <Link to="/admin/import" className="inline-block mt-2 text-sm text-navy underline hover:text-gold">Update claims from a carrier file</Link>
       </div>
 
       <CsvImportCard />
