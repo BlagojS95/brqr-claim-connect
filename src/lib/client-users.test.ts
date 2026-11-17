@@ -5,6 +5,7 @@ import {
   isCompanyWide,
   LocationSchema,
   locationNames,
+  locationNameTaken,
   teamChangeError,
   UpdateClientUserSchema,
 } from "./client-users";
@@ -111,5 +112,21 @@ describe("locationNames", () => {
       { id: LOC_B, name: "Dayton Yard", address: null },
     ];
     expect(locationNames([LOC_A, LOC_B, USER], locations)).toEqual(["Dayton Yard", "Warehouse"]);
+  });
+});
+
+describe("locationNameTaken", () => {
+  const existing = [
+    { id: LOC_A, name: "Dayton Yard" },
+    { id: LOC_B, name: "Warehouse" },
+  ];
+  it("matches names that differ only in capitals or outer spaces", () => {
+    expect(locationNameTaken(existing, "dayton yard")).toBe(true);
+    expect(locationNameTaken(existing, "  WAREHOUSE ")).toBe(true);
+    expect(locationNameTaken(existing, "Dayton Yard 2")).toBe(false);
+  });
+  it("lets a location keep or re-case its own name", () => {
+    expect(locationNameTaken(existing, "DAYTON YARD", LOC_A)).toBe(false);
+    expect(locationNameTaken(existing, "warehouse", LOC_A)).toBe(true);
   });
 });
