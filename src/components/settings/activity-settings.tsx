@@ -71,7 +71,7 @@ export function ActivitySettings() {
                       <Link
                         to="/claims/$claimId"
                         params={{ claimId: e.claimId }}
-                        className="underline underline-offset-2 hover:text-gold"
+                        className="underline underline-offset-2 hover:text-gold-text"
                       >
                         {claimLinkText(e.claimNumber)}
                       </Link>
