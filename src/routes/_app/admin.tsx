@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
 import { CsvImportCard } from "@/components/csv-import-card";
 import { ClientSignatureView } from "@/components/client-signature-view";
+import { ViewAsClientButton, ViewAsLogCard } from "@/components/staff/view-as";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -217,7 +218,12 @@ function AdminPage() {
                 const userId = c.user_id;
                 return (
                   <tr key={c.id} className="border-t border-border">
-                    <td className="p-3">{c.name}</td>
+                    <td className="p-3">
+                      <div className="flex flex-col items-start gap-1.5">
+                        {c.name}
+                        <ViewAsClientButton clientId={c.id} clientName={c.company_name || c.name} />
+                      </div>
+                    </td>
                     <td className="p-3">{c.company_name ?? "—"}</td>
                     <td className="p-3">{c.email ?? "—"}</td>
                     <td className="p-3 font-mono text-xs">{c.ams360_id ?? "—"}</td>
@@ -249,6 +255,8 @@ function AdminPage() {
           </table>
         </div>
       </section>
+
+      <ViewAsLogCard />
 
       <section className="rounded-lg border border-border bg-card">
         <div className="p-5 border-b border-border">

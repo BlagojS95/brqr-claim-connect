@@ -87,6 +87,8 @@ export const listSharedReports = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(100);
     if (data.clientId) query = query.eq("client_id", data.clientId);
+    // Viewing as a client (fix 55): only that client's links.
+    if (context.viewingClientId) query = query.eq("client_id", context.viewingClientId);
     const { data: rows, error } = await query;
     if (error) throw new Error(`Couldn't load your shared links: ${error.message}`);
     return (rows ?? []).map((r) => ({ ...r, kind: r.kind as SharedReportKind }));

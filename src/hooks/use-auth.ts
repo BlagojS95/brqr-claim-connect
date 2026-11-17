@@ -9,7 +9,9 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
-import type { ClientUserRole } from "@/lib/client-users";
+import { CLIENT_USER_ROLE, type ClientUserRole } from "@/lib/client-users";
+import { endViewAsClient, fetchViewAsSession } from "@/lib/view-as.functions";
+import type { ViewingAs } from "@/lib/view-as";
 
 export type AppRole = "agency_admin" | "client";
 
@@ -23,6 +25,13 @@ export interface AuthState {
   clientRole: ClientUserRole | null;
   /** A location user's locations; empty for everyone else. */
   locationIds: string[];
+  /**
+   * Set while an agency admin views a client's portal (fix 55). The UI then
+   * renders as that client's admin login (role "client", clientRole
+   * client_admin). Only for display: the server and the database keep the
+   * session and block every write.
+   */
+  viewingAs: ViewingAs | null;
 }
 
 const INITIAL_STATE: AuthState = {
@@ -33,7 +42,25 @@ const INITIAL_STATE: AuthState = {
   clientId: null,
   clientRole: null,
   locationIds: [],
+  viewingAs: null,
 };
+
+// Read by the sign-out paths, which run outside React (see endViewAsOnSignOut).
+let viewingAsNow: ViewingAs | null = null;
+export function currentViewingAs(): ViewingAs | null {
+  return viewingAsNow;
+}
+
+/** Call before supabase.auth.signOut(): ends an open view-as session (fix 55). */
+export async function endViewAsBeforeSignOut(): Promise<void> {
+  if (!viewingAsNow) return;
+  try {
+    await endViewAsClient({ data: { reason: "sign_out" } });
+  } catch {
+    // Signing out goes ahead; the session runs out on its own after 8 hours.
+  }
+  viewingAsNow = null;
+}
 
 // What a session change means for the role/client lookup, given the user id it
 // was last run for (undefined = not run yet). Token refreshes and repeat events
@@ -51,7 +78,7 @@ export function classifySessionChange(
 // Only used to choose what the UI shows; the server and RLS check access again.
 async function loadRoleAndClient(
   user: User,
-): Promise<Pick<AuthState, "role" | "clientId" | "clientRole" | "locationIds">> {
+): Promise<Pick<AuthState, "role" | "clientId" | "clientRole" | "locationIds" | "viewingAs">> {
   const [{ data: roles }, { data: member }] = await Promise.all([
     supabase.from("user_roles").select("role").eq("user_id", user.id),
     // Every login of a company has a client_users row (fix 32).
@@ -62,11 +89,24 @@ async function loadRoleAndClient(
       .maybeSingle(),
   ]);
   const isAdmin = roles?.some((r) => r.role === "agency_admin");
+  // An admin in a view-as-client session sees that client's portal (fix 55).
+  // If the check fails the admin UI shows, and the server still blocks writes.
+  const viewingAs = isAdmin ? await fetchViewAsSession().catch(() => null) : null;
+  if (viewingAs) {
+    return {
+      role: "client",
+      clientId: viewingAs.clientId,
+      clientRole: CLIENT_USER_ROLE.clientAdmin,
+      locationIds: [],
+      viewingAs,
+    };
+  }
   return {
     role: isAdmin ? "agency_admin" : "client",
     clientId: member?.client_id ?? null,
     clientRole: isAdmin ? null : (member?.role ?? null),
     locationIds: member?.location_ids ?? [],
+    viewingAs: null,
   };
 }
 
@@ -101,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (switchedUser) setTimeout(() => queryClient.removeQueries(), 0);
 
       if (change === "signed-out") {
+        viewingAsNow = null;
         setState({ ...INITIAL_STATE, loading: false });
         return;
       }
@@ -110,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setTimeout(async () => {
         const extras = await loadRoleAndClient(user!);
         if (cancelled || loadedFor !== userId) return;
+        viewingAsNow = extras.viewingAs;
         setState((s) => ({ ...s, loading: false, ...extras }));
       }, 0);
     });

@@ -35,18 +35,20 @@ interface EmailRow {
 export const fetchAttentionQueue = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ items: AttentionItem[] }> => {
-    const { supabase } = context;
+    const { supabase, viewingClientId } = context;
     const [claimRows, requestRows, emailRows] = await Promise.all([
-      fetchAll<ClaimRow>((from, to) =>
-        supabase
+      fetchAll<ClaimRow>((from, to) => {
+        const q = supabase
           .from("claims")
           .select(
             "id, claim_number, claim_type, status, last_activity_at, created_at, clients(name, company_name)",
           )
-          .neq("status", CLAIM_STATUS.closed)
+          .neq("status", CLAIM_STATUS.closed);
+        // Viewing as a client (fix 55): only that client's claims.
+        return (viewingClientId ? q.eq("client_id", viewingClientId) : q)
           .order("id")
-          .range(from, to),
-      ),
+          .range(from, to);
+      }),
       fetchAll<AttentionDocumentRequest>((from, to) =>
         supabase
           .from("claim_document_requests")

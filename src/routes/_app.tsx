@@ -1,7 +1,14 @@
 import { useEffect } from "react";
-import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/use-auth";
+import { endViewAsBeforeSignOut, useAuth } from "@/hooks/use-auth";
+import { HOME_PATH } from "@/lib/navigation";
 import { AppShell } from "@/components/app-shell";
 import { SignatureOnFileDialog } from "@/components/signature-on-file-dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +25,7 @@ async function endExpiredSession(): Promise<boolean> {
   const reason = sessionExpiryReason(readSessionTimes(), Date.now());
   if (!reason) return false;
   clearSessionTimes();
+  await endViewAsBeforeSignOut();
   await supabase.auth.signOut();
   toast.info(EXPIRY_MESSAGE[reason]);
   return true;
@@ -67,9 +75,17 @@ function useSessionExpiry() {
 }
 
 function AppLayout() {
-  const { loading, user, role } = useAuth();
+  const { loading, user, role, viewingAs } = useAuth();
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Viewing as a client (fix 55): agency pages aren't part of the client's portal.
+  const onAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
+  const leaveAdmin = !!viewingAs && onAdminPage;
+  useEffect(() => {
+    if (leaveAdmin) navigate({ to: HOME_PATH, replace: true });
+  }, [leaveAdmin, navigate]);
   useSessionExpiry();
-  if (loading) {
+  if (loading || leaveAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-muted-foreground text-sm">Loading…</div>

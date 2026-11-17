@@ -28,6 +28,8 @@ export const queryKeys = {
   sharedReports: ["shared-reports"] as const,
   // The signed-in user's monthly executive report schedule for a client (fix 46).
   reportSchedule: (clientId: string) => ["report-schedule", clientId] as const,
+  // The last view-as-client sessions on /admin (fix 55).
+  viewAsLog: ["view-as-log"] as const,
 };
 
 export interface CauseOfLossOption {

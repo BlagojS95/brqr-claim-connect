@@ -23,7 +23,8 @@ import {
   MobileMenu,
   REPORT_NEW_CLAIM_PATH,
 } from "@/components/mobile-nav";
-import type { AppRole } from "@/hooks/use-auth";
+import { endViewAsBeforeSignOut, useAuth, type AppRole } from "@/hooks/use-auth";
+import { ViewAsBanner } from "@/components/staff/view-as";
 
 interface NavItem {
   to: string;
@@ -49,6 +50,7 @@ const items: NavItem[] = [
 export function AppShell({ children, role }: { children: React.ReactNode; role: AppRole | null }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
+  const { viewingAs } = useAuth();
   const visible = items.filter((i) => !i.adminOnly || role === "agency_admin");
   const activePath = activeNavPath(
     pathname,
@@ -57,12 +59,15 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
 
   const logout = async () => {
     clearSessionTimes();
+    await endViewAsBeforeSignOut();
     await supabase.auth.signOut();
     navigate({ to: "/login" });
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className={cn("min-h-screen flex bg-background", viewingAs && "pt-11")}>
+      {/* Fixed at the top of every page while viewing as a client (fix 55). */}
+      {viewingAs && <ViewAsBanner viewingAs={viewingAs} />}
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-64 flex-col bg-sidebar text-sidebar-foreground">
         <div className="p-6 border-b border-sidebar-border">

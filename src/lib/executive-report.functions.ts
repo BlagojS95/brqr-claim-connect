@@ -23,6 +23,7 @@ import {
 import { forbidden, parseInput, unprocessable } from "@/lib/http-errors.server";
 import { parseIsoDate } from "@/lib/insights-period";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
+import { assertViewScope } from "@/lib/view-as.server";
 import { emailReport } from "@/lib/monthly-report.server";
 import {
   SHARE_DAYS_DEFAULT,
@@ -47,11 +48,20 @@ export const ReportRequestSchema = z.object({
 type ReportRequest = z.infer<typeof ReportRequestSchema>;
 
 async function buildReport(
-  context: { supabase: Parameters<typeof loadExecutiveReport>[0]; userId: string },
+  context: {
+    supabase: Parameters<typeof loadExecutiveReport>[0];
+    userId: string;
+    viewingClientId: string | null;
+  },
   data: ReportRequest,
 ): Promise<ExecutiveReport> {
+  // Viewing as a client (fix 55): only that client, and no broker notes.
+  assertViewScope(context.viewingClientId, data.clientId);
   // Broker notes are written by agency staff; anything a client sends is ignored.
-  const notes = data.brokerNotes && (await isAgencyAdmin(context.userId)) ? data.brokerNotes : null;
+  const notes =
+    data.brokerNotes && !context.viewingClientId && (await isAgencyAdmin(context.userId))
+      ? data.brokerNotes
+      : null;
   const report = await loadExecutiveReport(context.supabase, data.clientId, {
     period: data.period,
     comparison: data.comparison,
@@ -135,6 +145,7 @@ export const fetchReportSchedule = createServerFn({ method: "GET" })
   .inputValidator(parseInput(z.object({ clientId: z.string().uuid() })))
   .handler(async ({ data, context }): Promise<ReportScheduleState> => {
     await loadDevVars();
+    assertViewScope(context.viewingClientId, data.clientId);
     const [{ data: row }, { data: settings }, canSchedule] = await Promise.all([
       context.supabase
         .from("report_schedules")

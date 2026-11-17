@@ -34,6 +34,8 @@ function toSavedView(row: {
 export const listSavedViews = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<SavedView[]> => {
+    // Viewing as a client (fix 55): the admin's own views aren't the client's.
+    if (context.viewingClientId) return [];
     const { data, error } = await context.supabase
       .from("saved_claim_views")
       .select("id, name, filters, created_at")
