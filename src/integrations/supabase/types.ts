@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_log: {
+        Row: {
+          action: string
+          claim_id: string | null
+          client_id: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          claim_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          claim_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'access_log_claim_id_fkey'
+            columns: ['claim_id']
+            isOneToOne: false
+            referencedRelation: 'claims'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'access_log_client_id_fkey'
+            columns: ['client_id']
+            isOneToOne: false
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       admin_view_sessions: {
         Row: {
           admin_id: string
@@ -616,6 +661,7 @@ export type Database = {
           id: string
           name: string
           phone: string | null
+          require_mfa: boolean
           user_id: string | null
         }
         Insert: {
@@ -626,6 +672,7 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
+          require_mfa?: boolean
           user_id?: string | null
         }
         Update: {
@@ -636,6 +683,7 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          require_mfa?: boolean
           user_id?: string | null
         }
         Relationships: []
@@ -1194,6 +1242,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      mfa_required: {
+        Args: { _uid: string }
         Returns: boolean
       }
       viewing_as_client: {

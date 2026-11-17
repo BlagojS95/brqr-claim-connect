@@ -7,6 +7,7 @@
 export const SESSION_LIMITS = {
   idleMs: 30 * 60 * 1000, // no clicks or typing for 30 minutes
   maxMs: 12 * 60 * 60 * 1000, // 12 hours after signing in, however active
+  warnMs: 2 * 60 * 1000, // warn this long before the idle sign-out (fix 51)
 };
 
 const SIGNED_IN_AT = "claimsqr.signedInAt";
@@ -32,6 +33,32 @@ export function sessionExpiryReason(
   const lastActive = times.lastActiveAt ?? times.signedInAt;
   if (now - lastActive >= limits.idleMs) return "idle";
   return null;
+}
+
+// Fix 51: milliseconds left before the idle sign-out when that is within the
+// warning window (the dialog shows), else null. Null too once the session has
+// already expired, or when the 12-hour limit ends it first: that one isn't
+// postponed by staying active, so there is nothing to warn about.
+export function idleWarningMsLeft(
+  times: SessionTimes,
+  now: number,
+  limits = SESSION_LIMITS,
+): number | null {
+  if (sessionExpiryReason(times, now, limits)) return null;
+  const signedInAt = times.signedInAt as number;
+  const lastActive = times.lastActiveAt ?? signedInAt;
+  const idleEndsAt = lastActive + limits.idleMs;
+  if (signedInAt + limits.maxMs <= idleEndsAt) return null;
+  const left = idleEndsAt - now;
+  return left <= limits.warnMs ? left : null;
+}
+
+/** "2:00", "0:09": the countdown in the idle warning. Rounds up, never below 0:00. */
+export function formatCountdown(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function readNumber(key: string): number | null {

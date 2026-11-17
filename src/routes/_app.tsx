@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   createFileRoute,
   Outlet,
@@ -12,9 +12,12 @@ import { HOME_PATH } from "@/lib/navigation";
 import { AppShell } from "@/components/app-shell";
 import { SignatureOnFileDialog } from "@/components/signature-on-file-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { getSignInStep } from "@/lib/mfa-client";
+import { IdleWarningDialog } from "@/components/idle-warning-dialog";
 import {
   clearSessionTimes,
   EXPIRY_MESSAGE,
+  idleWarningMsLeft,
   markActive,
   readSessionTimes,
   sessionExpiryReason,
@@ -40,6 +43,8 @@ export const Route = createFileRoute("/_app")({
     if (!data.session || (await endExpiredSession())) {
       throw redirect({ to: "/login" });
     }
+    // Fix 51: a login that owes the second step (its code, or setting one up) goes back to /login.
+    if ((await getSignInStep()) !== "done") throw redirect({ to: "/login" });
   },
   component: AppLayout,
 });
@@ -48,6 +53,8 @@ export const Route = createFileRoute("/_app")({
 // the tab comes back into view.
 function useSessionExpiry() {
   const navigate = useNavigate();
+  // Fix 51: time left before the idle sign-out once it is within the warning window.
+  const [warnMsLeft, setWarnMsLeft] = useState<number | null>(null);
   useEffect(() => {
     let lastMark = 0;
     const onActivity = () => {
@@ -66,12 +73,31 @@ function useSessionExpiry() {
     for (const e of events) window.addEventListener(e, onActivity, { passive: true });
     document.addEventListener("visibilitychange", onVisible);
     const timer = setInterval(check, 60_000);
+    // Once a second: show or update the idle warning, and sign out the moment it runs out.
+    // Reads the shared localStorage times, so activity in any tab clears it in all.
+    const tick = setInterval(() => {
+      const now = Date.now();
+      setWarnMsLeft(idleWarningMsLeft(readSessionTimes(), now));
+      if (sessionExpiryReason(readSessionTimes(), now)) void check();
+    }, 1000);
     return () => {
+      clearInterval(tick);
       for (const e of events) window.removeEventListener(e, onActivity);
       document.removeEventListener("visibilitychange", onVisible);
       clearInterval(timer);
     };
   }, [navigate]);
+  const stay = () => {
+    markActive();
+    setWarnMsLeft(null);
+  };
+  const signOutNow = async () => {
+    clearSessionTimes();
+    await endViewAsBeforeSignOut();
+    await supabase.auth.signOut();
+    navigate({ to: "/login" });
+  };
+  return { warnMsLeft, stay, signOutNow };
 }
 
 function AppLayout() {
@@ -84,7 +110,7 @@ function AppLayout() {
   useEffect(() => {
     if (leaveAdmin) navigate({ to: HOME_PATH, replace: true });
   }, [leaveAdmin, navigate]);
-  useSessionExpiry();
+  const idle = useSessionExpiry();
   if (loading || leaveAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -97,6 +123,7 @@ function AppLayout() {
     <AppShell role={role}>
       <Outlet />
       <SignatureOnFileDialog />
+      <IdleWarningDialog msLeft={idle.warnMsLeft} onStay={idle.stay} onSignOut={idle.signOutNow} />
     </AppShell>
   );
 }

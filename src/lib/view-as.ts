@@ -140,6 +140,15 @@ export const SERVER_FN_ACCESS: Record<string, ServerFnAccess> = {
   fetchStaffResponseMetrics: "admin",
   // staff-queue.functions.ts (fix 52)
   fetchStaffQueue: "admin",
+  // Fix 51: security for client admins.
+  // access-log.functions.ts
+  recordSignIn: "write", // writes a log row; nothing to record while viewing
+  fetchAccessLog: "read",
+  recordDownload: "read", // a log row only; the function itself skips view-as sessions
+  // security.functions.ts (fetchMfaStatus is also the one MFA_EXEMPT function, src/lib/mfa.ts)
+  fetchMfaStatus: "read",
+  fetchSecuritySettings: "read",
+  setClientRequireMfa: "write",
 };
 
 /**

@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { parseInput } from "@/lib/http-errors.server";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
+import { ACCESS_ACTION } from "@/lib/access-log";
+import { logAccess } from "@/lib/access-log.server";
 
 const ReserveSchema = z.object({
   claimId: z.string().uuid(),
@@ -17,6 +19,12 @@ export const updateClaimReserve = createServerFn({ method: "POST" })
       .update({ reserve_amount: data.reserveAmount })
       .eq("id", data.claimId);
     if (error) throw new Error(error.message);
+    logAccess({
+      userId: context.userId,
+      claimId: data.claimId,
+      action: ACCESS_ACTION.editClaim,
+      detail: "Reserve",
+    });
     return { ok: true };
   });
 
@@ -36,6 +44,12 @@ export const updateClaimRecovery = createServerFn({ method: "POST" })
       .update({ recovery_amount: data.recoveryAmount })
       .eq("id", data.claimId);
     if (error) throw new Error(error.message);
+    logAccess({
+      userId: context.userId,
+      claimId: data.claimId,
+      action: ACCESS_ACTION.editClaim,
+      detail: "Recovery",
+    });
     return { ok: true };
   });
 
@@ -56,5 +70,11 @@ export const updateClaimReportFlags = createServerFn({ method: "POST" })
       .update({ is_litigated: data.isLitigated, wc_claim_kind: data.wcClaimKind })
       .eq("id", data.claimId);
     if (error) throw new Error(error.message);
+    logAccess({
+      userId: context.userId,
+      claimId: data.claimId,
+      action: ACCESS_ACTION.editClaim,
+      detail: "Report flags",
+    });
     return { ok: true };
   });

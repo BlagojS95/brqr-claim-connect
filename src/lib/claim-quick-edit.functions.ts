@@ -10,6 +10,8 @@ import { httpError, parseInput, unprocessable } from "@/lib/http-errors.server";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
 import { CLAIM_ACTIVITY_KIND } from "@/lib/claim-activity";
+import { ACCESS_ACTION } from "@/lib/access-log";
+import { logAccess } from "@/lib/access-log.server";
 import {
   CLAIM_EDITABLE_SELECT,
   QuickEditSchema,
@@ -85,6 +87,12 @@ export const updateClaimQuickEdit = createServerFn({ method: "POST" })
     if (error) throw new Error(`Couldn't save the claim: ${error.message}`);
     if (!updated?.length) httpError(404, "Claim not found");
 
+    logAccess({
+      userId: context.userId,
+      claimId,
+      action: ACCESS_ACTION.editClaim,
+      detail: changes.map((c) => c.label).join(", "),
+    });
     const body = claimUpdateActivityBody(changes);
     if (body) {
       const { error: logError } = await context.supabase.from("claim_activity").insert({
