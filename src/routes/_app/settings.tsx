@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Building2, FileText, LifeBuoy, Loader2, Mail, MapPin, Send, Users } from "lucide-react";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -108,7 +110,7 @@ function SettingsPage() {
   const saveAgency = useServerFn(updateAgencyWeeklyDigest);
   const sendTest = useServerFn(sendMeTestDigest);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: SETTINGS_QUERY_KEY,
     queryFn: () => getSettings(),
   });
@@ -167,13 +169,9 @@ function SettingsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading settings…
-        </div>
+        <LoadingSkeleton variant="detail" label="Loading settings" />
       ) : error || !data ? (
-        <p className="text-sm text-destructive">
-          {errorMessage(error, "Couldn't load your settings.")}
-        </p>
+        <ErrorState title="We couldn't load your settings" error={error} onRetry={refetch} />
       ) : (
         <>
           <SettingsSection

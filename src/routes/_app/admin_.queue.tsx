@@ -2,6 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ListChecks } from "lucide-react";
+import { EmptyState } from "@/components/states/empty-state";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchAgencyStaff } from "@/lib/staff.functions";
 import { staffName, type StaffMember } from "@/lib/staff";
@@ -143,17 +146,29 @@ function StaffQueuePage() {
             : `${all.length} claim${all.length === 1 ? "" : "s"}`}
       </p>
 
+      {queue.isLoading && <LoadingSkeleton variant="list" label="Loading the work queue" />}
       {queue.isError ? (
-        <p className="rounded-lg border border-border bg-card p-6 text-sm text-destructive">
-          Couldn't load the work queue. Try refreshing.
-        </p>
+        <div className="rounded-lg border border-border bg-card">
+          <ErrorState
+            title="We couldn't load the work queue"
+            error={queue.error}
+            onRetry={() => queue.refetch()}
+          />
+        </div>
       ) : (
         <>
           {/* Phones get cards; the table starts at md, like the claims list. */}
           <ul className="md:hidden space-y-3">
             {!queue.isLoading && items.length === 0 && (
-              <li className="rounded-lg border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-                {filtered ? "Nothing matches these filters." : "Nothing is waiting on the agency."}
+              <li className="rounded-lg border border-border bg-card">
+                <EmptyState
+                  compact
+                  icon={ListChecks}
+                  title={
+                    filtered ? "Nothing matches these filters" : "Nothing is waiting on the agency"
+                  }
+                  text={filtered ? "Clear a filter to see the rest." : "New work shows up here."}
+                />
               </li>
             )}
             {items.map((item) => (
@@ -194,10 +209,19 @@ function StaffQueuePage() {
               <tbody>
                 {!queue.isLoading && items.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-muted-foreground">
-                      {filtered
-                        ? "Nothing matches these filters."
-                        : "Nothing is waiting on the agency."}
+                    <td colSpan={6}>
+                      <EmptyState
+                        compact
+                        icon={ListChecks}
+                        title={
+                          filtered
+                            ? "Nothing matches these filters"
+                            : "Nothing is waiting on the agency"
+                        }
+                        text={
+                          filtered ? "Clear a filter to see the rest." : "New work shows up here."
+                        }
+                      />
                     </td>
                   </tr>
                 )}

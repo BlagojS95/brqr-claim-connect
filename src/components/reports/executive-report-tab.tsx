@@ -18,6 +18,8 @@ import {
 import { downloadBase64 } from "@/lib/exports/download";
 import { currentPolicyTerm, parseIsoDate } from "@/lib/insights-period";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import { overviewQueryOptions, queryKeys } from "@/lib/query-keys";
 import {
   COMPARISONS,
@@ -48,7 +50,13 @@ export function ExecutiveReportTab() {
   const { role, clientId: ownClientId, clientRole } = useAuth();
   const isAgency = role === "agency_admin";
   const getOverview = useServerFn(fetchAgencyOverview);
-  const { data: overview } = useQuery(overviewQueryOptions("all", getOverview));
+  const {
+    data: overview,
+    isLoading: overviewLoading,
+    isError: overviewError,
+    error: overviewErr,
+    refetch: refetchOverview,
+  } = useQuery(overviewQueryOptions("all", getOverview));
 
   const [pickedClient, setPickedClient] = useState("");
   const clientId = isAgency ? pickedClient : (ownClientId ?? "");
@@ -129,6 +137,15 @@ export function ExecutiveReportTab() {
           recoveries.
         </p>
       </div>
+
+      {overviewLoading && <LoadingSkeleton variant="list" rows={3} label="Loading your data" />}
+      {overviewError && (
+        <ErrorState
+          title="We couldn't load your data"
+          error={overviewErr}
+          onRetry={refetchOverview}
+        />
+      )}
 
       <form
         className="rounded-lg border border-border bg-card p-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"

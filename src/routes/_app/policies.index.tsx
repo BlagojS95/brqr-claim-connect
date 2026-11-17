@@ -16,6 +16,10 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/states/empty-state";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
+
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_app/policies/")({
@@ -34,7 +38,13 @@ function PoliciesPage() {
   const [view, setView] = useState<"active" | "nonactive">("active");
   const [search, setSearch] = useState("");
   const getOverview = useServerFn(fetchAgencyOverview);
-  const { data: policies = [], isLoading } = useQuery({
+  const {
+    data: policies = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     ...overviewQueryOptions("policies", getOverview),
     select: (overview) => overview.policies,
   });
@@ -106,11 +116,22 @@ function PoliciesPage() {
         </div>
       </div>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
-      {!isLoading && filtered.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          {view === "active" ? "No active policies on file." : "No non-active policies on file."}
-        </p>
+      {isLoading && <LoadingSkeleton variant="card" rows={3} label="Loading policies" />}
+      {isError && (
+        <ErrorState title="We couldn't load your policies" error={error} onRetry={refetch} />
+      )}
+      {!isLoading && !isError && filtered.length === 0 && (
+        <EmptyState
+          icon={Shield}
+          title={
+            view === "active" ? "No active policies on file" : "No non-active policies on file"
+          }
+          text={
+            term
+              ? "Try a different search."
+              : "If a policy is missing, contact your agency and they will add it."
+          }
+        />
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

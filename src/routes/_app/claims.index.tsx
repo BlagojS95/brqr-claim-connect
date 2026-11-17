@@ -34,9 +34,12 @@ import { ExtraFilterChips } from "@/components/claims/extra-filter-chips";
 import { SavedViewsBar } from "@/components/claims/saved-views-bar";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/states/empty-state";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, FileText, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_app/claims/")({
   // status, q, sort, dir and page live in the URL (fix 24), e.g. /claims?status=open,
@@ -79,13 +82,40 @@ function ClaimsList() {
   useEffect(() => setQuery(search.q ?? ""), [search.q]);
 
   const getOverview = useServerFn(fetchAgencyOverview);
-  const { data: claims = [], isLoading } = useQuery({
+  const {
+    data: claims = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     ...overviewQueryOptions("claims", getOverview),
     select: (overview) => overview.claims,
   });
 
   const filtered = filterClaims(claims, search);
   const page = paginate(sortClaims(filtered, sort, dir), search.page);
+  const noClaims =
+    claims.length === 0 ? (
+      <EmptyState
+        compact
+        icon={FileText}
+        title="No claims yet"
+        text="Claims you report will show up here."
+        action={
+          <Button asChild size="sm">
+            <Link to="/claims/new">Report a claim</Link>
+          </Button>
+        }
+      />
+    ) : (
+      <EmptyState
+        compact
+        icon={Search}
+        title="No claims match"
+        text="Try a different search or clear a filter."
+      />
+    );
   // One clock for every row's "Days since update".
   const now = new Date();
 
@@ -179,14 +209,22 @@ function ClaimsList() {
       {/* Phones get cards (fix 23); the table starts at md. */}
       <ul className="md:hidden space-y-3">
         {isLoading && (
-          <li className="rounded-lg border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-            Loading…
+          <li className="rounded-lg border border-border bg-card p-4">
+            <LoadingSkeleton variant="list" rows={4} label="Loading claims" />
           </li>
         )}
-        {!isLoading && page.total === 0 && (
-          <li className="rounded-lg border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-            No claims found.
+        {isError && (
+          <li className="rounded-lg border border-border bg-card">
+            <ErrorState
+              compact
+              title="We couldn't load your claims"
+              error={error}
+              onRetry={refetch}
+            />
           </li>
+        )}
+        {!isLoading && !isError && page.total === 0 && (
+          <li className="rounded-lg border border-border bg-card">{noClaims}</li>
         )}
         {page.rows.map((c) => (
           <li key={c.id}>
@@ -229,16 +267,26 @@ function ClaimsList() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={COLUMNS.length} className="p-6 text-center text-muted-foreground">
-                  Loading…
+                <td colSpan={COLUMNS.length} className="p-4">
+                  <LoadingSkeleton variant="list" rows={5} label="Loading claims" />
                 </td>
               </tr>
             )}
-            {!isLoading && page.total === 0 && (
+            {isError && (
               <tr>
-                <td colSpan={COLUMNS.length} className="p-6 text-center text-muted-foreground">
-                  No claims found.
+                <td colSpan={COLUMNS.length}>
+                  <ErrorState
+                    compact
+                    title="We couldn't load your claims"
+                    error={error}
+                    onRetry={refetch}
+                  />
                 </td>
+              </tr>
+            )}
+            {!isLoading && !isError && page.total === 0 && (
+              <tr>
+                <td colSpan={COLUMNS.length}>{noClaims}</td>
               </tr>
             )}
             {page.rows.map((c) => (
