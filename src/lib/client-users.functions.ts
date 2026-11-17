@@ -85,7 +85,10 @@ export const fetchClientTeam = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<ClientTeam> => {
     await loadDevVars();
-    const member = await requireClientAdmin(context.userId);
+    // Viewing as a client (fix 55): the team as that client's admin sees it.
+    const member: Pick<ClientMembership, "clientId"> = context.viewingClientId
+      ? { clientId: context.viewingClientId }
+      : await requireClientAdmin(context.userId);
     const [users, primary, { data: locations, error }] = await Promise.all([
       loadTeamUsers(member.clientId, context.userId),
       primaryLoginOf(member.clientId),

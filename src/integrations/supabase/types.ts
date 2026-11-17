@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_view_sessions: {
+        Row: {
+          admin_id: string
+          client_id: string
+          ended_at: string | null
+          ended_reason: string | null
+          id: string
+          started_at: string
+        }
+        Insert: {
+          admin_id: string
+          client_id: string
+          ended_at?: string | null
+          ended_reason?: string | null
+          id?: string
+          started_at?: string
+        }
+        Update: {
+          admin_id?: string
+          client_id?: string
+          ended_at?: string | null
+          ended_reason?: string | null
+          id?: string
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_view_sessions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_settings: {
         Row: {
           first_contact_target_business_days: number
@@ -1100,6 +1135,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      viewing_as_client: {
+        Args: { _uid: string }
+        Returns: string | null
       }
     }
     Enums: {

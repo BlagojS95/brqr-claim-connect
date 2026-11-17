@@ -35,7 +35,7 @@ function snoozed(): boolean {
 // Asks a logged-in client to put their signature on file. "Remind me later"
 // only hides it for this browser session, so it comes back on the next login.
 export function SignatureOnFileDialog() {
-  const { user, role, clientId } = useAuth();
+  const { user, role, clientId, viewingAs } = useAuth();
   const queryClient = useQueryClient();
   const pad = useRef<SignaturePadHandle>(null);
   const [dismissed, setDismissed] = useState(snoozed);
@@ -44,7 +44,8 @@ export function SignatureOnFileDialog() {
   const [padEmpty, setPadEmpty] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const isClient = role === "client" && !!clientId;
+  // Not while an admin views as the client (fix 55): that view is read only.
+  const isClient = role === "client" && !!clientId && !viewingAs;
   const { data: hasSignature, isLoading } = useQuery({
     queryKey: ["signature-on-file", clientId],
     enabled: isClient,
