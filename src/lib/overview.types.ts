@@ -68,6 +68,8 @@ export interface AgencyClaim {
   // Newest claim_activity time (fix 30), for "days since update".
   last_activity_at: string | null;
   created_at: string;
+  // When carrier-held details were last updated (fix 62); null until then.
+  carrier_updated_at: string | null;
   // Cause of loss (fix 35) from the causes_of_loss lookup.
   cause_of_loss_id: string | null;
   cause_of_loss: string | null;

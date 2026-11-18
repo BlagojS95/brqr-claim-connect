@@ -17,8 +17,14 @@ import { overviewQueryOptions } from "@/lib/query-keys";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
+import { TermLabel } from "@/components/glossary-tip";
+import { cn } from "@/lib/utils";
 import { AttentionQueue } from "@/components/attention-queue";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/states/empty-state";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
+import { DataFreshness } from "@/components/data-freshness";
 import { PlusCircle, Bell, FileText, DollarSign, ClipboardList, Calendar } from "lucide-react";
 
 export const Route = createFileRoute("/_app/home")({
@@ -38,7 +44,7 @@ function Home() {
   const isAdmin = role === "agency_admin";
   const getOverview = useServerFn(fetchAgencyOverview);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     ...overviewQueryOptions("all", getOverview),
     enabled: !!user,
   });
@@ -64,6 +70,7 @@ function Home() {
     },
     {
       label: "Total Paid",
+      term: "paid" as const,
       value: fmtCurrency(paidToDate),
       icon: DollarSign,
       ariaLabel: `Total paid: ${fmtCurrency(paidToDate)}, view in Insights`,
@@ -101,12 +108,12 @@ function Home() {
         <div className="flex gap-2">
           <Link to="/claims/new">
             <Button className="bg-navy hover:bg-navy/90 text-navy-foreground gap-2">
-              <PlusCircle className="h-4 w-4" /> Report New Claim
+              <PlusCircle className="h-4 w-4" aria-hidden /> Report New Claim
             </Button>
           </Link>
           <Link to="/claims/notice">
             <Button variant="outline" className="border-gold text-navy gap-2">
-              <Bell className="h-4 w-4" /> Incident Notice Only
+              <Bell className="h-4 w-4" aria-hidden /> Incident Notice Only
             </Button>
           </Link>
         </div>
@@ -116,29 +123,36 @@ function Home() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((c) => {
-          const body = (
-            <>
-              <div className="flex items-center justify-between">
-                <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {c.label}
-                </span>
-                <c.icon className="h-4 w-4 text-gold" />
-              </div>
-              <div className="mt-2 text-2xl font-bold text-navy">{c.value}</div>
-            </>
+          const label = (
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">{c.label}</span>
           );
-          return c.link ? (
-            <Link
+          return (
+            // The link is stretched over the card (after:inset-0), so the
+            // whole card opens its list while the "?" help (fix 49) stays a
+            // separate button above it rather than a control inside the link.
+            <div
               key={c.label}
-              {...c.link}
-              aria-label={c.ariaLabel}
-              className="block rounded-lg border border-border bg-card p-5 transition-colors hover:border-gold hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
+              className={cn(
+                "relative rounded-lg border border-border bg-card p-5",
+                c.link &&
+                  "transition-colors hover:border-gold hover:bg-muted/30 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-gold has-[a:focus-visible]:ring-offset-2",
+              )}
             >
-              {body}
-            </Link>
-          ) : (
-            <div key={c.label} className="rounded-lg border border-border bg-card p-5">
-              {body}
+              <div className="flex items-center justify-between">
+                {c.term ? <TermLabel term={c.term}>{label}</TermLabel> : label}
+                <c.icon className="h-4 w-4 text-gold" aria-hidden />
+              </div>
+              {c.link ? (
+                <Link
+                  {...c.link}
+                  aria-label={c.ariaLabel}
+                  className="mt-2 block text-2xl font-bold text-navy focus-visible:outline-none after:absolute after:inset-0 after:rounded-lg after:content-['']"
+                >
+                  {c.value}
+                </Link>
+              ) : (
+                <div className="mt-2 text-2xl font-bold text-navy">{c.value}</div>
+              )}
             </div>
           );
         })}
@@ -149,7 +163,7 @@ function Home() {
       <section className="rounded-lg border border-border bg-card">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <h2 className="font-semibold text-navy">Recent Claims</h2>
-          <Link to="/claims" className="text-sm text-navy hover:text-gold">
+          <Link to="/claims" className="text-sm text-navy hover:text-gold-text">
             View all →
           </Link>
         </div>
@@ -167,15 +181,37 @@ function Home() {
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-muted-foreground">
-                    Loading…
+                  <td colSpan={5} className="p-4">
+                    <LoadingSkeleton variant="list" rows={4} label="Loading your claims" />
                   </td>
                 </tr>
               )}
-              {!isLoading && claims.length === 0 && (
+              {isError && (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-muted-foreground">
-                    No claims yet.
+                  <td colSpan={5}>
+                    <ErrorState
+                      compact
+                      title="We couldn't load your claims"
+                      error={error}
+                      onRetry={refetch}
+                    />
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !isError && claims.length === 0 && (
+                <tr>
+                  <td colSpan={5}>
+                    <EmptyState
+                      compact
+                      icon={FileText}
+                      title="No claims yet"
+                      text="Claims you report will show up here."
+                      action={
+                        <Button asChild size="sm">
+                          <Link to="/claims/new">Report a claim</Link>
+                        </Button>
+                      }
+                    />
                   </td>
                 </tr>
               )}
@@ -198,7 +234,7 @@ function Home() {
                       to="/claims/$claimId"
                       params={{ claimId: c.id }}
                       aria-label={`Claim ${c.claim_number ?? "Pending"}: ${c.claim_type}, ${claimStatusLabel(c.status)}, loss date ${formatDate(c.date_of_loss)}`}
-                      className="text-navy group-hover:text-gold focus-visible:outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-gold"
+                      className="text-navy group-hover:text-gold-text focus-visible:outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-gold"
                     >
                       {/* Display copy for a missing claim number, not a claim status. */}
                       {c.claim_number ?? "Pending"}
@@ -289,17 +325,24 @@ function ClaimsSummary({ claims }: { claims: AgencyClaim[] }) {
           </div>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Paid</span>
+              <TermLabel term="paid" className="text-muted-foreground">
+                Paid
+              </TermLabel>
               <span className="font-semibold text-navy">{fmtCurrency(paid)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Reserve</span>
+              <TermLabel term="reserve" className="text-muted-foreground">
+                Reserve
+              </TermLabel>
               <span className="font-semibold text-navy">{fmtCurrency(incurred - paid)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Incurred</span>
+              <TermLabel term="incurred" className="text-muted-foreground">
+                Incurred
+              </TermLabel>
               <span className="font-semibold text-navy">{fmtCurrency(incurred)}</span>
             </div>
+            <DataFreshness claims={claims} />
           </div>
         </div>
       </div>

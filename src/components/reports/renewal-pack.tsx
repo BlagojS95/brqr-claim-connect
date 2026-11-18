@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Download, FileStack } from "lucide-react";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -35,7 +37,13 @@ export function RenewalPack() {
   const { role } = useAuth();
   const isAdmin = role === "agency_admin";
   const getOverview = useServerFn(fetchAgencyOverview);
-  const { data: overview, isLoading, isError } = useQuery(overviewQueryOptions("all", getOverview));
+  const {
+    data: overview,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery(overviewQueryOptions("all", getOverview));
 
   // Same key and shape as the claim form's query, so they share the cache.
   const { data: lines = [], isLoading: linesLoading } = useQuery({
@@ -117,7 +125,7 @@ export function RenewalPack() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl md:text-2xl font-bold text-navy flex items-center gap-2">
-          <FileStack className="h-6 w-6 text-gold" /> Renewal Pack
+          <FileStack className="h-6 w-6 text-gold" aria-hidden /> Renewal Pack
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
           Five policy years of claims against premium for each line of business, in one PDF for your
@@ -125,9 +133,13 @@ export function RenewalPack() {
         </p>
       </div>
 
-      {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {loading && <LoadingSkeleton variant="list" label="Loading your policies and claims" />}
       {isError && (
-        <p className="text-sm text-destructive">Your policies and claims could not be loaded.</p>
+        <ErrorState
+          title="We couldn't load your policies and claims"
+          error={error}
+          onRetry={refetch}
+        />
       )}
 
       {!loading && !isError && (

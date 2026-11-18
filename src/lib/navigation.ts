@@ -2,6 +2,14 @@
 
 export const HOME_PATH = "/home";
 
+// The staff work queue (fix 52), where agency admins land after signing in.
+export const STAFF_QUEUE_PATH = "/admin/queue";
+
+/** Where a user starts: agency staff on their work queue, clients on Home. */
+export function landingPath(isAgencyAdmin: boolean): typeof HOME_PATH | typeof STAFF_QUEUE_PATH {
+  return isAgencyAdmin ? STAFF_QUEUE_PATH : HOME_PATH;
+}
+
 export const REPORT_TABS = {
   lossSummary: "loss-summary",
   lossRuns: "loss-runs",

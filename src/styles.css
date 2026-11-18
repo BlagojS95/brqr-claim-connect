@@ -5,6 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Body-size text is at least 14px (WCAG 2.1 AA, fix 58). Uppercase micro-labels and badges stay 12px. */
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.25rem;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -31,6 +34,7 @@
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-gold: var(--gold);
+  --color-gold-text: var(--gold-text);
   --color-gold-foreground: var(--gold-foreground);
   --color-navy: var(--navy);
   --color-navy-foreground: var(--navy-foreground);
@@ -55,6 +59,8 @@
   /* Gold #C9A84C */
   --gold: oklch(0.745 0.114 85);
   --gold-foreground: oklch(0.2 0.05 257);
+  /* Darker gold for text on light surfaces: 5.6:1 on white (brand gold is 2.3:1). */
+  --gold-text: oklch(0.52 0.11 85);
 
   --background: oklch(0.99 0.003 250);
   --foreground: oklch(0.2 0.04 257);
@@ -70,7 +76,7 @@
   --muted-foreground: oklch(0.5 0.02 257);
   --accent: oklch(0.745 0.114 85);
   --accent-foreground: oklch(0.2 0.05 257);
-  --destructive: oklch(0.6 0.22 25);
+  --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(0.99 0 0);
   --success: oklch(0.62 0.15 150);
   --success-foreground: oklch(0.99 0 0);
@@ -90,6 +96,7 @@
 }
 
 .dark {
+  --gold-text: oklch(0.745 0.114 85);
   --background: oklch(0.18 0.03 257);
   --foreground: oklch(0.97 0.005 250);
   --card: oklch(0.23 0.04 257);
@@ -116,5 +123,33 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Accessibility (fix 58) */
+@layer base {
+  /* Uppercase micro-labels stay at 12px. */
+  .text-xs.uppercase,
+  .uppercase.text-xs {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+  /* Every keyboard-reachable control shows a focus ring, including clickable rows, cards and custom controls. */
+  a:focus-visible,
+  button:focus-visible,
+  summary:focus-visible,
+  [role="button"]:focus-visible,
+  [role="tab"]:focus-visible,
+  [role="link"]:focus-visible,
+  [role="menuitem"]:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 1px;
   }
 }

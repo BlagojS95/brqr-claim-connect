@@ -47,9 +47,10 @@ export const fetchClaimActivity = createServerFn({ method: "POST" })
     ]);
     if (error) throw new Error(`Couldn't load activity: ${error.message}`);
 
+    // Viewing as a client (fix 55): names shown the way the client sees them.
     const authors = await resolveActivityAuthors(
       (rows ?? []).map((r) => r.actor_id),
-      { showAgencyEmails: !!adminRole },
+      { showAgencyEmails: !!adminRole && !context.viewingClientId },
     );
     return sortActivityNewestFirst(rows ?? []).map((r) => ({
       id: r.id,

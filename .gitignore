@@ -33,3 +33,8 @@ dist-ssr
 
 # Vercel
 .vercel
+
+# Playwright (accessibility check)
+/test-results/
+/playwright-report/
+/playwright/.cache/

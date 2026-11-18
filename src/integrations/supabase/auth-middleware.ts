@@ -5,11 +5,15 @@ import { createClient } from '@supabase/supabase-js'
 import type { Database } from './types'
 // Edited by hand: auth failures answer 401 through unauthorized().
 import { unauthorized } from '@/lib/http-errors.server'
+// Edited by hand (fix 55): the view-as-client session is checked on every call.
+import { guardViewSession } from '@/lib/view-as.server'
+// Edited by hand (fix 51): two-step sign-in a client requires is enforced here.
+import { guardMfa } from '@/lib/mfa.server'
 
 
 
 export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
-  async ({ next }) => {
+  async ({ next, serverFnMeta }) => {
     
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
@@ -71,11 +75,22 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       unauthorized('Unauthorized: No user ID found in token');
     }
 
+    // While this admin views as a client: reads are scoped to that client and
+    // every function not on the read-only list in src/lib/view-as.ts is a 403.
+    // Fix 51: a login whose company requires two-step sign-in gets a 403 until
+    // its session has passed it (aal2), except for the sign-in screens' functions.
+    const [viewingClientId] = await Promise.all([
+      guardViewSession(supabase, data.claims.sub, serverFnMeta?.name),
+      guardMfa(supabase, data.claims.sub, data.claims.aal, serverFnMeta?.name),
+    ]);
+
     return next({
       context: {
         supabase,
         userId: data.claims.sub,
         claims: data.claims,
+        /** The client an admin is viewing as (read only), else null. */
+        viewingClientId,
       },
     });
   },

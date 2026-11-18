@@ -47,7 +47,8 @@ export const fetchNotificationSettings = createServerFn({ method: "GET" })
 
     // No row means subscribed.
     const weeklyDigest = pref?.weekly_digest ?? true;
-    if (!role) return { weeklyDigest, agency: null };
+    // Viewing as a client (fix 55): the page shows what the client sees.
+    if (!role || context.viewingClientId) return { weeklyDigest, agency: null };
 
     const { data: settings, error: settingsError } = await supabase
       .from("agency_settings")

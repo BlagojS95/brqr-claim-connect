@@ -2,13 +2,31 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Building2, Loader2, Mail, MapPin, Send, Users } from "lucide-react";
+import {
+  Activity,
+  Building2,
+  FileText,
+  LifeBuoy,
+  Loader2,
+  Mail,
+  MapPin,
+  Send,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { TeamLocations, TeamUsers } from "@/components/settings/team-settings";
+import { ActivitySettings } from "@/components/settings/activity-settings";
+import { SecuritySettings } from "@/components/settings/security-settings";
+import { EmailTemplatesSettings } from "@/components/settings/email-templates-settings";
+import { AdvocateSettings } from "@/components/settings/advocate-settings";
 import { useAuth } from "@/hooks/use-auth";
 import { CLIENT_USER_ROLE } from "@/lib/client-users";
+import { AlertPreferences } from "@/components/settings/alert-preferences";
 import { formatDate } from "@/lib/dates";
 import { DIGEST_RUN_STATUSES } from "@/lib/digest";
 import {
@@ -99,14 +117,14 @@ function SwitchRow({
 function SettingsPage() {
   const queryClient = useQueryClient();
   // Only decides which sections to show; the server checks again.
-  const { clientRole } = useAuth();
+  const { clientRole, role } = useAuth();
   const isClientAdmin = clientRole === CLIENT_USER_ROLE.clientAdmin;
   const getSettings = useServerFn(fetchNotificationSettings);
   const savePreference = useServerFn(updateWeeklyDigestPreference);
   const saveAgency = useServerFn(updateAgencyWeeklyDigest);
   const sendTest = useServerFn(sendMeTestDigest);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: SETTINGS_QUERY_KEY,
     queryFn: () => getSettings(),
   });
@@ -165,17 +183,13 @@ function SettingsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading settings…
-        </div>
+        <LoadingSkeleton variant="detail" label="Loading settings" />
       ) : error || !data ? (
-        <p className="text-sm text-destructive">
-          {errorMessage(error, "Couldn't load your settings.")}
-        </p>
+        <ErrorState title="We couldn't load your settings" error={error} onRetry={refetch} />
       ) : (
         <>
           <SettingsSection
-            icon={<Mail className="h-5 w-5" />}
+            icon={<Mail className="h-5 w-5" aria-hidden />}
             title="Email notifications"
             description="Emails ClaimsQR sends to your login address."
           >
@@ -187,19 +201,20 @@ function SettingsPage() {
               disabled={preference.isPending}
               onChange={(value) => preference.mutate(value)}
             />
+            <AlertPreferences />
           </SettingsSection>
 
           {isClientAdmin && (
             <>
               <SettingsSection
-                icon={<Users className="h-5 w-5" />}
+                icon={<Users className="h-5 w-5" aria-hidden />}
                 title="Users"
                 description="Everyone at your company who can sign in, and what they can see."
               >
                 <TeamUsers />
               </SettingsSection>
               <SettingsSection
-                icon={<MapPin className="h-5 w-5" />}
+                icon={<MapPin className="h-5 w-5" aria-hidden />}
                 title="Locations"
                 description="Your sites. Claims can be filed under a location."
               >
@@ -210,7 +225,7 @@ function SettingsPage() {
 
           {agency && (
             <SettingsSection
-              icon={<Building2 className="h-5 w-5" />}
+              icon={<Building2 className="h-5 w-5" aria-hidden />}
               title="Agency"
               description="Only agency admins see this section."
             >
@@ -246,9 +261,9 @@ function SettingsPage() {
                   onClick={() => testDigest.mutate()}
                 >
                   {testDigest.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                   ) : (
-                    <Send className="h-4 w-4" />
+                    <Send className="h-4 w-4" aria-hidden />
                   )}
                   Send me a test digest
                 </Button>
@@ -286,6 +301,44 @@ function SettingsPage() {
             </SettingsSection>
           )}
         </>
+      )}
+
+      <SettingsSection
+        icon={<ShieldCheck className="h-5 w-5" />}
+        title="Security"
+        description="Two-step sign-in with an authenticator app."
+      >
+        <SecuritySettings />
+      </SettingsSection>
+
+      {(role === "agency_admin" || isClientAdmin) && (
+        <SettingsSection
+          icon={<Activity className="h-5 w-5" />}
+          title="Activity"
+          description="Who signed in, opened or changed a claim, or downloaded a file."
+        >
+          <ActivitySettings />
+        </SettingsSection>
+      )}
+
+      {role === "agency_admin" && (
+        <SettingsSection
+          icon={<LifeBuoy className="h-5 w-5" />}
+          title="Help for clients"
+          description="The claims advocate and after-hours number clients see on every page."
+        >
+          <AdvocateSettings />
+        </SettingsSection>
+      )}
+
+      {role === "agency_admin" && (
+        <SettingsSection
+          icon={<FileText className="h-5 w-5" aria-hidden />}
+          title="Email templates"
+          description='Templates for "Email carrier" on a claim. Placeholders are filled in from the claim.'
+        >
+          <EmailTemplatesSettings />
+        </SettingsSection>
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   Home,
   FileText,
@@ -10,19 +11,23 @@ import {
   FolderArchive,
   LineChart,
   Settings,
+  ListChecks,
 } from "lucide-react";
 import claimsQrLogo from "@/assets/claims-qr-logo-white.png";
 import { supabase } from "@/integrations/supabase/client";
 import { clearSessionTimes } from "@/lib/session-expiry";
 import { cn } from "@/lib/utils";
-import { activeNavPath, HOME_PATH } from "@/lib/navigation";
+import { activeNavPath, HOME_PATH, STAFF_QUEUE_PATH } from "@/lib/navigation";
 import {
   INCIDENT_NOTICE_PATH,
   MobileBottomNav,
   MobileMenu,
   REPORT_NEW_CLAIM_PATH,
 } from "@/components/mobile-nav";
-import type { AppRole } from "@/hooks/use-auth";
+import { endViewAsBeforeSignOut, useAuth, type AppRole } from "@/hooks/use-auth";
+import { ViewAsBanner } from "@/components/staff/view-as";
+import { ClaimsAdvocateBlock, ClaimsAdvocateSheet } from "@/components/help/claims-advocate";
+import { useClaimsAdvocate } from "@/hooks/use-claims-advocate";
 
 interface NavItem {
   to: string;
@@ -33,6 +38,8 @@ interface NavItem {
 
 const items: NavItem[] = [
   { to: HOME_PATH, label: "Home", icon: Home },
+  // Agency staff land here after signing in (fix 52).
+  { to: STAFF_QUEUE_PATH, label: "Work Queue", icon: ListChecks, adminOnly: true },
   { to: "/claims", label: "Claims", icon: FileText },
   { to: REPORT_NEW_CLAIM_PATH, label: "Report New Claim", icon: PlusCircle },
   { to: INCIDENT_NOTICE_PATH, label: "Incident Notice Only", icon: Bell },
@@ -46,6 +53,10 @@ const items: NavItem[] = [
 export function AppShell({ children, role }: { children: React.ReactNode; role: AppRole | null }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
+  const { viewingAs } = useAuth();
+  // Client logins only (and staff viewing as a client); null otherwise (fix 59).
+  const advocate = useClaimsAdvocate();
+  const [helpOpen, setHelpOpen] = useState(false);
   const visible = items.filter((i) => !i.adminOnly || role === "agency_admin");
   const activePath = activeNavPath(
     pathname,
@@ -54,16 +65,19 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
 
   const logout = async () => {
     clearSessionTimes();
+    await endViewAsBeforeSignOut();
     await supabase.auth.signOut();
     navigate({ to: "/login" });
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className={cn("min-h-screen flex bg-background", viewingAs && "pt-11")}>
+      {/* Fixed at the top of every page while viewing as a client (fix 55). */}
+      {viewingAs && <ViewAsBanner viewingAs={viewingAs} />}
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-64 flex-col bg-sidebar text-sidebar-foreground">
         <div className="p-6 border-b border-sidebar-border">
-          <img src={claimsQrLogo} alt="Claims QR" className="h-11 w-auto" />
+          <img src={claimsQrLogo} alt="ClaimsQR" className="h-11 w-auto" />
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {visible.map((item) => {
@@ -80,25 +94,40 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
                     : "hover:bg-sidebar-accent/60 text-sidebar-foreground/85",
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4" aria-hidden />
                 {item.label}
               </Link>
             );
           })}
         </nav>
+        {advocate && (
+          <ClaimsAdvocateBlock
+            info={advocate}
+            tone="sidebar"
+            className="mx-3 px-3 py-3 border-t border-sidebar-border"
+          />
+        )}
         <button
           onClick={logout}
           className="m-3 flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-sidebar-accent/60"
         >
-          <LogOut className="h-4 w-4" /> Sign out
+          <LogOut className="h-4 w-4" aria-hidden /> Sign out
         </button>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden flex items-center justify-between p-4 bg-navy text-navy-foreground">
-          <img src={claimsQrLogo} alt="Claims QR" className="h-8 w-auto" />
+          <img src={claimsQrLogo} alt="ClaimsQR" className="h-8 w-auto" />
           {/* Every sidebar page and Sign out; the bottom bar holds the main five. */}
-          <MobileMenu items={visible} activePath={activePath} onSignOut={logout} />
+          <MobileMenu
+            items={visible}
+            activePath={activePath}
+            onSignOut={logout}
+            onHelp={advocate ? () => setHelpOpen(true) : undefined}
+          />
+          {advocate && (
+            <ClaimsAdvocateSheet info={advocate} open={helpOpen} onOpenChange={setHelpOpen} />
+          )}
         </header>
         <div className="flex-1 p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto">{children}</div>
 

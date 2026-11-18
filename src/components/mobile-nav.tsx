@@ -4,6 +4,7 @@ import {
   Bell,
   ChevronRight,
   FileText,
+  LifeBuoy,
   FolderArchive,
   Home,
   LogOut,
@@ -72,11 +73,11 @@ export function MobileBottomNav({ activePath }: { activePath: string | null }) {
         to={item.to}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex-1 min-w-0 flex flex-col items-center py-2 text-[10px] gap-1",
+          "flex-1 min-w-0 flex flex-col items-center py-2 text-[0.75rem] gap-1",
           active ? "text-gold" : "text-sidebar-foreground/70",
         )}
       >
-        <Icon className="h-5 w-5" />
+        <Icon className="h-5 w-5" aria-hidden />
         {item.label}
       </Link>
     );
@@ -92,7 +93,7 @@ export function MobileBottomNav({ activePath }: { activePath: string | null }) {
       <Sheet open={reportOpen} onOpenChange={setReportOpen}>
         <SheetTrigger
           className={cn(
-            "flex-1 min-w-0 flex flex-col items-center pb-2 text-[10px] gap-1 focus-visible:outline-none group",
+            "flex-1 min-w-0 flex flex-col items-center pb-2 text-[0.75rem] gap-1 focus-visible:outline-none group",
             reportActive ? "text-gold" : "text-sidebar-foreground/70",
           )}
         >
@@ -102,7 +103,7 @@ export function MobileBottomNav({ activePath }: { activePath: string | null }) {
               reportActive && "ring-gold/40",
             )}
           >
-            <Plus className="h-6 w-6" />
+            <Plus className="h-6 w-6" aria-hidden />
           </span>
           Report
         </SheetTrigger>
@@ -130,7 +131,7 @@ export function MobileBottomNav({ activePath }: { activePath: string | null }) {
                     )}
                   >
                     <span className="h-10 w-10 shrink-0 rounded-full bg-navy text-navy-foreground flex items-center justify-center">
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-5 w-5" aria-hidden />
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="block font-medium text-navy">{choice.label}</span>
@@ -158,14 +159,17 @@ export interface MenuItem {
 
 // The "Menu" button in the mobile top bar: every page the desktop sidebar has
 // (the bottom bar only fits the main five), plus Sign out. Closes on a choice.
+// `onHelp` (fix 59) adds a Help entry that opens the claims advocate sheet.
 export function MobileMenu({
   items,
   activePath,
   onSignOut,
+  onHelp,
 }: {
   items: readonly MenuItem[];
   activePath: string | null;
   onSignOut: () => void;
+  onHelp?: () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -211,6 +215,18 @@ export function MobileMenu({
             );
           })}
         </nav>
+        {onHelp && (
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onHelp();
+            }}
+            className="mx-3 mt-3 flex items-center gap-3 px-3 py-3 rounded-md text-sm hover:bg-sidebar-accent/60 text-sidebar-foreground/85"
+          >
+            <LifeBuoy className="h-4 w-4" aria-hidden /> Help &amp; your claims advocate
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {

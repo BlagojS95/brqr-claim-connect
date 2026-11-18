@@ -5,6 +5,8 @@ import { parseInput } from "@/lib/http-errors.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Tables } from "@/integrations/supabase/types";
 import { fetchAll } from "@/lib/fetch-all";
+import { ACCESS_ACTION } from "@/lib/access-log";
+import { logAccess } from "@/lib/access-log.server";
 import {
   CLAIM_SELECT,
   UUID_RE,
@@ -26,32 +28,45 @@ import type {
 
 // Every query here runs with the caller's own token, so RLS does the scoping:
 // an agency_admin gets every client's rows, a client only gets their own.
+// While an admin views as a client (fix 55), every query is also filtered to
+// that client here; the database's view-as policies do the same.
 async function getScopedOverview(
   supabase: SupabaseClient<Database>,
   scope: OverviewScope,
+  viewingClientId: string | null,
 ): Promise<AgencyOverview> {
   const [clientRows, policyRows, claimRows, locationRows] = await Promise.all([
-    fetchAll<Tables<"clients">>((from, to) =>
-      supabase.from("clients").select("*").order("name").order("id").range(from, to),
-    ),
+    fetchAll<Tables<"clients">>((from, to) => {
+      const q = supabase.from("clients").select("*");
+      return (viewingClientId ? q.eq("id", viewingClientId) : q)
+        .order("name")
+        .order("id")
+        .range(from, to);
+    }),
     scope === "claims"
       ? Promise.resolve([])
-      : fetchAll<PolicyRow>((from, to) =>
-          supabase.from("policies").select("*, client_locations(name)").order("id").range(from, to),
-        ),
+      : fetchAll<PolicyRow>((from, to) => {
+          const q = supabase.from("policies").select("*, client_locations(name)");
+          return (viewingClientId ? q.eq("client_id", viewingClientId) : q)
+            .order("id")
+            .range(from, to);
+        }),
     scope === "policies"
       ? Promise.resolve([])
-      : fetchAll<ClaimRow>((from, to) =>
-          supabase
-            .from("claims")
-            .select(CLAIM_SELECT)
+      : fetchAll<ClaimRow>((from, to) => {
+          const q = supabase.from("claims").select(CLAIM_SELECT);
+          return (viewingClientId ? q.eq("client_id", viewingClientId) : q)
             .order("date_of_loss", { ascending: false, nullsFirst: false })
             .order("id")
-            .range(from, to),
-        ),
-    fetchAll<Tables<"client_locations">>((from, to) =>
-      supabase.from("client_locations").select("*").order("name").order("id").range(from, to),
-    ),
+            .range(from, to);
+        }),
+    fetchAll<Tables<"client_locations">>((from, to) => {
+      const q = supabase.from("client_locations").select("*");
+      return (viewingClientId ? q.eq("client_id", viewingClientId) : q)
+        .order("name")
+        .order("id")
+        .range(from, to);
+    }),
   ]);
 
   const clientNames = new Map(clientRows.map((c) => [c.id, displayName(c)]));
@@ -93,7 +108,7 @@ export const fetchAgencyOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => parseInput(ScopeSchema)(input ?? {}))
   .handler(async ({ data, context }) => {
-    return getScopedOverview(context.supabase, data.scope ?? "all");
+    return getScopedOverview(context.supabase, data.scope ?? "all", context.viewingClientId);
   });
 
 export const fetchClaimDetail = createServerFn({ method: "GET" })
@@ -108,6 +123,18 @@ export const fetchClaimDetail = createServerFn({ method: "GET" })
       .eq("id", data.claimId)
       .maybeSingle();
     if (!claim) return null;
+    // Viewing as a client (fix 55): another client's claim is "not found".
+    if (context.viewingClientId && claim.client_id !== context.viewingClientId) return null;
+    // Access log (fix 51), not awaited. View-as sessions are logged on their own.
+    if (!context.viewingClientId) {
+      logAccess({
+        userId: context.userId,
+        clientId: claim.client_id,
+        claimId: claim.id,
+        action: ACCESS_ACTION.viewClaim,
+        dedupeMinutes: 10,
+      });
+    }
 
     const { clients: clientRow, ...row } = claim;
     return {
@@ -155,6 +182,7 @@ export const fetchPolicyDetail = createServerFn({ method: "GET" })
       .eq("id", data.policyId)
       .maybeSingle();
     if (!row) return null;
+    if (context.viewingClientId && row.client_id !== context.viewingClientId) return null;
     const { clients: clientRow, ...policyRow } = row;
     const clientName = displayName(clientRow);
     const policy = toPolicy(policyRow, clientName);

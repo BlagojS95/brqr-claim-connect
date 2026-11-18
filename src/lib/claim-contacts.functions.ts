@@ -4,6 +4,7 @@ import { parseInput } from "@/lib/http-errors.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
+import { assertViewScope } from "@/lib/view-as.server";
 import { CONTACT_ROW_KEYS, applyContactDefaults } from "@/lib/claim-contacts";
 
 const InputSchema = z.object({ claimId: z.string().uuid() });
@@ -24,15 +25,19 @@ export const ensureClaimContacts = createServerFn({ method: "POST" })
       .eq("id", data.claimId)
       .maybeSingle();
     if (!claim) throw new Error("Claim not found");
+    assertViewScope(context.viewingClientId, claim.client_id);
 
-    await supabaseAdmin.from("claim_contacts").upsert(
-      CONTACT_ROW_KEYS.map((row_key) => ({
-        claim_id: claim.id,
-        row_key,
-        client_id: claim.client_id,
-      })),
-      { onConflict: "claim_id,row_key", ignoreDuplicates: true },
-    );
+    // Viewing as a client (fix 55) is read only: no seeding, only reading.
+    if (!context.viewingClientId) {
+      await supabaseAdmin.from("claim_contacts").upsert(
+        CONTACT_ROW_KEYS.map((row_key) => ({
+          claim_id: claim.id,
+          row_key,
+          client_id: claim.client_id,
+        })),
+        { onConflict: "claim_id,row_key", ignoreDuplicates: true },
+      );
+    }
 
     const { data: contacts, error } = await supabaseAdmin
       .from("claim_contacts")

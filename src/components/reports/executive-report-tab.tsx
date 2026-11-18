@@ -18,6 +18,8 @@ import {
 import { downloadBase64 } from "@/lib/exports/download";
 import { currentPolicyTerm, parseIsoDate } from "@/lib/insights-period";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import { overviewQueryOptions, queryKeys } from "@/lib/query-keys";
 import {
   COMPARISONS,
@@ -48,7 +50,13 @@ export function ExecutiveReportTab() {
   const { role, clientId: ownClientId, clientRole } = useAuth();
   const isAgency = role === "agency_admin";
   const getOverview = useServerFn(fetchAgencyOverview);
-  const { data: overview } = useQuery(overviewQueryOptions("all", getOverview));
+  const {
+    data: overview,
+    isLoading: overviewLoading,
+    isError: overviewError,
+    error: overviewErr,
+    refetch: refetchOverview,
+  } = useQuery(overviewQueryOptions("all", getOverview));
 
   const [pickedClient, setPickedClient] = useState("");
   const clientId = isAgency ? pickedClient : (ownClientId ?? "");
@@ -121,7 +129,7 @@ export function ExecutiveReportTab() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl md:text-2xl font-bold text-navy flex items-center gap-2">
-          <Presentation className="h-6 w-6 text-gold" /> Executive Loss Report
+          <Presentation className="h-6 w-6 text-gold" aria-hidden /> Executive Loss Report
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
           A PDF summary of a period against a comparison period: headline, loss ratios, large
@@ -129,6 +137,15 @@ export function ExecutiveReportTab() {
           recoveries.
         </p>
       </div>
+
+      {overviewLoading && <LoadingSkeleton variant="list" rows={3} label="Loading your data" />}
+      {overviewError && (
+        <ErrorState
+          title="We couldn't load your data"
+          error={overviewErr}
+          onRetry={refetchOverview}
+        />
+      )}
 
       <form
         className="rounded-lg border border-border bg-card p-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"

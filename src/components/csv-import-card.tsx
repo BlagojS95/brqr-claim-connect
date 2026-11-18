@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import Papa from "papaparse";
+import { parseCsv, parseExcel } from "@/lib/read-spreadsheet";
 import { importRows, type ImportResult } from "@/lib/import.functions";
 import {
   IMPORT_KINDS,
   mapHeaders,
   mapRows,
   rollUpPolicies,
-  sheetToRecords,
   type HeaderMapping,
   type ImportKind,
   type SheetRecords,
@@ -24,23 +23,6 @@ interface ParsedFile {
   name: string;
   /** one entry per worksheet; a CSV is a single sheet */
   sheets: SheetRecords[];
-}
-
-function parseCsv(file: File): Promise<SheetRecords[]> {
-  return new Promise((resolve, reject) => {
-    Papa.parse<Record<string, string>>(file, {
-      header: true,
-      skipEmptyLines: "greedy",
-      complete: (result) => resolve([{ headers: result.meta.fields ?? [], rows: result.data }]),
-      error: (err) => reject(err),
-    });
-  });
-}
-
-async function parseExcel(file: File): Promise<SheetRecords[]> {
-  const { default: readXlsxFile } = await import("read-excel-file/browser");
-  const sheets = await readXlsxFile(file);
-  return sheets.map((s) => sheetToRecords(s.data));
 }
 
 export function CsvImportCard() {
@@ -157,7 +139,7 @@ export function CsvImportCard() {
           </Select>
 
           <label className="inline-flex items-center gap-2 border border-dashed border-border rounded-md px-4 py-2 cursor-pointer hover:bg-muted/30 text-sm text-muted-foreground">
-            <Upload className="h-4 w-4" />
+            <Upload className="h-4 w-4" aria-hidden />
             {file ? file.name : "Choose Excel or CSV file"}
             <input
               type="file"

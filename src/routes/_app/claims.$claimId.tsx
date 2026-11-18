@@ -21,14 +21,24 @@ import { fetchClaimDetail } from "@/lib/overview.functions";
 import { queryKeys } from "@/lib/query-keys";
 import { deleteClaimDocument, uploadClaimDocument } from "@/lib/claim-documents";
 import { StatusBadge } from "@/components/status-badge";
+import { TermLabel } from "@/components/glossary-tip";
+import type { GlossaryTerm } from "@/lib/glossary";
+import { ClaimQuickEditButton } from "@/components/staff/claim-quick-edit";
 import { ClaimActivityLog } from "@/components/claim-activity-log";
+import { ClaimMessages } from "@/components/claim/claim-messages";
+import { WatchButton } from "@/components/claim/watch-button";
 import { ClaimContactsTable } from "@/components/claim-contacts-table";
+import { EmailCarrierButton } from "@/components/staff/email-carrier-dialog";
 import { ClaimInternalNotes } from "@/components/claim-internal-notes";
 import { ClaimRecoveryEditor, ClaimReserveEditor } from "@/components/claim-reserve-editor";
 import { ClaimOutcome } from "@/components/claim/claim-outcome";
 import { WaitingOnControl } from "@/components/claim/waiting-on-control";
+import { ClaimResponseTimes } from "@/components/staff/claim-response-times";
 import { ClaimDocumentRequests, RequestedFromYouCard } from "@/components/claim/document-requests";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
+import { useUndoableRemoval } from "@/hooks/use-undoable-removal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,17 +50,30 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, FileDown, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, FileDown, FileText, Trash2, Upload } from "lucide-react";
+import { EmptyState } from "@/components/states/empty-state";
+import { formatDateTime } from "@/lib/claim-quick-edit";
 
 export const Route = createFileRoute("/_app/claims/$claimId")({
   head: () => ({ meta: [{ title: "Claim | ClaimsQR" }] }),
   component: ClaimDetail,
 });
 
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
+function Field({
+  label,
+  value,
+  term,
+}: {
+  label: string;
+  value: React.ReactNode;
+  /** Adds the plain-English "?" help (fix 49). */
+  term?: GlossaryTerm;
+}) {
   return (
     <div>
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">
+        {term ? <TermLabel term={term}>{label}</TermLabel> : label}
+      </div>
       <div className="mt-1 text-sm">{value ?? "—"}</div>
     </div>
   );
@@ -70,14 +93,15 @@ function RemoveDocumentButton({
           type="button"
           className="text-muted-foreground hover:text-destructive inline-flex items-center gap-1 text-sm"
         >
-          <Trash2 className="h-4 w-4" /> Remove
+          <Trash2 className="h-4 w-4" aria-hidden /> Remove
         </button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Remove this document?</AlertDialogTitle>
           <AlertDialogDescription>
-            "{fileName}" will be removed from this claim for everyone. This can't be undone.
+            "{fileName}" will be removed from this claim for everyone. You can undo this for a few
+            seconds afterwards.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -100,7 +124,7 @@ function ClaimDetail() {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const getClaim = useServerFn(fetchClaimDetail);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.claim(claimId),
     queryFn: async () => {
       const [claim, { data: docs }] = await Promise.all([
@@ -115,7 +139,16 @@ function ClaimDetail() {
     },
   });
 
-  if (isLoading) return <div className="text-muted-foreground">Loading…</div>;
+  // Removing a document hides it at once and deletes it after the 8 s undo window.
+  const documentRemoval = useUndoableRemoval<{ id: string; file_name: string; file_url: string }>({
+    message: (doc) => `Removed ${doc.file_name}`,
+    commit: deleteClaimDocument,
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.claim(claimId) }),
+  });
+
+  if (isLoading) return <LoadingSkeleton variant="detail" label="Loading claim" />;
+  if (isError)
+    return <ErrorState title="We couldn't load this claim" error={error} onRetry={refetch} />;
   const claim = data?.claim;
   if (!claim) return <div>Claim not found.</div>;
 
@@ -138,15 +171,7 @@ function ClaimDetail() {
     queryClient.invalidateQueries({ queryKey: queryKeys.claim(claimId) });
   }
 
-  async function removeDocument(doc: { id: string; file_name: string; file_url: string }) {
-    try {
-      await deleteClaimDocument(doc);
-      toast.success(`Removed ${doc.file_name}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to remove document");
-    }
-    queryClient.invalidateQueries({ queryKey: queryKeys.claim(claimId) });
-  }
+  const visibleDocs = data!.docs.filter((d) => !documentRemoval.hiddenIds.has(d.id));
 
   // Loss details from the claim form; imported claims usually have none.
   const loss = claim.loss_details;
@@ -187,9 +212,9 @@ function ClaimDetail() {
     <div className="space-y-6">
       <Link
         to="/claims"
-        className="inline-flex items-center gap-1 text-sm text-navy hover:text-gold"
+        className="inline-flex items-center gap-1 text-sm text-navy hover:text-gold-text"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to claims
+        <ArrowLeft className="h-4 w-4" aria-hidden /> Back to claims
       </Link>
 
       <div className="flex items-start justify-between flex-wrap gap-4">
@@ -200,7 +225,11 @@ function ClaimDetail() {
           </p>
           <p className="text-xs text-muted-foreground mt-1">{claim.client_name}</p>
         </div>
-        <StatusBadge status={claim.status} />
+        <div className="flex items-center gap-2">
+          <WatchButton claimId={claim.id} showLabel />
+          {role === "agency_admin" && <ClaimQuickEditButton claimId={claim.id} />}
+          <StatusBadge status={claim.status} />
+        </div>
       </div>
 
       {role === "client" && <RequestedFromYouCard claimId={claim.id} clientId={claim.client_id} />}
@@ -214,9 +243,14 @@ function ClaimDetail() {
         <Field label="Line of Business" value={claim.line_of_business} />
         <Field label="Date of Loss" value={formatDate(claim.date_of_loss)} />
         <Field label="Adjuster" value={claim.adjuster_name} />
-        <Field label="Paid" value={`$${paidAmount(claim).toLocaleString()}`} />
+        <Field
+          label="Last updated from carrier"
+          value={claim.carrier_updated_at ? formatDateTime(claim.carrier_updated_at) : "Not yet"}
+        />
+        <Field label="Paid" term="paid" value={`$${paidAmount(claim).toLocaleString()}`} />
         <Field
           label="Reserve"
+          term="reserve"
           value={
             role === "agency_admin" ? (
               <ClaimReserveEditor
@@ -229,10 +263,15 @@ function ClaimDetail() {
             )
           }
         />
-        <Field label="Incurred" value={`$${incurredAmount(claim).toLocaleString()}`} />
+        <Field
+          label="Incurred"
+          term="incurred"
+          value={`$${incurredAmount(claim).toLocaleString()}`}
+        />
         {role === "agency_admin" ? (
           <Field
             label="Recoveries"
+            term="recovery"
             value={
               <ClaimRecoveryEditor
                 key={recoveryAmount(claim)}
@@ -243,16 +282,28 @@ function ClaimDetail() {
           />
         ) : (
           recoveryAmount(claim) > 0 && (
-            <Field label="Recoveries" value={`$${recoveryAmount(claim).toLocaleString()}`} />
+            <Field
+              label="Recoveries"
+              term="recovery"
+              value={`$${recoveryAmount(claim).toLocaleString()}`}
+            />
           )
         )}
         {recoveryAmount(claim) > 0 && (
-          <Field label="Net Incurred" value={`$${netIncurred(claim).toLocaleString()}`} />
+          <Field
+            label="Net Incurred"
+            term="netIncurred"
+            value={`$${netIncurred(claim).toLocaleString()}`}
+          />
         )}
         <Field
           label="Waiting on"
+          term="waitingOn"
           value={<WaitingOnControl claim={claim} editable={role === "agency_admin"} />}
         />
+        {role === "agency_admin" && (
+          <Field label="Response times" value={<ClaimResponseTimes claimId={claim.id} />} />
+        )}
         {role === "agency_admin" ? (
           <Field label="For reports" value={<ClaimReportFlags claim={claim} />} />
         ) : (
@@ -315,7 +366,7 @@ function ClaimDetail() {
           <h2 className="font-semibold text-navy">Documents</h2>
           <Button asChild variant="outline" size="sm" disabled={uploading}>
             <label className="cursor-pointer">
-              <Upload className="h-3.5 w-3.5" /> {uploading ? "Uploading…" : "Upload Document"}
+              <Upload className="h-3.5 w-3.5" aria-hidden /> {uploading ? "Uploading…" : "Upload Document"}
               <input
                 type="file"
                 multiple
@@ -329,11 +380,16 @@ function ClaimDetail() {
             </label>
           </Button>
         </div>
-        {data!.docs.length === 0 && (
-          <p className="text-sm text-muted-foreground">No documents uploaded.</p>
+        {visibleDocs.length === 0 && (
+          <EmptyState
+            compact
+            icon={FileText}
+            title="No documents yet"
+            text="Use Upload Document above to add photos, reports or letters."
+          />
         )}
         <ul className="space-y-2">
-          {data!.docs.map((d) => (
+          {visibleDocs.map((d) => (
             <li
               key={d.id}
               className="flex items-center justify-between p-3 rounded-md border border-border"
@@ -344,11 +400,14 @@ function ClaimDetail() {
                   href={d.file_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-navy hover:text-gold inline-flex items-center gap-1 text-sm"
+                  className="text-navy hover:text-gold-text inline-flex items-center gap-1 text-sm"
                 >
-                  <FileDown className="h-4 w-4" /> Download
+                  <FileDown className="h-4 w-4" aria-hidden /> Download
                 </a>
-                <RemoveDocumentButton fileName={d.file_name} onConfirm={() => removeDocument(d)} />
+                <RemoveDocumentButton
+                  fileName={d.file_name}
+                  onConfirm={() => documentRemoval.remove(d)}
+                />
               </div>
             </li>
           ))}
@@ -365,7 +424,10 @@ function ClaimDetail() {
       )}
 
       <section className="rounded-lg border border-border bg-card p-6">
-        <h2 className="font-semibold text-navy mb-4">Contacts</h2>
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+          <h2 className="font-semibold text-navy">Contacts</h2>
+          {role === "agency_admin" && <EmailCarrierButton claimId={claim.id} />}
+        </div>
         <ClaimContactsTable
           claimId={claim.id}
           email={{
@@ -374,6 +436,11 @@ function ClaimDetail() {
             claimantName: claim.claimant_name,
           }}
         />
+      </section>
+
+      <section id="messages" className="rounded-lg border border-border bg-card p-6">
+        <h2 className="font-semibold text-navy mb-4">Messages</h2>
+        <ClaimMessages claimId={claim.id} />
       </section>
 
       <section className="rounded-lg border border-border bg-card p-6">

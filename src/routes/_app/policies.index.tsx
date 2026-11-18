@@ -16,6 +16,10 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/states/empty-state";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
+
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_app/policies/")({
@@ -34,7 +38,13 @@ function PoliciesPage() {
   const [view, setView] = useState<"active" | "nonactive">("active");
   const [search, setSearch] = useState("");
   const getOverview = useServerFn(fetchAgencyOverview);
-  const { data: policies = [], isLoading } = useQuery({
+  const {
+    data: policies = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     ...overviewQueryOptions("policies", getOverview),
     select: (overview) => overview.policies,
   });
@@ -75,7 +85,7 @@ function PoliciesPage() {
         </div>
         <div className="flex items-end gap-2 flex-wrap">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden />
             <Input
               placeholder="Search policies…"
               className="pl-9 w-56"
@@ -106,11 +116,22 @@ function PoliciesPage() {
         </div>
       </div>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
-      {!isLoading && filtered.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          {view === "active" ? "No active policies on file." : "No non-active policies on file."}
-        </p>
+      {isLoading && <LoadingSkeleton variant="card" rows={3} label="Loading policies" />}
+      {isError && (
+        <ErrorState title="We couldn't load your policies" error={error} onRetry={refetch} />
+      )}
+      {!isLoading && !isError && filtered.length === 0 && (
+        <EmptyState
+          icon={Shield}
+          title={
+            view === "active" ? "No active policies on file" : "No non-active policies on file"
+          }
+          text={
+            term
+              ? "Try a different search."
+              : "If a policy is missing, contact your agency and they will add it."
+          }
+        />
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -152,7 +173,7 @@ function PolicyCard({ p }: { p: PolicyRow }) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="h-9 w-9 rounded-md bg-navy/5 flex items-center justify-center">
-            <Shield className="h-4 w-4 text-navy" />
+            <Shield className="h-4 w-4 text-navy" aria-hidden />
           </div>
           <div>
             <div className="font-semibold text-navy">{p.policy_type ?? "Policy"}</div>
@@ -160,7 +181,7 @@ function PolicyCard({ p }: { p: PolicyRow }) {
           </div>
         </div>
         <span
-          className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full border ${tone}`}
+          className={`text-[0.75rem] uppercase tracking-wide px-2 py-1 rounded-full border ${tone}`}
         >
           {p.status}
         </span>
@@ -168,11 +189,11 @@ function PolicyCard({ p }: { p: PolicyRow }) {
       <div className="space-y-1.5 text-sm">
         {p.client_name && <div className="text-navy">{p.client_name}</div>}
         <div className="flex items-center gap-2 text-muted-foreground">
-          <Building2 className="h-3.5 w-3.5" />
+          <Building2 className="h-3.5 w-3.5" aria-hidden />
           <span>{p.carrier ?? "—"}</span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
-          <Calendar className="h-3.5 w-3.5" />
+          <Calendar className="h-3.5 w-3.5" aria-hidden />
           <span>
             {formatDate(p.effective_date)}
             {" → "}
@@ -181,13 +202,13 @@ function PolicyCard({ p }: { p: PolicyRow }) {
         </div>
         {p.location_name && (
           <div className="flex items-center gap-2 text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5" />
+            <MapPin className="h-3.5 w-3.5" aria-hidden />
             <span>{p.location_name}</span>
           </div>
         )}
         {p.premium != null && (
           <div className="flex items-center gap-2 text-muted-foreground">
-            <DollarSign className="h-3.5 w-3.5" />
+            <DollarSign className="h-3.5 w-3.5" aria-hidden />
             <span>{fmtCurrency(Number(p.premium))} premium</span>
           </div>
         )}

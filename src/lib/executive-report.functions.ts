@@ -23,6 +23,7 @@ import {
 import { forbidden, parseInput, unprocessable } from "@/lib/http-errors.server";
 import { parseIsoDate } from "@/lib/insights-period";
 import { loadDevVars } from "@/lib/load-dev-vars.server";
+import { assertViewScope } from "@/lib/view-as.server";
 import { emailReport } from "@/lib/monthly-report.server";
 import {
   SHARE_DAYS_DEFAULT,
@@ -31,6 +32,8 @@ import {
   ShareDaysSchema,
 } from "@/lib/shared-reports";
 import { canManageShares, hashShareToken, storeSharedReport } from "@/lib/shared-reports.server";
+import { ACCESS_ACTION } from "@/lib/access-log";
+import { logAccess } from "@/lib/access-log.server";
 
 const isoDate = z.string().refine((v) => parseIsoDate(v) !== null, "Enter a valid date");
 const RangeSchema = z
@@ -47,11 +50,20 @@ export const ReportRequestSchema = z.object({
 type ReportRequest = z.infer<typeof ReportRequestSchema>;
 
 async function buildReport(
-  context: { supabase: Parameters<typeof loadExecutiveReport>[0]; userId: string },
+  context: {
+    supabase: Parameters<typeof loadExecutiveReport>[0];
+    userId: string;
+    viewingClientId: string | null;
+  },
   data: ReportRequest,
 ): Promise<ExecutiveReport> {
+  // Viewing as a client (fix 55): only that client, and no broker notes.
+  assertViewScope(context.viewingClientId, data.clientId);
   // Broker notes are written by agency staff; anything a client sends is ignored.
-  const notes = data.brokerNotes && (await isAgencyAdmin(context.userId)) ? data.brokerNotes : null;
+  const notes =
+    data.brokerNotes && !context.viewingClientId && (await isAgencyAdmin(context.userId))
+      ? data.brokerNotes
+      : null;
   const report = await loadExecutiveReport(context.supabase, data.clientId, {
     period: data.period,
     comparison: data.comparison,
@@ -76,7 +88,14 @@ export const downloadExecutiveReport = createServerFn({ method: "POST" })
   .inputValidator(parseInput(ReportRequestSchema))
   .handler(async ({ data, context }) => {
     await loadDevVars();
-    return renderReportFile(await buildReport(context, data));
+    const file = await renderReportFile(await buildReport(context, data));
+    logAccess({
+      userId: context.userId,
+      clientId: data.clientId,
+      action: ACCESS_ACTION.download,
+      detail: "Executive loss report (PDF)",
+    });
+    return file;
   });
 
 export const createExecutiveReportShare = createServerFn({ method: "POST" })
@@ -90,6 +109,12 @@ export const createExecutiveReportShare = createServerFn({ method: "POST" })
       forbidden("Only BRQR or your company's admin can share reports");
     }
     const report = await buildReport(context, data);
+    logAccess({
+      userId: context.userId,
+      clientId: data.clientId,
+      action: ACCESS_ACTION.share,
+      detail: "Executive loss report",
+    });
     return storeSharedReport({
       kind: SHARED_REPORT_KIND.executiveReport,
       clientId: data.clientId,
@@ -135,6 +160,7 @@ export const fetchReportSchedule = createServerFn({ method: "GET" })
   .inputValidator(parseInput(z.object({ clientId: z.string().uuid() })))
   .handler(async ({ data, context }): Promise<ReportScheduleState> => {
     await loadDevVars();
+    assertViewScope(context.viewingClientId, data.clientId);
     const [{ data: row }, { data: settings }, canSchedule] = await Promise.all([
       context.supabase
         .from("report_schedules")

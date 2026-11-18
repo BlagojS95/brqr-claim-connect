@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { formatDate } from "@/lib/dates";
 import {
   DEFAULT_LOSS_SUMMARY_SORT,
   buildLossSummary,
@@ -15,17 +14,23 @@ import { LossSummarySnapshotSchema, SHARED_REPORT_KIND } from "@/lib/shared-repo
 import { LossSummaryExport } from "@/components/reports/loss-summary-export";
 import { LossSummaryTable } from "@/components/reports/loss-summary-table";
 import { ExecutiveReportView } from "@/components/reports/executive-report-view";
+import {
+  SharedReportFooter,
+  SharedReportFrame,
+  SharedReportHeader,
+} from "@/components/shared/shared-report-layout";
 import { Button } from "@/components/ui/button";
 import { downloadSharedExecutiveReport } from "@/lib/executive-report.functions";
 import { downloadBase64 } from "@/lib/exports/download";
 import type { ExecutiveReport } from "@/lib/executive-report";
 import { FileText } from "lucide-react";
 import { toast } from "sonner";
-import claimsQrLogoWhite from "@/assets/claims-qr-logo-white.png";
 
-// A shared, read-only report (fixes 44 and 46). No sign-in: the token in the
-// address is the key. The server returns only the frozen copy the link was
+// A shared, read-only report (fixes 44, 46 and 57). No sign-in: the token in
+// the address is the key. The server returns only the frozen copy the link was
 // made for, so nothing else of the client's (or anyone's) data is reachable.
+// The page is a minimal branded frame: logo, title, client, valuation date and
+// expiry, the report itself, and no navigation.
 export const Route = createFileRoute("/shared/$token")({
   head: () => ({
     meta: [
@@ -49,32 +54,19 @@ function SharedReportPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-navy text-navy-foreground">
-        <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between gap-3">
-          <img src={claimsQrLogoWhite} alt="ClaimsQR" className="h-8 w-auto" />
-          <span className="text-xs text-white/70">Read-only shared report</span>
-        </div>
-        <div className="h-1 bg-gold" />
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-6 space-y-6">
-        {isLoading ? (
-          <p className="text-muted-foreground">Loading…</p>
-        ) : !data ? (
-          <Unavailable />
-        ) : data.kind === SHARED_REPORT_KIND.lossSummary ? (
-          <SharedLossSummary snapshot={data.snapshot} expiresAt={data.expiresAt} />
-        ) : data.kind === SHARED_REPORT_KIND.executiveReport ? (
-          <SharedExecutiveReport
-            token={token}
-            snapshot={data.snapshot}
-            expiresAt={data.expiresAt}
-          />
-        ) : (
-          <Unavailable />
-        )}
-      </main>
-    </div>
+    <SharedReportFrame>
+      {isLoading ? (
+        <p className="text-muted-foreground">Loading…</p>
+      ) : !data ? (
+        <Unavailable />
+      ) : data.kind === SHARED_REPORT_KIND.lossSummary ? (
+        <SharedLossSummary snapshot={data.snapshot} expiresAt={data.expiresAt} />
+      ) : data.kind === SHARED_REPORT_KIND.executiveReport ? (
+        <SharedExecutiveReport token={token} snapshot={data.snapshot} expiresAt={data.expiresAt} />
+      ) : (
+        <Unavailable />
+      )}
+    </SharedReportFrame>
   );
 }
 
@@ -102,22 +94,19 @@ function SharedLossSummary({ snapshot, expiresAt }: { snapshot: unknown; expires
 
   return (
     <>
-      <div className="flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-navy">Loss Summary</h1>
-          <p className="text-sm text-navy mt-1 font-medium">{report.clientName}</p>
-          <p className="text-sm text-muted-foreground">
-            {filters} · Valued as of {formatDate(report.valuedAsOf)} · Link expires{" "}
-            {new Date(expiresAt).toLocaleDateString("en-US", { dateStyle: "medium" })}
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <SharedReportHeader
+        title="Loss Summary"
+        clientName={report.clientName}
+        valuedAsOf={report.valuedAsOf}
+        expiresAt={expiresAt}
+        detail={filters}
+        actions={
           <LossSummaryExport
             summary={summary}
             info={{ valuedAsOf: report.valuedAsOf, client: report.clientName, filters }}
           />
-        </div>
-      </div>
+        }
+      />
       {summary.totals.claims === 0 ? (
         <p className="text-sm text-muted-foreground">No claims in this report.</p>
       ) : (
@@ -128,10 +117,7 @@ function SharedLossSummary({ snapshot, expiresAt }: { snapshot: unknown; expires
           linkClaims={false}
         />
       )}
-      <p className="text-xs text-muted-foreground">
-        Prepared by BRQR Insurance Agency with ClaimsQR. Figures are as of the valuation date and
-        may have changed since.
-      </p>
+      <SharedReportFooter />
     </>
   );
 }
@@ -169,23 +155,20 @@ function SharedExecutiveReport({
 
   return (
     <>
-      <div className="flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-navy">Executive Loss Report</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Link expires {new Date(expiresAt).toLocaleDateString("en-US", { dateStyle: "medium" })}
-          </p>
-        </div>
-        <Button variant="outline" size="sm" disabled={busy} onClick={() => void download()}>
-          <FileText className="h-4 w-4" aria-hidden />
-          {busy ? "Creating PDF…" : "Download PDF"}
-        </Button>
-      </div>
+      <SharedReportHeader
+        title="Executive Loss Report"
+        clientName={snapshot.clientName}
+        valuedAsOf={snapshot.valuedAsOf}
+        expiresAt={expiresAt}
+        actions={
+          <Button variant="outline" size="sm" disabled={busy} onClick={() => void download()}>
+            <FileText className="h-4 w-4" aria-hidden />
+            {busy ? "Creating PDF…" : "Download PDF"}
+          </Button>
+        }
+      />
       <ExecutiveReportView report={snapshot} />
-      <p className="text-xs text-muted-foreground">
-        Prepared by BRQR Insurance Agency with ClaimsQR. Figures are as of the valuation date and
-        may have changed since.
-      </p>
+      <SharedReportFooter />
     </>
   );
 }

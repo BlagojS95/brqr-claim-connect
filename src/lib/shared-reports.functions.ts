@@ -19,6 +19,8 @@ import { loadDevVars } from "@/lib/load-dev-vars.server";
 import { filterLossSummary, lossSummaryFilterLabel } from "@/lib/loss-summary";
 import { loadClientClaims } from "@/lib/overview.server";
 import { canManageShares, hashShareToken, storeSharedReport } from "@/lib/shared-reports.server";
+import { ACCESS_ACTION } from "@/lib/access-log";
+import { logAccess } from "@/lib/access-log.server";
 import {
   LossSummaryFiltersSchema,
   SHARE_DAYS_DEFAULT,
@@ -47,6 +49,12 @@ export const createLossSummaryShare = createServerFn({ method: "POST" })
     // Caller's token: the report holds only claims this user can see.
     const loaded = await loadClientClaims(context.supabase, data.clientId);
     if (!loaded) forbidden("You can't share reports for this client");
+    logAccess({
+      userId: context.userId,
+      clientId: data.clientId,
+      action: ACCESS_ACTION.share,
+      detail: "Loss summary",
+    });
 
     const claims = filterLossSummary(loaded.claims, data.filters).map((c) => ({
       id: c.id,
@@ -87,6 +95,8 @@ export const listSharedReports = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(100);
     if (data.clientId) query = query.eq("client_id", data.clientId);
+    // Viewing as a client (fix 55): only that client's links.
+    if (context.viewingClientId) query = query.eq("client_id", context.viewingClientId);
     const { data: rows, error } = await query;
     if (error) throw new Error(`Couldn't load your shared links: ${error.message}`);
     return (rows ?? []).map((r) => ({ ...r, kind: r.kind as SharedReportKind }));

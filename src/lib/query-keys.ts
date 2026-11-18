@@ -18,6 +18,12 @@ export const queryKeys = {
   // Home's "Needs your attention" list (fix 29), from fetchAttentionQueue.
   attention: ["attention"] as const,
   claimDocumentRequests: (claimId: string) => ["claim", claimId, "document-requests"] as const,
+  // The claim's message thread (fix 47) and who can be @mentioned on it.
+  claimMessages: (claimId: string) => ["claim", claimId, "messages"] as const,
+  claimMentionCandidates: (claimId: string) => ["claim", claimId, "mention-candidates"] as const,
+  // Claims the signed-in user watches, and their email alert settings (fix 48).
+  watchedClaims: ["watched-claims"] as const,
+  alertPrefs: ["alert-prefs"] as const,
   // The active causes_of_loss lookup rows (fix 35) for the report form.
   causesOfLoss: ["causes-of-loss"] as const,
   // The signed-in user's saved claims-list views (fix 31).
@@ -28,6 +34,15 @@ export const queryKeys = {
   sharedReports: ["shared-reports"] as const,
   // The signed-in user's monthly executive report schedule for a client (fix 46).
   reportSchedule: (clientId: string) => ["report-schedule", clientId] as const,
+  // The last view-as-client sessions on /admin (fix 55).
+  viewAsLog: ["view-as-log"] as const,
+  // Claims advocate (fix 59): the Help block, one client's own advocate on
+  // /admin, and the agency defaults in Settings. Shares the "claims-advocate"
+  // prefix so a save can refresh all of them.
+  claimsAdvocateAll: ["claims-advocate"] as const,
+  claimsAdvocate: (clientId: string) => ["claims-advocate", "help", clientId] as const,
+  clientAdvocate: (clientId: string) => ["claims-advocate", "client", clientId] as const,
+  advocateDefaults: ["claims-advocate", "defaults"] as const,
 };
 
 export interface CauseOfLossOption {

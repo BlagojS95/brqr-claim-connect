@@ -39,7 +39,7 @@ export function ClaimOutcome({ claim }: { claim: OutcomeClaim }) {
           statusColor(CLAIM_STATUS.reopened).badge,
         )}
       >
-        <RotateCcw className="h-4 w-4 mt-0.5 shrink-0" />
+        <RotateCcw className="h-4 w-4 mt-0.5 shrink-0" aria-hidden />
         <p>
           <span className="font-semibold">Reopened.</span> This claim was closed
           {claim.closed_date ? ` on ${formatDate(claim.closed_date)}` : ""} and is being worked
@@ -54,7 +54,7 @@ export function ClaimOutcome({ claim }: { claim: OutcomeClaim }) {
   return (
     <section className="rounded-lg border border-border bg-card p-6">
       <h2 className="font-semibold text-navy mb-4 inline-flex items-center gap-2">
-        <CheckCircle2 className="h-4 w-4 text-muted-foreground" /> Closed Claim Summary
+        <CheckCircle2 className="h-4 w-4 text-muted-foreground" aria-hidden /> Closed Claim Summary
       </h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         <Figure label="Final Paid" value={money(paidAmount(claim))} />

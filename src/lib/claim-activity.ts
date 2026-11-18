@@ -1,6 +1,7 @@
 // Kinds and display rules for the claim activity log (claim_activity table,
 // supabase/migrations/20261107000500_claim_activity.sql). Keep the kinds in
-// step with the CHECK constraint there.
+// step with the CHECK constraint there (latest version in
+// 20261117000100_claim_messages.sql).
 
 export const CLAIM_ACTIVITY_KINDS = [
   "created",
@@ -9,6 +10,8 @@ export const CLAIM_ACTIVITY_KINDS = [
   "email",
   "follow_up",
   "note",
+  "claim_update",
+  "message",
 ] as const;
 
 export type ClaimActivityKind = (typeof CLAIM_ACTIVITY_KINDS)[number];
@@ -20,6 +23,8 @@ export const CLAIM_ACTIVITY_KIND = {
   email: "email",
   follow_up: "follow_up",
   note: "note",
+  claim_update: "claim_update",
+  message: "message",
 } as const satisfies Record<ClaimActivityKind, ClaimActivityKind>;
 
 export const CLAIM_ACTIVITY_LABELS: Record<ClaimActivityKind, string> = {
@@ -29,6 +34,8 @@ export const CLAIM_ACTIVITY_LABELS: Record<ClaimActivityKind, string> = {
   email: "Email",
   follow_up: "Follow-up",
   note: "Note",
+  claim_update: "Update",
+  message: "Message",
 };
 
 export const MAX_ACTIVITY_NOTE_LENGTH = 2000;

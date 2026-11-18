@@ -3,6 +3,10 @@ import { z } from "zod";
 import { parseInput, unprocessable } from "@/lib/http-errors.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireAgencyAdmin } from "@/integrations/supabase/require-agency-admin.server";
+import { loadDevVars } from "@/lib/load-dev-vars.server";
+import { buildDocumentRequestEmail } from "@/lib/claim-alerts";
+import { ACCESS_ACTION } from "@/lib/access-log";
+import { logAccess } from "@/lib/access-log.server";
 import {
   MAX_REQUEST_NAME_LENGTH,
   MAX_REQUEST_NOTE_LENGTH,
@@ -54,6 +58,27 @@ export const createDocumentRequest = createServerFn({ method: "POST" })
       requested_by: context.userId,
     });
     if (error) throw new Error(error.message);
+    // Email whoever asked for document request alerts. Never fails the request.
+    await loadDevVars();
+    const { notifyClaimEvent } = await import("@/lib/claim-alerts.server");
+    await notifyClaimEvent({
+      claimId: data.claimId,
+      event: "documents",
+      actorId: context.userId,
+      build: (claim, reason) =>
+        buildDocumentRequestEmail({
+          claim,
+          name: checked.value.name,
+          note: checked.value.note,
+          reason,
+        }),
+    });
+    logAccess({
+      userId: context.userId,
+      claimId: data.claimId,
+      action: ACCESS_ACTION.editClaim,
+      detail: `Requested document: ${checked.value.name}`,
+    });
     return { ok: true };
   });
 

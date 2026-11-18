@@ -218,7 +218,7 @@ function AddUserDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
               Add user
             </Button>
           </DialogFooter>
@@ -302,7 +302,7 @@ function EditUserDialog({
                     disabled={removal.isPending}
                     onClick={() => removal.mutate()}
                   >
-                    {removal.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {removal.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
                     Remove user
                   </Button>
                   <Button variant="outline" onClick={() => setConfirmRemove(false)}>
@@ -316,7 +316,7 @@ function EditUserDialog({
                 className="text-destructive px-0 hover:bg-transparent"
                 onClick={() => setConfirmRemove(true)}
               >
-                <Trash2 className="h-4 w-4" /> Remove this user
+                <Trash2 className="h-4 w-4" aria-hidden /> Remove this user
               </Button>
             )}
           </div>
@@ -337,7 +337,7 @@ function EditUserDialog({
                 save.mutate();
               }}
             >
-              {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {save.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
               Save
             </Button>
           )}
@@ -437,7 +437,7 @@ function LocationDialog({
                       disabled={deletion.isPending}
                       onClick={() => deletion.mutate()}
                     >
-                      {deletion.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {deletion.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
                       Delete location
                     </Button>
                     <Button type="button" variant="outline" onClick={() => setConfirmDelete(false)}>
@@ -452,7 +452,7 @@ function LocationDialog({
                   className="text-destructive px-0 hover:bg-transparent"
                   onClick={() => setConfirmDelete(true)}
                 >
-                  <Trash2 className="h-4 w-4" /> Delete this location
+                  <Trash2 className="h-4 w-4" aria-hidden /> Delete this location
                 </Button>
               )}
             </div>
@@ -463,7 +463,7 @@ function LocationDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={save.isPending}>
-              {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {save.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
               {location ? "Save" : "Add location"}
             </Button>
           </DialogFooter>
@@ -487,7 +487,7 @@ export function TeamUsers() {
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading users…
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading users…
       </div>
     );
   }
@@ -537,7 +537,7 @@ export function TeamUsers() {
         })}
       </ul>
       <Button variant="outline" className="w-full sm:w-auto" onClick={() => setAdding(true)}>
-        <UserPlus className="h-4 w-4" /> Add a user
+        <UserPlus className="h-4 w-4" aria-hidden /> Add a user
       </Button>
       <AddUserDialog open={adding} onOpenChange={setAdding} locations={data.locations} />
       {editing && (
@@ -560,7 +560,7 @@ export function TeamLocations() {
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading locations…
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading locations…
       </div>
     );
   }
@@ -602,7 +602,7 @@ export function TeamLocations() {
         </ul>
       )}
       <Button variant="outline" className="w-full sm:w-auto" onClick={() => setEditing(null)}>
-        <Plus className="h-4 w-4" /> Add a location
+        <Plus className="h-4 w-4" aria-hidden /> Add a location
       </Button>
       {editing !== undefined && (
         <LocationDialog

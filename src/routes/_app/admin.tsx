@@ -9,19 +9,36 @@ import { formatRequestLines, formatRequestYears } from "@/lib/loss-run-request";
 import { fetchAgencyOverview } from "@/lib/overview.functions";
 import { overviewQueryOptions, queryKeys } from "@/lib/query-keys";
 import type { AgencyClient } from "@/lib/overview.types";
-import { createClientAccount, resetClientPassword, deleteClientAccount } from "@/lib/accounts.functions";
+import {
+  createClientAccount,
+  resetClientPassword,
+  deleteClientAccount,
+} from "@/lib/accounts.functions";
 import { retryClaimNotification } from "@/lib/claim-submission.functions";
-import { attachLossRun, createLossRunUpload, fulfillLossRunRequest } from "@/lib/loss-runs.functions";
+import {
+  attachLossRun,
+  createLossRunUpload,
+  fulfillLossRunRequest,
+} from "@/lib/loss-runs.functions";
 import { OUTBOX_STATUS } from "@/lib/claim-submission";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/status-badge";
 import { CsvImportCard } from "@/components/csv-import-card";
 import { ClientSignatureView } from "@/components/client-signature-view";
+import { ViewAsClientButton, ViewAsLogCard } from "@/components/staff/view-as";
+import { ClientAdvocateDialog } from "@/components/help/client-advocate-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -34,6 +51,10 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { FileText, Users } from "lucide-react";
+import { EmptyState } from "@/components/states/empty-state";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 
 export const Route = createFileRoute("/_app/admin")({
   head: () => ({ meta: [{ title: "Admin | ClaimsQR" }] }),
@@ -52,13 +73,14 @@ function AdminPage() {
   const attachUploadedLossRun = useServerFn(attachLossRun);
   const fulfillRequest = useServerFn(fulfillLossRunRequest);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     ...overviewQueryOptions("claims", getOverview),
     enabled: role === "agency_admin",
   });
 
   const createAccountMutation = useMutation({
-    mutationFn: (input: { clientId: string; email: string; password: string }) => createAccount({ data: input }),
+    mutationFn: (input: { clientId: string; email: string; password: string }) =>
+      createAccount({ data: input }),
     onSuccess: () => {
       toast.success("Account created");
       qc.invalidateQueries({ queryKey: queryKeys.overviewAll });
@@ -185,6 +207,12 @@ function AdminPage() {
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-navy">Admin</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage all clients and open claims.</p>
+        <Link
+          to="/admin/import"
+          className="inline-block mt-2 text-sm text-navy underline hover:text-gold-text"
+        >
+          Update claims from a carrier file
+        </Link>
       </div>
 
       <CsvImportCard />
@@ -208,15 +236,56 @@ function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {isLoading && <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
-              {!isLoading && clients.length === 0 && (
-                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No clients yet. Import a CSV above.</td></tr>
+              {isLoading && (
+                <tr>
+                  <td colSpan={8} className="p-4">
+                    <LoadingSkeleton variant="list" label="Loading clients" />
+                  </td>
+                </tr>
+              )}
+              {isError && (
+                <tr>
+                  <td colSpan={8}>
+                    <ErrorState
+                      compact
+                      title="We couldn't load the clients"
+                      error={error}
+                      onRetry={refetch}
+                    />
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !isError && clients.length === 0 && (
+                <tr>
+                  <td colSpan={8}>
+                    <EmptyState
+                      compact
+                      icon={Users}
+                      title="No clients yet"
+                      text="Import a CSV to add your clients, policies and claims."
+                      action={
+                        <Button asChild size="sm">
+                          <Link to="/admin/import">Import a CSV</Link>
+                        </Button>
+                      }
+                    />
+                  </td>
+                </tr>
               )}
               {clients.map((c) => {
                 const userId = c.user_id;
                 return (
                   <tr key={c.id} className="border-t border-border">
-                    <td className="p-3">{c.name}</td>
+                    <td className="p-3">
+                      <div className="flex flex-col items-start gap-1.5">
+                        {c.name}
+                        <ViewAsClientButton clientId={c.id} clientName={c.company_name || c.name} />
+                        <ClientAdvocateDialog
+                          clientId={c.id}
+                          clientName={c.company_name || c.name}
+                        />
+                      </div>
+                    </td>
                     <td className="p-3">{c.company_name ?? "—"}</td>
                     <td className="p-3">{c.email ?? "—"}</td>
                     <td className="p-3 font-mono text-xs">{c.ams360_id ?? "—"}</td>
@@ -239,7 +308,10 @@ function AdminPage() {
                       <ClientSignatureView signature={signatures?.get(c.id)} />
                     </td>
                     <td className="p-3">
-                      <AddLossRunDialog client={c} onAdd={(input) => addLossRunMutation.mutate(input)} />
+                      <AddLossRunDialog
+                        client={c}
+                        onAdd={(input) => addLossRunMutation.mutate(input)}
+                      />
                     </td>
                   </tr>
                 );
@@ -248,6 +320,8 @@ function AdminPage() {
           </table>
         </div>
       </section>
+
+      <ViewAsLogCard />
 
       <section className="rounded-lg border border-border bg-card">
         <div className="p-5 border-b border-border">
@@ -267,7 +341,11 @@ function AdminPage() {
             </thead>
             <tbody>
               {lossRunRequests.length === 0 && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No pending requests.</td></tr>
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-muted-foreground">
+                    No pending requests.
+                  </td>
+                </tr>
               )}
               {lossRunRequests.map((r) => {
                 const client = clients.find((c) => c.id === r.client_id);
@@ -301,7 +379,8 @@ function AdminPage() {
           <div className="p-5 border-b border-border">
             <h2 className="font-semibold text-navy">Failed Notifications ({failedByClaim.size})</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              These claims were saved, but the agency email or webhook could not be sent after 5 attempts.
+              These claims were saved, but the agency email or webhook could not be sent after 5
+              attempts.
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -324,7 +403,11 @@ function AdminPage() {
                       <td className="p-3">{c?.client_name ?? "—"}</td>
                       <td className="p-3">{c?.claim_type ?? "—"}</td>
                       <td className="p-3 font-mono text-xs">
-                        <Link to="/claims/$claimId" params={{ claimId }} className="text-navy hover:text-gold">
+                        <Link
+                          to="/claims/$claimId"
+                          params={{ claimId }}
+                          className="text-navy hover:text-gold-text"
+                        >
                           {c?.claim_number ?? "View"}
                         </Link>
                       </td>
@@ -375,7 +458,11 @@ function AdminPage() {
                   <td className="p-3">{formatDate(c.date_of_loss)}</td>
                   <td className="p-3">{c.claim_type}</td>
                   <td className="p-3 font-mono text-xs">
-                    <Link to="/claims/$claimId" params={{ claimId: c.id }} className="text-navy hover:text-gold">
+                    <Link
+                      to="/claims/$claimId"
+                      params={{ claimId: c.id }}
+                      className="text-navy hover:text-gold-text"
+                    >
                       {c.claim_number ?? "—"}
                     </Link>
                   </td>
@@ -384,13 +471,24 @@ function AdminPage() {
                   <td className="p-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={c.status} />
-                      {failedByClaim.has(c.id) && <NotificationFailedBadge errors={failureErrors(c.id)} />}
+                      {failedByClaim.has(c.id) && (
+                        <NotificationFailedBadge errors={failureErrors(c.id)} />
+                      )}
                     </div>
                   </td>
                 </tr>
               ))}
-              {openClaims.length === 0 && !isLoading && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No open claims.</td></tr>
+              {openClaims.length === 0 && !isLoading && !isError && (
+                <tr>
+                  <td colSpan={6}>
+                    <EmptyState
+                      compact
+                      icon={FileText}
+                      title="No open claims"
+                      text="Open claims will be listed here."
+                    />
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -412,7 +510,11 @@ function NotificationFailedBadge({ errors }: { errors: string[] }) {
 }
 
 function generateTempPassword() {
-  return Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 8).toUpperCase() + "!";
+  return (
+    Math.random().toString(36).slice(2, 8) +
+    Math.random().toString(36).slice(2, 8).toUpperCase() +
+    "!"
+  );
 }
 
 function CreateAccountDialog({
@@ -431,14 +533,22 @@ function CreateAccountDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline">Create Account</Button>
+        <Button size="sm" variant="outline">
+          Create Account
+        </Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Create Login for {client.name}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Create Login for {client.name}</DialogTitle>
+        </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">
             <Label>Email</Label>
-            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
           </div>
           <div className="space-y-1">
             <Label>Temporary Password</Label>
@@ -456,11 +566,15 @@ function CreateAccountDialog({
                 Generate
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">Share this with the client directly — it won't be shown again.</p>
+            <p className="text-xs text-muted-foreground">
+              Share this with the client directly — it won't be shown again.
+            </p>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
           <Button
             className="bg-navy hover:bg-navy/90 text-navy-foreground"
             disabled={!form.email || form.password.length < 8}
@@ -504,23 +618,40 @@ function AddLossRunDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline">Add Loss Run</Button>
+        <Button size="sm" variant="outline">
+          Add Loss Run
+        </Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Attach Loss Run for {client.company_name || client.name}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Attach Loss Run for {client.company_name || client.name}</DialogTitle>
+        </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">
             <Label>Year</Label>
-            <Input type="number" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} />
+            <Input
+              type="number"
+              value={form.year}
+              onChange={(e) => setForm({ ...form, year: e.target.value })}
+            />
           </div>
           <div className="space-y-1">
             <Label>File</Label>
-            <Input type="file" accept=".pdf,.xlsx,.xls,.csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <Input
+              type="file"
+              accept=".pdf,.xlsx,.xls,.csv"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
           </div>
-          <p className="text-xs text-muted-foreground">The client sees this file in their Loss Run Library. Totals there come from their claims.</p>
+          <p className="text-xs text-muted-foreground">
+            The client sees this file in their Loss Run Library. Totals there come from their
+            claims.
+          </p>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
           <Button
             className="bg-navy hover:bg-navy/90 text-navy-foreground"
             disabled={!file || !Number(form.year)}
@@ -562,10 +693,14 @@ function AccountActions({
 
       <Dialog open={resetOpen} onOpenChange={setResetOpen}>
         <DialogTrigger asChild>
-          <Button size="sm" variant="ghost">Reset Password</Button>
+          <Button size="sm" variant="ghost">
+            Reset Password
+          </Button>
         </DialogTrigger>
         <DialogContent>
-          <DialogHeader><DialogTitle>Reset Password for {email}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Reset Password for {email}</DialogTitle>
+          </DialogHeader>
           <div className="space-y-1">
             <Label>New Password</Label>
             <div className="flex gap-2">
@@ -574,14 +709,22 @@ function AccountActions({
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Min 8 characters"
               />
-              <Button type="button" variant="outline" onClick={() => setPassword(generateTempPassword())}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPassword(generateTempPassword())}
+              >
                 Generate
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">Share this with the client directly — it won't be shown again.</p>
+            <p className="text-xs text-muted-foreground">
+              Share this with the client directly — it won't be shown again.
+            </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setResetOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setResetOpen(false)}>
+              Cancel
+            </Button>
             <Button
               className="bg-navy hover:bg-navy/90 text-navy-foreground"
               disabled={password.length < 8}
@@ -599,13 +742,16 @@ function AccountActions({
 
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">Delete</Button>
+          <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+            Delete
+          </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete login for {email}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently removes their login. They won't be able to sign in again unless a new account is created for them.
+              This permanently removes their login. They won't be able to sign in again unless a new
+              account is created for them.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

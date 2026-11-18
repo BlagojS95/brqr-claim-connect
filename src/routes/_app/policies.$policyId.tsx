@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, Building2, Calendar, DollarSign, MapPin, Shield } from "lucide-react";
+import { ArrowLeft, Building2, Calendar, DollarSign, FileText, MapPin, Shield } from "lucide-react";
+import { EmptyState } from "@/components/states/empty-state";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import { incurredAmount, paidAmount, reserveAmount } from "@/lib/claim-metrics";
 import { formatDate } from "@/lib/dates";
 import { fetchPolicyDetail } from "@/lib/overview.functions";
@@ -9,6 +12,8 @@ import { POLICY_STATUS } from "@/lib/policy-status";
 import { queryKeys } from "@/lib/query-keys";
 import type { AgencyClaim } from "@/lib/overview.types";
 import { StatusBadge } from "@/components/status-badge";
+import { TermLabel } from "@/components/glossary-tip";
+import type { GlossaryTerm } from "@/lib/glossary";
 
 // One policy and every claim against it (fix 42). The totals come from the
 // server (fetchPolicyDetail); this page only shows them.
@@ -27,7 +32,7 @@ const fmt = (n: number) =>
 function PolicyDetailPage() {
   const { policyId } = Route.useParams();
   const getPolicy = useServerFn(fetchPolicyDetail);
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.policy(policyId),
     queryFn: () => getPolicy({ data: { policyId } }),
   });
@@ -37,11 +42,19 @@ function PolicyDetailPage() {
       to="/policies"
       className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-navy"
     >
-      <ArrowLeft className="h-4 w-4" /> Back to policies
+      <ArrowLeft className="h-4 w-4" aria-hidden /> Back to policies
     </Link>
   );
 
-  if (isLoading) return <div className="text-muted-foreground">Loading…</div>;
+  if (isLoading) return <LoadingSkeleton variant="detail" label="Loading policy" />;
+  if (isError) {
+    return (
+      <div className="space-y-4">
+        {back}
+        <ErrorState title="We couldn't load this policy" error={error} onRetry={refetch} />
+      </div>
+    );
+  }
   if (!data) {
     return (
       <div className="space-y-4">
@@ -61,7 +74,7 @@ function PolicyDetailPage() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-md bg-navy/5 flex items-center justify-center">
-            <Shield className="h-5 w-5 text-navy" />
+            <Shield className="h-5 w-5 text-navy" aria-hidden />
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-navy">
@@ -71,7 +84,7 @@ function PolicyDetailPage() {
           </div>
         </div>
         <span
-          className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full border ${
+          className={`text-[0.75rem] uppercase tracking-wide px-2 py-1 rounded-full border ${
             active
               ? "bg-emerald-50 text-emerald-700 border-emerald-200"
               : "bg-slate-100 text-slate-600 border-slate-200"
@@ -87,7 +100,7 @@ function PolicyDetailPage() {
           label="Carrier"
           value={
             <span className="inline-flex items-center gap-2">
-              <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+              <Building2 className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
               {policy.carrier ?? "—"}
             </span>
           }
@@ -96,7 +109,7 @@ function PolicyDetailPage() {
           label="Term"
           value={
             <span className="inline-flex items-center gap-2">
-              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
               {formatDate(policy.effective_date)} → {formatDate(policy.expiry_date)}
             </span>
           }
@@ -105,7 +118,7 @@ function PolicyDetailPage() {
           label="Premium"
           value={
             <span className="inline-flex items-center gap-2">
-              <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+              <DollarSign className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
               {policy.premium == null ? "—" : fmt(Number(policy.premium))}
             </span>
           }
@@ -115,7 +128,7 @@ function PolicyDetailPage() {
             label="Location"
             value={
               <span className="inline-flex items-center gap-2">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                <MapPin className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
                 {policy.location_name}
               </span>
             }
@@ -126,9 +139,9 @@ function PolicyDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Stat label="Claims" value={String(totals.claims)} />
         <Stat label="Open" value={String(totals.open)} />
-        <Stat label="Paid" value={fmt(totals.paid)} />
-        <Stat label="Reserve" value={fmt(totals.reserve)} />
-        <Stat label="Incurred" value={fmt(totals.incurred)} sub="Paid + reserve" />
+        <Stat label="Paid" term="paid" value={fmt(totals.paid)} />
+        <Stat label="Reserve" term="reserve" value={fmt(totals.reserve)} />
+        <Stat label="Incurred" term="incurred" value={fmt(totals.incurred)} sub="Paid + reserve" />
       </div>
 
       <section className="rounded-lg border border-border bg-card overflow-hidden">
@@ -136,7 +149,12 @@ function PolicyDetailPage() {
           Claims against this policy
         </h2>
         {claims.length === 0 ? (
-          <p className="p-5 text-sm text-muted-foreground">No claims against this policy.</p>
+          <EmptyState
+            compact
+            icon={FileText}
+            title="No claims against this policy"
+            text="That is good news. Claims you report on this policy will appear here."
+          />
         ) : (
           <>
             <ClaimsTable claims={claims} totals={totals} />
@@ -228,7 +246,7 @@ function ClaimCards({ claims }: { claims: AgencyClaim[] }) {
           >
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium text-navy">{formatDate(c.date_of_loss)}</span>
-              <StatusBadge status={c.status} />
+              <StatusBadge status={c.status} inLink />
             </div>
             <div className="flex items-center justify-between gap-2 text-sm">
               <span>{c.claim_type}</span>
@@ -264,10 +282,22 @@ function Info({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Stat({
+  label,
+  value,
+  sub,
+  term,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  term?: GlossaryTerm;
+}) {
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <div className="text-xs text-muted-foreground uppercase tracking-wide">{label}</div>
+      <div className="text-xs text-muted-foreground uppercase tracking-wide">
+        {term ? <TermLabel term={term}>{label}</TermLabel> : label}
+      </div>
       <div className="text-xl md:text-2xl font-bold text-navy mt-1">{value}</div>
       {sub && <div className="text-xs mt-1 text-muted-foreground">{sub}</div>}
     </div>

@@ -3,6 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useMemo } from "react";
 import { LineChart as LineIcon } from "lucide-react";
+import { EmptyState } from "@/components/states/empty-state";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import { avgClosedCost, claimTotals } from "@/lib/claim-metrics";
 import { formatDate, todayIso } from "@/lib/dates";
 import type { ClaimLinkFilter } from "@/lib/insights-breakdowns";
@@ -39,6 +42,10 @@ import { LargestOpenClaims } from "@/components/insights/largest-open-claims";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GlossaryTip, TermLabel } from "@/components/glossary-tip";
+import { DataFreshness } from "@/components/data-freshness";
+import { MEASURE_TERM } from "@/lib/glossary";
+import type { GlossaryTerm } from "@/lib/glossary";
 
 // recharts loads only when this page renders its charts (fix 27).
 const InsightsCharts = lazy(() => import("@/components/insights/insights-charts"));
@@ -96,7 +103,9 @@ function InsightsPage() {
   const period = search.period ?? DEFAULT_INSIGHTS_PERIOD;
 
   // "all" brings the policies too, for the policy-year period.
-  const { data, isLoading } = useQuery(overviewQueryOptions("all", getOverview));
+  const { data, isLoading, isError, error, refetch } = useQuery(
+    overviewQueryOptions("all", getOverview),
+  );
   const claims = useMemo(() => data?.claims ?? [], [data]);
   const policies = useMemo(() => data?.policies ?? [], [data]);
 
@@ -155,7 +164,7 @@ function InsightsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-navy flex items-center gap-2">
-          <LineIcon className="h-6 w-6 text-gold" /> Insights
+          <LineIcon className="h-6 w-6 text-gold" aria-hidden /> Insights
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Visual breakdown of claims directly from your data. Select any bar, point or slice to see
@@ -232,7 +241,10 @@ function InsightsPage() {
         )}
 
         <div className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-wide text-muted-foreground">Charts show</span>
+          <span className="text-xs uppercase tracking-wide text-muted-foreground inline-flex items-center gap-1">
+            Charts show
+            {MEASURE_TERM[measure] && <GlossaryTip term={MEASURE_TERM[measure]} />}
+          </span>
           <Tabs
             value={measure}
             onValueChange={(value) => {
@@ -284,11 +296,13 @@ function InsightsPage() {
         <Stat label="Closed Claims" value={String(totals.closed)} sub={periodText} />
         <Stat
           label="Total Paid"
+          term="paid"
           value={fmt(totals.paid)}
           {...change(totals.paid, priorTotals?.paid)}
         />
         <Stat
           label="Total Incurred"
+          term="incurred"
           value={fmt(totals.incurred)}
           {...change(totals.incurred, priorTotals?.incurred)}
         />
@@ -300,8 +314,19 @@ function InsightsPage() {
             : change(avgClosed, priorAvgClosed))}
         />
       </div>
+      <DataFreshness claims={current} />
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {isLoading && <LoadingSkeleton variant="card" rows={3} label="Loading insights" />}
+      {isError && (
+        <ErrorState title="We couldn't load your insights" error={error} onRetry={refetch} />
+      )}
+      {!isLoading && !isError && claims.length === 0 && (
+        <EmptyState
+          icon={LineIcon}
+          title="No claims to chart yet"
+          text="Charts appear here once claims are on file."
+        />
+      )}
 
       <Suspense fallback={<ChartsPlaceholder cards={INSIGHTS_CARDS} measure={measure} />}>
         <InsightsCharts
@@ -325,19 +350,24 @@ function Stat({
   text,
   sub,
   tone = "neutral",
+  term,
 }: {
   label: string;
   value: string;
   text?: string;
   sub?: string;
   tone?: "up" | "down" | "neutral";
+  /** Plain-English "?" help (fix 49). */
+  term?: GlossaryTerm;
 }) {
   const toneClass =
     tone === "up" ? "text-red-600" : tone === "down" ? "text-emerald-600" : "text-muted-foreground";
   const line = text ?? sub;
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <div className="text-xs text-muted-foreground uppercase tracking-wide">{label}</div>
+      <div className="text-xs text-muted-foreground uppercase tracking-wide">
+        {term ? <TermLabel term={term}>{label}</TermLabel> : label}
+      </div>
       <div className="text-2xl font-bold text-navy mt-1">{value}</div>
       {line && <div className={`text-xs mt-1 font-medium ${toneClass}`}>{line}</div>}
     </div>

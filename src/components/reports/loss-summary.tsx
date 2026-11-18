@@ -2,6 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { BarChart3 } from "lucide-react";
+import { EmptyState } from "@/components/states/empty-state";
+import { ErrorState } from "@/components/states/error-state";
+import { LoadingSkeleton } from "@/components/states/loading-skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { CLIENT_USER_ROLE } from "@/lib/client-users";
 import { formatDate, todayIso } from "@/lib/dates";
@@ -22,6 +25,8 @@ import { createLossSummaryShare } from "@/lib/shared-reports.functions";
 import { SHARED_REPORT_KIND } from "@/lib/shared-reports";
 import { LossSummaryExport } from "@/components/reports/loss-summary-export";
 import { LossSummaryTable } from "@/components/reports/loss-summary-table";
+import { GlossaryTip } from "@/components/glossary-tip";
+import { DataFreshness } from "@/components/data-freshness";
 import { ShareReportButton, SharedLinksList } from "@/components/reports/share-links";
 
 const ALL = "";
@@ -37,7 +42,13 @@ export function LossSummary() {
   const getOverview = useServerFn(fetchAgencyOverview);
   const share = useServerFn(createLossSummaryShare);
 
-  const { data: claims = [], isLoading } = useQuery({
+  const {
+    data: claims = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     ...overviewQueryOptions("claims", getOverview),
     select: (overview) => overview.claims,
   });
@@ -77,10 +88,11 @@ export function LossSummary() {
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-xl md:text-2xl font-bold text-navy flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-gold" /> Loss Summary
+            <BarChart3 className="h-6 w-6 text-gold" aria-hidden /> Loss Summary
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Every claim by year and line of business, valued as of {formatDate(todayIso())}.
+            Every claim by year and line of business, valued as of {formatDate(todayIso())}.{" "}
+            <GlossaryTip term="valuationDate" />
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -164,11 +176,21 @@ export function LossSummary() {
         </select>
       </div>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
-      {!isLoading && summary.totals.claims === 0 ? (
-        <p className="text-sm text-muted-foreground">No claims match these filters.</p>
+      {isLoading && <LoadingSkeleton variant="list" label="Loading the loss summary" />}
+      {isError && (
+        <ErrorState title="We couldn't load the loss summary" error={error} onRetry={refetch} />
+      )}
+      {!isLoading && !isError && <DataFreshness claims={clientClaims} />}
+      {!isLoading && !isError && summary.totals.claims === 0 ? (
+        <EmptyState
+          compact
+          icon={BarChart3}
+          title="No claims match these filters"
+          text="Change or clear a filter above to see more."
+        />
       ) : (
-        !isLoading && (
+        !isLoading &&
+        !isError && (
           <LossSummaryTable
             summary={summary}
             sort={sort}

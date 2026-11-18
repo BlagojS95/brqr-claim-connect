@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeNavPath, parseReportTab } from "@/lib/navigation";
+import { activeNavPath, landingPath, parseReportTab, STAFF_QUEUE_PATH } from "@/lib/navigation";
 
 const NAV = [
   "/home",
@@ -35,6 +35,19 @@ describe("activeNavPath", () => {
 
   it("returns null when nothing matches", () => {
     expect(activeNavPath("/login", NAV)).toBeNull();
+  });
+
+  it("highlights the work queue, not Admin, on /admin/queue", () => {
+    const withQueue = [...NAV, STAFF_QUEUE_PATH];
+    expect(activeNavPath("/admin/queue", withQueue)).toBe("/admin/queue");
+    expect(activeNavPath("/admin", withQueue)).toBe("/admin");
+  });
+});
+
+describe("landingPath", () => {
+  it("sends agency staff to the work queue and clients to Home", () => {
+    expect(landingPath(true)).toBe("/admin/queue");
+    expect(landingPath(false)).toBe("/home");
   });
 });
 
