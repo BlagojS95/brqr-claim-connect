@@ -10,9 +10,15 @@ export function landingPath(isAgencyAdmin: boolean): typeof HOME_PATH | typeof S
   return isAgencyAdmin ? STAFF_QUEUE_PATH : HOME_PATH;
 }
 
+// Loss Runs have their own page and nav item, out of Reports (Dmitry, 16 Nov).
+export const LOSS_RUNS_PATH = "/loss-runs";
+
+// Reports used to have a Loss Runs tab; old /reports?tab=loss-runs links
+// now redirect to LOSS_RUNS_PATH.
+export const LEGACY_LOSS_RUNS_TAB = "loss-runs";
+
 export const REPORT_TABS = {
   lossSummary: "loss-summary",
-  lossRuns: "loss-runs",
   renewalPack: "renewal-pack",
   executiveReport: "executive-report",
 } as const;

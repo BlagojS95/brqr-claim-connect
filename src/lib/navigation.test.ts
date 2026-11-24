@@ -9,6 +9,7 @@ const NAV = [
   "/policies",
   "/insights",
   "/reports",
+  "/loss-runs",
   "/admin",
 ];
 
@@ -17,6 +18,7 @@ describe("activeNavPath", () => {
     expect(activeNavPath("/home", NAV)).toBe("/home");
     expect(activeNavPath("/claims", NAV)).toBe("/claims");
     expect(activeNavPath("/reports", NAV)).toBe("/reports");
+    expect(activeNavPath("/loss-runs", NAV)).toBe("/loss-runs");
   });
 
   it("doesn't keep Claims active on Report New Claim or Incident Notice", () => {
@@ -55,7 +57,10 @@ describe("parseReportTab", () => {
   it("defaults to the loss summary", () => {
     expect(parseReportTab(undefined)).toBe("loss-summary");
     expect(parseReportTab("nonsense")).toBe("loss-summary");
-    expect(parseReportTab("loss-runs")).toBe("loss-runs");
+  });
+
+  it("no longer has a loss runs tab (Loss Runs is its own page)", () => {
+    expect(parseReportTab("loss-runs")).toBe("loss-summary");
   });
 
   it("knows the renewal pack tab", () => {

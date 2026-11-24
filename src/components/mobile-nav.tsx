@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   Bell,
   ChevronRight,
+  FileBarChart,
   FileText,
   LifeBuoy,
   FolderArchive,
@@ -20,12 +21,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { HOME_PATH } from "@/lib/navigation";
+import { HOME_PATH, LOSS_RUNS_PATH } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
 // The mobile bottom bar (fix 23): Home, Claims, a raised Report button,
-// Policies and Reports. Report opens a sheet with the two ways to report, so
-// either form is one tap plus one choice from any page.
+// Reports and Loss Runs. Report opens a sheet with the two ways to report, so
+// either form is one tap plus one choice from any page. Policies is in the
+// Menu. Location users (fix 32) have no loss runs, so they get Policies there.
 
 export const REPORT_NEW_CLAIM_PATH = "/claims/new";
 export const INCIDENT_NOTICE_PATH = "/claims/notice";
@@ -52,16 +54,28 @@ const LEFT_ITEMS = [
   { to: "/claims", label: "Claims", icon: FileText },
 ] as const;
 
-const RIGHT_ITEMS = [
-  { to: "/policies", label: "Policies", icon: Shield },
-  { to: "/reports", label: "Reports", icon: FolderArchive },
-] as const;
+const REPORTS_ITEM = { to: "/reports", label: "Reports", icon: FileBarChart } as const;
+const LOSS_RUNS_ITEM = { to: LOSS_RUNS_PATH, label: "Loss Runs", icon: FolderArchive } as const;
+const POLICIES_ITEM = { to: "/policies", label: "Policies", icon: Shield } as const;
 
-type BarItem = (typeof LEFT_ITEMS)[number] | (typeof RIGHT_ITEMS)[number];
+type BarItem =
+  | (typeof LEFT_ITEMS)[number]
+  | typeof REPORTS_ITEM
+  | typeof LOSS_RUNS_ITEM
+  | typeof POLICIES_ITEM;
 
 /** `activePath` is the one highlighted nav path from activeNavPath. */
-export function MobileBottomNav({ activePath }: { activePath: string | null }) {
+export function MobileBottomNav({
+  activePath,
+  showLossRuns,
+}: {
+  activePath: string | null;
+  showLossRuns: boolean;
+}) {
   const [reportOpen, setReportOpen] = useState(false);
+  const rightItems: BarItem[] = showLossRuns
+    ? [REPORTS_ITEM, LOSS_RUNS_ITEM]
+    : [POLICIES_ITEM, REPORTS_ITEM];
   const reportActive = activePath !== null && REPORT_PATHS.includes(activePath);
 
   const barLink = (item: BarItem) => {
@@ -146,7 +160,7 @@ export function MobileBottomNav({ activePath }: { activePath: string | null }) {
         </SheetContent>
       </Sheet>
 
-      {RIGHT_ITEMS.map(barLink)}
+      {rightItems.map(barLink)}
     </nav>
   );
 }

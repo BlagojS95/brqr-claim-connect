@@ -9,15 +9,17 @@ import {
   LogOut,
   Shield,
   FolderArchive,
+  FileBarChart,
   LineChart,
   Settings,
   ListChecks,
 } from "lucide-react";
+import { CLIENT_USER_ROLE } from "@/lib/client-users";
 import claimsQrLogo from "@/assets/claims-qr-logo-white.png";
 import { supabase } from "@/integrations/supabase/client";
 import { clearSessionTimes } from "@/lib/session-expiry";
 import { cn } from "@/lib/utils";
-import { activeNavPath, HOME_PATH, STAFF_QUEUE_PATH } from "@/lib/navigation";
+import { activeNavPath, HOME_PATH, LOSS_RUNS_PATH, STAFF_QUEUE_PATH } from "@/lib/navigation";
 import {
   INCIDENT_NOTICE_PATH,
   MobileBottomNav,
@@ -34,6 +36,8 @@ interface NavItem {
   label: string;
   icon: typeof Home;
   adminOnly?: boolean;
+  /** Company-wide pages; hidden for location users (fix 32). */
+  companyOnly?: boolean;
 }
 
 const items: NavItem[] = [
@@ -45,7 +49,8 @@ const items: NavItem[] = [
   { to: INCIDENT_NOTICE_PATH, label: "Incident Notice Only", icon: Bell },
   { to: "/policies", label: "Policies", icon: Shield },
   { to: "/insights", label: "Insights", icon: LineChart },
-  { to: "/reports", label: "Reports", icon: FolderArchive },
+  { to: "/reports", label: "Reports", icon: FileBarChart },
+  { to: LOSS_RUNS_PATH, label: "Loss Runs", icon: FolderArchive, companyOnly: true },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/admin", label: "Admin", icon: Users, adminOnly: true },
 ];
@@ -53,11 +58,14 @@ const items: NavItem[] = [
 export function AppShell({ children, role }: { children: React.ReactNode; role: AppRole | null }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const { viewingAs } = useAuth();
+  const { viewingAs, clientRole } = useAuth();
+  const companyUser = clientRole !== CLIENT_USER_ROLE.location;
   // Client logins only (and staff viewing as a client); null otherwise (fix 59).
   const advocate = useClaimsAdvocate();
   const [helpOpen, setHelpOpen] = useState(false);
-  const visible = items.filter((i) => !i.adminOnly || role === "agency_admin");
+  const visible = items.filter(
+    (i) => (!i.adminOnly || role === "agency_admin") && (!i.companyOnly || companyUser),
+  );
   const activePath = activeNavPath(
     pathname,
     visible.map((i) => i.to),
@@ -132,7 +140,7 @@ export function AppShell({ children, role }: { children: React.ReactNode; role: 
         <div className="flex-1 p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto">{children}</div>
 
         {/* Mobile bottom nav (fix 23) */}
-        <MobileBottomNav activePath={activePath} />
+        <MobileBottomNav activePath={activePath} showLossRuns={companyUser} />
       </main>
     </div>
   );

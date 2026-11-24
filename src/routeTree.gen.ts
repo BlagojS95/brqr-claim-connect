@@ -14,11 +14,11 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as LossRunsRouteImport } from './routes/loss-runs'
 import { Route as VisualGraphsRouteImport } from './routes/visual-graphs'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppInsightsRouteImport } from './routes/_app/insights'
+import { Route as AppLossRunsRouteImport } from './routes/_app/loss-runs'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as SharedTokenRouteImport } from './routes/shared.$token'
@@ -57,11 +57,6 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LossRunsRoute = LossRunsRouteImport.update({
-  id: '/loss-runs',
-  path: '/loss-runs',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const VisualGraphsRoute = VisualGraphsRouteImport.update({
   id: '/visual-graphs',
   path: '/visual-graphs',
@@ -80,6 +75,11 @@ const AppHomeRoute = AppHomeRouteImport.update({
 const AppInsightsRoute = AppInsightsRouteImport.update({
   id: '/insights',
   path: '/insights',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLossRunsRoute = AppLossRunsRouteImport.update({
+  id: '/loss-runs',
+  path: '/loss-runs',
   getParentRoute: () => AppRoute,
 } as any)
 const AppReportsRoute = AppReportsRouteImport.update({
@@ -153,11 +153,11 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AnalyticsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
-  '/loss-runs': typeof LossRunsRoute
   '/visual-graphs': typeof VisualGraphsRoute
   '/admin': typeof AppAdminRoute
   '/home': typeof AppHomeRoute
   '/insights': typeof AppInsightsRoute
+  '/loss-runs': typeof AppLossRunsRoute
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/shared/$token': typeof SharedTokenRoute
@@ -177,11 +177,11 @@ export interface FileRoutesByTo {
   '/analytics': typeof AnalyticsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
-  '/loss-runs': typeof LossRunsRoute
   '/visual-graphs': typeof VisualGraphsRoute
   '/admin': typeof AppAdminRoute
   '/home': typeof AppHomeRoute
   '/insights': typeof AppInsightsRoute
+  '/loss-runs': typeof AppLossRunsRoute
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/shared/$token': typeof SharedTokenRoute
@@ -203,11 +203,11 @@ export interface FileRoutesById {
   '/analytics': typeof AnalyticsRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
-  '/loss-runs': typeof LossRunsRoute
   '/visual-graphs': typeof VisualGraphsRoute
   '/_app/admin': typeof AppAdminRoute
   '/_app/home': typeof AppHomeRoute
   '/_app/insights': typeof AppInsightsRoute
+  '/_app/loss-runs': typeof AppLossRunsRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/shared/$token': typeof SharedTokenRoute
@@ -229,11 +229,11 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/dashboard'
     | '/login'
-    | '/loss-runs'
     | '/visual-graphs'
     | '/admin'
     | '/home'
     | '/insights'
+    | '/loss-runs'
     | '/reports'
     | '/settings'
     | '/shared/$token'
@@ -253,11 +253,11 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/dashboard'
     | '/login'
-    | '/loss-runs'
     | '/visual-graphs'
     | '/admin'
     | '/home'
     | '/insights'
+    | '/loss-runs'
     | '/reports'
     | '/settings'
     | '/shared/$token'
@@ -278,11 +278,11 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/dashboard'
     | '/login'
-    | '/loss-runs'
     | '/visual-graphs'
     | '/_app/admin'
     | '/_app/home'
     | '/_app/insights'
+    | '/_app/loss-runs'
     | '/_app/reports'
     | '/_app/settings'
     | '/shared/$token'
@@ -304,7 +304,6 @@ export interface RootRouteChildren {
   AnalyticsRoute: typeof AnalyticsRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
-  LossRunsRoute: typeof LossRunsRoute
   VisualGraphsRoute: typeof VisualGraphsRoute
   SharedTokenRoute: typeof SharedTokenRoute
   ApiCronMonthlyReportRoute: typeof ApiCronMonthlyReportRoute
@@ -348,13 +347,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/loss-runs': {
-      id: '/loss-runs'
-      path: '/loss-runs'
-      fullPath: '/loss-runs'
-      preLoaderRoute: typeof LossRunsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/visual-graphs': {
       id: '/visual-graphs'
       path: '/visual-graphs'
@@ -381,6 +373,13 @@ declare module '@tanstack/react-router' {
       path: '/insights'
       fullPath: '/insights'
       preLoaderRoute: typeof AppInsightsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/loss-runs': {
+      id: '/_app/loss-runs'
+      path: '/loss-runs'
+      fullPath: '/loss-runs'
+      preLoaderRoute: typeof AppLossRunsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/reports': {
@@ -481,6 +480,7 @@ interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRoute
   AppHomeRoute: typeof AppHomeRoute
   AppInsightsRoute: typeof AppInsightsRoute
+  AppLossRunsRoute: typeof AppLossRunsRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppAdminImportRoute: typeof AppAdminImportRoute
@@ -497,6 +497,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRoute,
   AppHomeRoute: AppHomeRoute,
   AppInsightsRoute: AppInsightsRoute,
+  AppLossRunsRoute: AppLossRunsRoute,
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppAdminImportRoute: AppAdminImportRoute,
@@ -517,7 +518,6 @@ const rootRouteChildren: RootRouteChildren = {
   AnalyticsRoute: AnalyticsRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
-  LossRunsRoute: LossRunsRoute,
   VisualGraphsRoute: VisualGraphsRoute,
   SharedTokenRoute: SharedTokenRoute,
   ApiCronMonthlyReportRoute: ApiCronMonthlyReportRoute,

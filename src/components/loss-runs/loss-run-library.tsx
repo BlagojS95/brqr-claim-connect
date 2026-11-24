@@ -35,7 +35,7 @@ const fmt = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-// The "Loss Runs" tab on /reports (formerly the Loss Runs page).
+// The Loss Runs page (/loss-runs): library, requests and the InsurGrid embed.
 export function LossRunLibrary() {
   const { clientId, role } = useAuth();
   const qc = useQueryClient();
@@ -167,12 +167,6 @@ export function LossRunLibrary() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <p className="text-sm text-muted-foreground">
-          Access historical loss run reports and request new ones from your agent.
-        </p>
-      </div>
-
       {/* Holder */}
       <section className="rounded-lg border border-border bg-card">
         <div className="p-5 border-b border-border flex items-center gap-2">
